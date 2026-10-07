@@ -77,7 +77,7 @@ export default function SongRow({
     <div
       onClick={handlePlay}
       onDoubleClick={handlePlay}
-      className={`group flex items-center justify-between px-3 sm:px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
+      className={`group flex items-center justify-between gap-1 px-2 sm:px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
         isCurrent
           ? "bg-blue-50/90 border border-blue-200 shadow-xs"
           : "hover:bg-slate-100/80 border border-transparent"
@@ -160,14 +160,14 @@ export default function SongRow({
             e.stopPropagation();
             toggleFavorite(song.id);
           }}
-          className="p-1.5 rounded-full text-slate-400 hover:text-rose-500 transition-colors"
+          className="min-h-10 min-w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-500 transition-colors"
           title={song.isFavorite ? "Remove favorite" : "Add to favorites"}
         >
           <Heart
             className={`w-4 h-4 ${
               song.isFavorite
                 ? "fill-rose-500 text-rose-500"
-                : "text-slate-400 opacity-0 group-hover:opacity-100"
+                : "text-slate-400 md:opacity-0 md:group-hover:opacity-100"
             }`}
           />
         </button>
@@ -175,7 +175,7 @@ export default function SongRow({
         {/* Add to Playlist button */}
         <button
           onClick={handleAddToPlaylist}
-          className="p-1.5 rounded-full text-slate-400 hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100"
+          className="min-h-10 min-w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-blue-600 transition-colors md:opacity-0 md:group-hover:opacity-100"
           title="Add to playlist"
         >
           <Plus className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function SongRow({
         {song.isAuthorizedDownload && (
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 transition-colors opacity-0 group-hover:opacity-100"
+            className="hidden md:flex p-1.5 rounded-full text-slate-400 hover:text-slate-800 transition-colors md:opacity-0 md:group-hover:opacity-100"
             title="Download song"
           >
             <Download className="w-4 h-4" />
@@ -199,7 +199,7 @@ export default function SongRow({
               e.stopPropagation();
               onRemoveFromPlaylist();
             }}
-            className="p-1.5 rounded-full text-slate-400 hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100"
+            className="min-h-10 min-w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-600 transition-colors md:opacity-0 md:group-hover:opacity-100"
             title="Remove from playlist"
           >
             <Trash2 className="w-4 h-4" />
@@ -211,7 +211,7 @@ export default function SongRow({
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
-              className="p-1.5 rounded-full text-slate-400 hover:text-slate-800 transition-colors opacity-0 group-hover:opacity-100"
+              className="min-h-10 min-w-9 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-800 transition-colors md:opacity-0 md:group-hover:opacity-100"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -238,7 +238,7 @@ export default function SongRow({
         )}
 
         {/* Track Duration */}
-        <span className="w-12 text-right text-xs font-mono text-slate-400 tabular-nums">
+        <span className="w-10 sm:w-12 text-right text-[10px] sm:text-xs font-mono text-slate-400 tabular-nums">
           {formatDuration(song.duration)}
         </span>
       </div>

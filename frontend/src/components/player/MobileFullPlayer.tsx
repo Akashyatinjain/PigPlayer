@@ -62,7 +62,7 @@ export default function MobileFullPlayer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#07080b] flex flex-col justify-between p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in zoom-in-95 duration-200">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
@@ -95,8 +95,8 @@ export default function MobileFullPlayer() {
       </div>
 
       {/* Album Artwork & Vinyl effect */}
-      <div className="my-auto py-6 flex items-center justify-center">
-        <div className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-2xl overflow-hidden bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
+      <div className="my-auto py-5 sm:py-6 flex items-center justify-center">
+        <div className="relative h-[min(68vw,18rem)] w-[min(68vw,18rem)] sm:h-80 sm:w-80 rounded-2xl overflow-hidden bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
           {currentSong.coverUrl ? (
             <Image
               src={currentSong.coverUrl}
@@ -140,21 +140,17 @@ export default function MobileFullPlayer() {
 
         {/* Scrubber */}
         <div className="space-y-1">
-          <div
-            className="relative py-2 cursor-pointer"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-              seek(pct * duration);
-            }}
-          >
-            <div className="w-full h-1.5 bg-[#1b1f2b] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-600 to-indigo-600"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
+          <input
+            type="range"
+            min={0}
+            max={duration || 0}
+            step={1}
+            value={Math.min(currentTime, duration || 0)}
+            onChange={(e) => seek(Number(e.target.value))}
+            aria-label="Seek through song"
+            className="player-seek w-full accent-blue-600"
+            style={{ "--seek-progress": `${progressPercent}%` } as React.CSSProperties}
+          />
 
           <div className="flex justify-between text-xs font-mono text-gray-400">
             <span>{formatDuration(currentTime)}</span>

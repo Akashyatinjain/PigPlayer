@@ -23,7 +23,7 @@ export default function TopBar() {
   }, [initAuth]);
 
   return (
-    <header className="h-16 px-4 md:px-8 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between gap-4 sticky top-0 z-30 shadow-xs">
+    <header className="h-14 sm:h-16 shrink-0 px-3 sm:px-4 md:px-8 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30 shadow-xs">
       {/* Search Bar */}
       <div className="relative flex-1 max-w-md">
         <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -36,7 +36,7 @@ export default function TopBar() {
               setActiveTab("songs");
             }
           }}
-          placeholder="Search songs, artists, albums..."
+          placeholder="Search your music..."
           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:bg-white text-sm text-slate-900 placeholder-slate-400 pl-10 pr-9 py-2 rounded-full outline-none transition-all duration-150"
         />
         {searchQuery && (
@@ -55,16 +55,17 @@ export default function TopBar() {
         {/* Upload Song Button */}
         <button
           onClick={() => setIsUploadOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-full transition-all duration-150 shadow-sm shadow-blue-500/25"
+          aria-label="Upload music"
+          className="flex shrink-0 items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-semibold text-xs sm:text-sm rounded-full transition-all duration-150 shadow-sm shadow-blue-500/25"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Upload</span>
+          <span className="hidden sm:inline">Upload</span>
         </button>
 
         {/* Queue Drawer Button */}
         <button
           onClick={toggleQueueOpen}
-          className={`relative p-2 sm:p-2.5 rounded-full border transition-all duration-150 ${
+          className={`relative min-h-10 min-w-10 flex items-center justify-center rounded-full border transition-all duration-150 ${
             isQueueOpen
               ? "bg-blue-50 border-blue-600 text-blue-600"
               : "bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300"

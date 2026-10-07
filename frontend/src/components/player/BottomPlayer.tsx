@@ -52,7 +52,7 @@ export default function BottomPlayer() {
 
   if (!currentSong) {
     return (
-      <footer className="h-20 sm:h-22 bg-white border-t border-slate-200 px-4 md:px-8 flex items-center justify-between text-slate-500 select-none shadow-xs">
+      <footer className="hidden md:flex h-20 sm:h-22 bg-white border-t border-slate-200 px-4 md:px-8 items-center justify-between text-slate-500 select-none shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
             <Music className="w-5 h-5" />
@@ -85,7 +85,36 @@ export default function BottomPlayer() {
   };
 
   return (
-    <footer className="h-20 sm:h-24 bg-white border-t border-slate-200 px-3 sm:px-6 md:px-8 flex items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-lg">
+    <>
+    <div className="md:hidden shrink-0 relative flex h-[4.25rem] items-center gap-3 border-t border-slate-200 bg-white px-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)]">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-100">
+        <div className="h-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
+      </div>
+      <button
+        onClick={toggleExpandedPlayer}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        aria-label={`Open player for ${currentSong.title}`}
+      >
+        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+          {currentSong.coverUrl ? (
+            <Image src={currentSong.coverUrl} alt="" fill unoptimized className="object-cover" />
+          ) : (
+            <span className="flex h-full items-center justify-center text-slate-400"><Music className="h-5 w-5" /></span>
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-slate-900">{currentSong.title}</span>
+          <span className="block truncate text-xs text-slate-500">{currentSong.artist}</span>
+        </span>
+      </button>
+      <button onClick={togglePlayPause} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-900 active:bg-slate-100" aria-label={isPlaying ? "Pause" : "Play"}>
+        {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
+      </button>
+      <button onClick={nextSong} className="flex h-11 w-10 shrink-0 items-center justify-center rounded-full text-slate-700 active:bg-slate-100" aria-label="Next song">
+        <SkipForward className="h-5 w-5 fill-current" />
+      </button>
+    </div>
+    <footer className="hidden md:flex h-20 sm:h-24 bg-white border-t border-slate-200 px-3 sm:px-6 md:px-8 items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-lg">
       {/* LEFT: Current Track Info */}
       <div className="flex items-center gap-3 min-w-0 max-w-[200px] sm:max-w-[260px] md:max-w-[300px]">
         {/* Cover Art */}
@@ -321,5 +350,6 @@ export default function BottomPlayer() {
         </div>
       </div>
     </footer>
+    </>
   );
 }

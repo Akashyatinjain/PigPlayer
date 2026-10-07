@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Home, Music2, Heart, Library } from "lucide-react";
+import { Home, Music2, Heart, Library, Settings } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 
 export default function MobileNav() {
@@ -9,7 +9,7 @@ export default function MobileNav() {
     useLibrary();
 
   interface MobileNavItem {
-    id: "home" | "songs" | "favorites" | "playlists";
+    id: "home" | "songs" | "favorites" | "playlists" | "settings";
     label: string;
     icon: typeof Home;
     count?: number;
@@ -20,10 +20,11 @@ export default function MobileNav() {
     { id: "songs", label: "Songs", icon: Music2, count: songs.length },
     { id: "favorites", label: "Liked", icon: Heart, count: favorites.length },
     { id: "playlists", label: "Playlists", icon: Library },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
-    <nav className="md:hidden h-16 bg-white border-t border-slate-200 px-4 flex items-center justify-around sticky bottom-0 z-50 shadow-md">
+    <nav aria-label="Main navigation" className="md:hidden shrink-0 bg-white/95 backdrop-blur border-t border-slate-200 px-2 pt-1 flex items-center justify-around z-50 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] mobile-safe-bottom">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeTab === item.id;
@@ -36,7 +37,8 @@ export default function MobileNav() {
                 setSelectedPlaylistId(null);
               }
             }}
-            className={`flex flex-col items-center justify-center gap-1 flex-1 py-1 transition-all ${
+            aria-current={isActive ? "page" : undefined}
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 flex-1 rounded-xl transition-all active:scale-95 ${
               isActive ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-slate-900"
             }`}
           >
@@ -48,7 +50,7 @@ export default function MobileNav() {
                 </span>
               )}
             </div>
-            <span className="text-[10px] tracking-tight">
+            <span className="text-[10px] leading-none tracking-tight">
               {item.label}
             </span>
           </button>
