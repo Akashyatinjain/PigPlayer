@@ -90,6 +90,12 @@ export function streamFileWithRange(
 export class MediaService {
   static async streamAudio(req: Request, res: Response) {
     const song = await SongService.getSongRaw(req.params.id as string);
+    if (!song.audioRelativePath) {
+      if (song.audioUrl) {
+        return res.redirect(song.audioUrl);
+      }
+      throw new AppError('Audio file not found', 404);
+    }
     const absolutePath = StorageService.getAudioAbsolutePath(song.audioRelativePath);
     const ext = path.extname(absolutePath).toLowerCase();
     const mime = song.mimeType || MIME_BY_EXT[ext] || 'audio/mpeg';

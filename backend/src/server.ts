@@ -13,8 +13,7 @@ async function main() {
 
   try {
     await prisma.$connect();
-    logger.info('Database connected');
-    logger.info(`SQLite path: ${DB_PATH}`);
+    logger.info('Database connected successfully');
   } catch (err) {
     logger.error('Database connection failed', err);
     process.exit(1);

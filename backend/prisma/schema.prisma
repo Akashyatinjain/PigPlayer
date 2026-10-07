@@ -1,11 +1,11 @@
-// Soundify Backend - Prisma Schema for local SQLite
+// Soundify Backend - Prisma Schema for PostgreSQL (Neon / Production)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -37,12 +37,10 @@ model Song {
   discNumber        Int?
   releaseYear       Int?
   composer          String?
-  // Relative paths under data/ (e.g. audio/song_xxx.mp3)
   audioFileName     String?
-  audioRelativePath String
+  audioRelativePath String?
   coverFileName     String?
   coverRelativePath String?
-  // Legacy/API compatibility aliases resolved at runtime via stream endpoints
   audioUrl          String         @default("")
   coverUrl          String?
   mimeType          String?
@@ -94,8 +92,8 @@ model PlaylistSong {
 
 model Favorite {
   id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   songId    String
   song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())

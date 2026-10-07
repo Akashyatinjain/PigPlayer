@@ -205,7 +205,9 @@ export class SongService {
       throw new AppError('This song is not authorized for download.', 403);
     }
 
-    const absolutePath = StorageService.getAudioAbsolutePath(song.audioRelativePath);
+    const absolutePath = song.audioRelativePath
+      ? StorageService.getAudioAbsolutePath(song.audioRelativePath)
+      : song.audioUrl;
     const fileName =
       song.originalFileName ||
       song.audioFileName ||
