@@ -75,6 +75,17 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/backup', backupRoutes);
 
+// Compatibility aliases if client calls without /api
+app.use('/auth', authRoutes);
+app.use('/songs', songRoutes);
+app.use('/search', searchRoutes);
+app.use('/playlists', playlistRoutes);
+app.use('/favorites', favoriteRoutes);
+app.use('/history', historyRoutes);
+app.use('/upload', uploadRoutes);
+app.use('/backups', backupRoutes);
+app.use('/backup', backupRoutes);
+
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
