@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { offlineStorageService } from "@/services/offline-storage.service";
 
 export default function GlobalAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -26,27 +27,54 @@ export default function GlobalAudioPlayer() {
   // Track whether time update is internal or user-initiated seek
   const isSeekingRef = useRef(false);
 
-  // Synchronize song change
+  // Synchronize song change with IndexedDB offline fallback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (currentSong?.audioUrl) {
-      if (audio.src !== currentSong.audioUrl) {
-        audio.src = currentSong.audioUrl;
-        audio.load();
-      }
+    let isCancelled = false;
 
-      if (isPlaying) {
-        audio.play().catch((err) => {
-          console.warn("Autoplay was blocked or playback interrupted:", err);
-        });
-      }
+    if (currentSong) {
+      const loadAudioSource = async () => {
+        let srcToPlay = currentSong.audioUrl;
+
+        // If network is offline, or if current URL is missing or not a blob, try local IndexedDB
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+        if (isOffline || !srcToPlay || !srcToPlay.startsWith("blob:")) {
+          try {
+            const offlineUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
+            if (offlineUrl) {
+              srcToPlay = offlineUrl;
+            }
+          } catch {
+            // Keep default srcToPlay
+          }
+        }
+
+        if (isCancelled || !audio) return;
+
+        if (srcToPlay && audio.src !== srcToPlay) {
+          audio.src = srcToPlay;
+          audio.load();
+        }
+
+        if (isPlaying) {
+          audio.play().catch((err) => {
+            console.warn("Autoplay was blocked or playback interrupted:", err);
+          });
+        }
+      };
+
+      void loadAudioSource();
     } else {
       audio.pause();
       audio.removeAttribute("src");
     }
-  }, [currentSong?.id, currentSong?.audioUrl]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentSong, isPlaying]);
 
   // Synchronize play/pause
   useEffect(() => {
@@ -116,7 +144,6 @@ export default function GlobalAudioPlayer() {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore keystrokes when user is typing in inputs or textareas
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -192,8 +219,22 @@ export default function GlobalAudioPlayer() {
           nextSong();
         }
       }}
-      onError={(e) => {
-        console.error("Audio playback error:", e);
+      onError={async (e) => {
+        console.warn("Audio element network/source error, attempting offline storage fallback...", e);
+        if (currentSong?.id && audioRef.current) {
+          try {
+            const offlineUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
+            if (offlineUrl && audioRef.current.src !== offlineUrl) {
+              audioRef.current.src = offlineUrl;
+              audioRef.current.load();
+              if (isPlaying) {
+                audioRef.current.play().catch(() => {});
+              }
+            }
+          } catch (err) {
+            console.error("Offline fallback failed:", err);
+          }
+        }
       }}
     />
   );

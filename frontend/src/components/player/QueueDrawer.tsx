@@ -21,7 +21,9 @@ export default function QueueDrawer() {
   if (!isQueueOpen) return null;
 
   return (
-    <aside className="fixed inset-y-0 right-0 w-80 sm:w-96 bg-white border-l border-slate-200 z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+    <>
+    <button type="button" aria-label="Close queue" onClick={() => setQueueOpen(false)} className="fixed inset-0 z-40 bg-black/50" />
+    <aside aria-label="Play queue" className="mobile-safe-bottom fixed inset-x-0 bottom-0 top-auto max-h-[82dvh] w-full rounded-t-3xl bg-white border border-slate-200 z-50 flex flex-col shadow-2xl animate-in slide-in-from-bottom-4 duration-200 md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-full md:w-80 md:rounded-none md:animate-in md:slide-in-from-right">
       {/* Header */}
       <div className="p-5 border-b border-slate-200 flex items-center justify-between">
         <div>
@@ -36,6 +38,8 @@ export default function QueueDrawer() {
         <div className="flex items-center gap-1">
           {queue.length > 0 && (
             <button
+              type="button"
+              aria-label="Clear queue"
               onClick={clearQueue}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
               title="Clear queue"
@@ -44,6 +48,8 @@ export default function QueueDrawer() {
             </button>
           )}
           <button
+            type="button"
+            aria-label="Close queue"
             onClick={() => setQueueOpen(false)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
           >
@@ -123,7 +129,8 @@ export default function QueueDrawer() {
                       e.stopPropagation();
                       removeFromQueue(idx);
                     }}
-                    className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
+                    aria-label={`Remove ${song.title} from queue`}
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
                     title="Remove from queue"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -135,5 +142,6 @@ export default function QueueDrawer() {
         )}
       </div>
     </aside>
+    </>
   );
 }

@@ -6,10 +6,10 @@ export const historyService = {
   async getHistory(): Promise<PlayHistoryItem[]> {
     const res = await api.get('/history');
     const list = res.data.data || [];
-    return list.map((item: any) => ({
+    return list.map((item: Record<string, unknown> & { id?: string; songId?: string; playedAt?: string | Date }) => ({
       id: item.id || `${item.songId}-${item.playedAt}`,
-      songId: item.songId || item.id,
-      playedAt: item.playedAt,
+      songId: item.songId || item.id || "",
+      playedAt: item.playedAt || new Date(0),
       song: normalizeSong(item),
     }));
   },

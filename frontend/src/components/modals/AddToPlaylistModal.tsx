@@ -51,8 +51,8 @@ export default function AddToPlaylistModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-sm bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="mobile-safe-bottom w-full max-w-sm bg-white border border-slate-200 rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 md:zoom-in-95 duration-200">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-extrabold text-slate-900">Add to Playlist</h2>
@@ -61,8 +61,10 @@ export default function AddToPlaylistModal() {
             </p>
           </div>
           <button
+            type="button"
+            aria-label="Close add to playlist"
             onClick={() => setIsAddToPlaylistOpen(false)}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -85,7 +87,7 @@ export default function AddToPlaylistModal() {
                     key={pl.id}
                     onClick={() => handleAdd(pl.id)}
                     disabled={isLoading || isAdded}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs transition-all ${
+                    className={`w-full min-h-12 flex items-center justify-between p-3 rounded-xl text-left text-sm transition-all ${
                       isAdded
                         ? "bg-blue-50 text-blue-700 border border-blue-200"
                         : "hover:bg-slate-50 text-slate-700"

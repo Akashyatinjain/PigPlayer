@@ -14,11 +14,14 @@ import {
   History,
   Disc3,
   Users,
+  LogOut,
 } from "lucide-react";
 import { songService } from "@/services/song.service";
 import { backupService } from "@/services/backup.service";
 import { historyService } from "@/services/history.service";
 import { useLibrary } from "@/context/LibraryContext";
+import { useAuthStore } from "@/stores/auth-store";
+import Link from "next/link";
 
 interface LibraryStats {
   totalSongs: number;
@@ -39,6 +42,7 @@ function formatBytes(bytes: number) {
 
 export default function SettingsView() {
   const { refreshLibrary } = useLibrary();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [backups, setBackups] = useState<
     Array<{ fileName: string; size: number; createdAt: string }>
@@ -61,7 +65,7 @@ export default function SettingsView() {
   };
 
   useEffect(() => {
-    load();
+    void Promise.resolve().then(load);
   }, []);
 
   const run = async (key: string, fn: () => Promise<void>) => {
@@ -81,11 +85,25 @@ export default function SettingsView() {
   return (
     <div className="space-y-8 pb-10 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-extrabold text-[#090a0f] tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold text-[#090a0f] tracking-tight">Profile & settings</h1>
         <p className="text-sm text-slate-500 mt-1">
           Local library, backups, and storage — everything stays on this machine.
         </p>
       </div>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-blue-500">
+            {isAuthenticated && user ? user.name.charAt(0).toUpperCase() : "G"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-900">{isAuthenticated && user ? user.name : "Listening as guest"}</p>
+            <p className="truncate text-xs text-slate-500">{isAuthenticated && user ? user.email : "Your library stays on this device"}</p>
+          </div>
+          {isAuthenticated && <button type="button" onClick={() => logout()} className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900"><LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span></button>}
+          {!isAuthenticated && <Link href="/login" className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-blue-500 hover:bg-blue-50">Sign in</Link>}
+        </div>
+      </section>
 
       {message && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">

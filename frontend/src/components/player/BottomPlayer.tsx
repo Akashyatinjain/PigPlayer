@@ -18,6 +18,9 @@ import {
   ListMusic,
   Maximize2,
   Music,
+  ArrowDownToLine,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
@@ -46,13 +49,37 @@ export default function BottomPlayer() {
     toggleExpandedPlayer,
   } = usePlayerStore();
 
-  const { toggleFavorite } = useLibrary();
+  const {
+    toggleFavorite,
+    offlineSongIds,
+    isOfflineSaving,
+    saveSongOffline,
+    removeSongOffline,
+  } = useLibrary();
+
+  const isCurrentSavedOffline = currentSong
+    ? offlineSongIds.has(currentSong.id) || !!currentSong.isOfflineAvailable
+    : false;
+  const isCurrentSavingOffline = currentSong
+    ? !!isOfflineSaving[currentSong.id]
+    : false;
+
+  const handleToggleOfflineCurrent = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentSong || isCurrentSavingOffline) return;
+    if (isCurrentSavedOffline) {
+      await removeSongOffline(currentSong.id);
+    } else {
+      await saveSongOffline(currentSong);
+    }
+  };
+
   const [isHoveringSeek, setIsHoveringSeek] = useState(false);
   const [seekHoverPercent, setSeekHoverPercent] = useState<number | null>(null);
 
   if (!currentSong) {
     return (
-      <footer className="hidden md:flex h-20 sm:h-22 bg-white border-t border-slate-200 px-4 md:px-8 items-center justify-between text-slate-500 select-none shadow-xs">
+      <footer className="hidden lg:flex h-20 sm:h-22 bg-white border-t border-slate-200 px-4 md:px-8 items-center justify-between text-slate-500 select-none shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
             <Music className="w-5 h-5" />
@@ -86,7 +113,7 @@ export default function BottomPlayer() {
 
   return (
     <>
-    <div className="md:hidden shrink-0 relative flex h-[4.25rem] items-center gap-3 border-t border-slate-200 bg-white px-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)]">
+    <div className="lg:hidden shrink-0 relative flex h-[4.25rem] items-center gap-3 border-t border-slate-200 bg-white px-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)]">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-100">
         <div className="h-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
       </div>
@@ -114,7 +141,7 @@ export default function BottomPlayer() {
         <SkipForward className="h-5 w-5 fill-current" />
       </button>
     </div>
-    <footer className="hidden md:flex h-20 sm:h-24 bg-white border-t border-slate-200 px-3 sm:px-6 md:px-8 items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-lg">
+    <footer className="hidden lg:flex h-20 sm:h-24 bg-white border-t border-slate-200 px-3 sm:px-6 md:px-8 items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-lg">
       {/* LEFT: Current Track Info */}
       <div className="flex items-center gap-3 min-w-0 max-w-[200px] sm:max-w-[260px] md:max-w-[300px]">
         {/* Cover Art */}
@@ -288,8 +315,34 @@ export default function BottomPlayer() {
         </div>
       </div>
 
-      {/* RIGHT: Actions (Download, Queue, Volume) */}
+      {/* RIGHT: Actions (Offline Save, Download, Queue, Volume) */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {/* Save to Device for Offline */}
+        <button
+          onClick={handleToggleOfflineCurrent}
+          disabled={isCurrentSavingOffline}
+          className={`p-2 rounded-full transition-colors ${
+            isCurrentSavedOffline
+              ? "text-emerald-600 hover:text-rose-500 bg-emerald-50"
+              : "text-slate-600 hover:text-blue-600 hover:bg-slate-100"
+          }`}
+          title={
+            isCurrentSavingOffline
+              ? "Saving offline to device..."
+              : isCurrentSavedOffline
+              ? "Saved offline on device (click to remove)"
+              : "Save to device for offline listening"
+          }
+        >
+          {isCurrentSavingOffline ? (
+            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+          ) : isCurrentSavedOffline ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          ) : (
+            <ArrowDownToLine className="w-4 h-4" />
+          )}
+        </button>
+
         {/* Authorized Download Button */}
         {(currentSong.isAuthorizedDownload || currentSong.isDownloadable) ? (
           <button

@@ -20,6 +20,8 @@ import FavoritesView from "@/components/views/FavoritesView";
 import PlaylistsView from "@/components/views/PlaylistsView";
 import HistoryView from "@/components/views/HistoryView";
 import SettingsView from "@/components/views/SettingsView";
+import LibraryView from "@/components/views/LibraryView";
+import OfflineView from "@/components/views/OfflineView";
 
 function MainContent() {
   const { activeTab, selectedPlaylistId } = useLibrary();
@@ -33,12 +35,16 @@ function MainContent() {
         return <HomeView />;
       case "songs":
         return <SongsView />;
+      case "library":
+        return <LibraryView />;
       case "favorites":
         return <FavoritesView />;
       case "history":
         return <HistoryView />;
       case "settings":
         return <SettingsView />;
+      case "offline":
+        return <OfflineView />;
       default:
         return <HomeView />;
     }
@@ -47,14 +53,14 @@ function MainContent() {
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <Sidebar />
       </div>
 
       {/* Main Body */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         <TopBar />
-        <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-5 md:pb-6">
+        <main className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-5 md:pb-6">
           <div className="max-w-6xl mx-auto">{renderActiveView()}</div>
         </main>
       </div>
@@ -68,7 +74,7 @@ function MainContent() {
 export default function App() {
   return (
     <LibraryProvider>
-      <div className="h-dvh flex flex-col bg-[#f8fafc] text-[#090a0f] overflow-hidden">
+      <div className="soundify-shell h-dvh flex flex-col bg-[#0b0d10] text-[#f5f7fa] overflow-hidden">
         {/* Core Audio Engine */}
         <GlobalAudioPlayer />
 

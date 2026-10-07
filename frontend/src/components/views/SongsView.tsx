@@ -13,7 +13,6 @@ export default function SongsView() {
   const { playSong } = usePlayerStore();
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
-  const [sortAsc, setSortAsc] = useState(false);
 
   // Filter and sort songs
   const filteredAndSortedSongs = useMemo(() => {
@@ -48,11 +47,11 @@ export default function SongsView() {
             new Date(a.createdAt || 0).getTime();
           break;
       }
-      return sortAsc ? -comp : comp;
+      return comp;
     });
 
     return result;
-  }, [songs, searchQuery, sortBy, sortAsc]);
+  }, [songs, searchQuery, sortBy]);
 
   const handlePlayAll = () => {
     if (filteredAndSortedSongs.length > 0) {

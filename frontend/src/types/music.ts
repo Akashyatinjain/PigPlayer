@@ -22,6 +22,7 @@ export interface Song {
   createdAt?: string | Date;
   updatedAt?: string | Date;
   isFavorite?: boolean;
+  isOfflineAvailable?: boolean;
 }
 
 export interface PlaylistSongItem {

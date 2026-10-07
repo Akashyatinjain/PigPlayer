@@ -2,13 +2,30 @@ import api from '@/lib/api';
 import { Playlist } from '@/types/music';
 import { normalizeSong, resolveAudioUrl } from './song.service';
 
-const normalizePlaylist = (pl: any): Playlist => ({
-  ...pl,
+type PlaylistPayload = Record<string, unknown> & {
+  coverUrl?: string | null;
+  songs?: Array<Record<string, unknown> & {
+    id?: string;
+    playlistId?: string;
+    songId?: string;
+    addedAt?: string | Date;
+    position?: number;
+    order?: number;
+    song?: Record<string, unknown>;
+  }>;
+};
+
+const normalizePlaylist = (pl: PlaylistPayload): Playlist => ({
+  ...(pl as unknown as Playlist),
   coverUrl: pl.coverUrl ? resolveAudioUrl(pl.coverUrl) : null,
-  songs: pl.songs?.map((item: any) => ({
+  songs: pl.songs?.map((item) => ({
     ...item,
+    id: String(item.id ?? ""),
+    playlistId: String(item.playlistId ?? pl.id ?? ""),
+    songId: String(item.songId ?? item.song?.id ?? ""),
+    addedAt: item.addedAt ?? new Date(0),
     order: item.position ?? item.order ?? 0,
-    song: normalizeSong(item.song),
+    song: normalizeSong(item.song ?? {}),
   })) || [],
 });
 

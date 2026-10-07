@@ -27,3 +27,17 @@ export function formatTimeAgo(dateInput: string | Date): string {
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as {
+      message?: unknown;
+      response?: { data?: { message?: unknown } };
+    };
+    if (typeof candidate.response?.data?.message === "string") {
+      return candidate.response.data.message;
+    }
+    if (typeof candidate.message === "string") return candidate.message;
+  }
+  return fallback;
+}

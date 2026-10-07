@@ -27,7 +27,6 @@ export default function PlaylistsView() {
     setIsPlaylistModalOpen,
     deletePlaylist,
     removeSongFromPlaylist,
-    refreshLibrary,
     setActiveTab,
   } = useLibrary();
 
@@ -36,27 +35,28 @@ export default function PlaylistsView() {
   const [activePlaylistData, setActivePlaylistData] = useState<Playlist | null>(
     null
   );
-  const [loadingPlaylist, setLoadingPlaylist] = useState(false);
+  const [loadedPlaylistId, setLoadedPlaylistId] = useState<string | null>(null);
+  const loadingPlaylist = Boolean(selectedPlaylistId && loadedPlaylistId !== selectedPlaylistId);
 
   // Fetch full playlist data when selectedPlaylistId changes
   useEffect(() => {
-    if (!selectedPlaylistId) {
-      setActivePlaylistData(null);
-      return;
-    }
-
-    setLoadingPlaylist(true);
+    if (!selectedPlaylistId) return;
+    let cancelled = false;
     playlistService
       .getPlaylist(selectedPlaylistId)
       .then((data) => {
-        setActivePlaylistData(data);
+        if (!cancelled) {
+          setActivePlaylistData(data);
+          setLoadedPlaylistId(selectedPlaylistId);
+        }
       })
       .catch(() => {
-        setActivePlaylistData(null);
-      })
-      .finally(() => {
-        setLoadingPlaylist(false);
+        if (!cancelled) {
+          setActivePlaylistData(null);
+          setLoadedPlaylistId(selectedPlaylistId);
+        }
       });
+    return () => { cancelled = true; };
   }, [selectedPlaylistId]);
 
   const playlistSongs: Song[] =
@@ -115,7 +115,7 @@ export default function PlaylistsView() {
           <div className="py-20 text-center text-xs text-slate-400 animate-pulse">
             Loading playlist tracks...
           </div>
-        ) : activePlaylistData ? (
+        ) : loadedPlaylistId === selectedPlaylistId && activePlaylistData ? (
           <>
             {/* Playlist Header Banner */}
             <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-xs">
@@ -200,7 +200,7 @@ export default function PlaylistsView() {
                   This playlist is empty
                 </h2>
                 <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Browse your songs and click the "+" icon on any track to add it here.
+                  Browse your songs and click the &quot;+&quot; icon on any track to add it here.
                 </p>
                 <button
                   onClick={() => setActiveTab("songs")}

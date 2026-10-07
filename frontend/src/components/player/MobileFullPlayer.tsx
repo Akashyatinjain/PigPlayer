@@ -16,6 +16,9 @@ import {
   Volume2,
   VolumeX,
   Music,
+  ArrowDownToLine,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
@@ -43,9 +46,27 @@ export default function MobileFullPlayer() {
     cycleRepeat,
   } = usePlayerStore();
 
-  const { toggleFavorite } = useLibrary();
+  const {
+    toggleFavorite,
+    offlineSongIds,
+    isOfflineSaving,
+    saveSongOffline,
+    removeSongOffline,
+  } = useLibrary();
 
   if (!isExpandedPlayerOpen || !currentSong) return null;
+
+  const isCurrentSavedOffline = offlineSongIds.has(currentSong.id) || !!currentSong.isOfflineAvailable;
+  const isCurrentSavingOffline = !!isOfflineSaving[currentSong.id];
+
+  const handleToggleOfflineCurrent = async () => {
+    if (!currentSong || isCurrentSavingOffline) return;
+    if (isCurrentSavedOffline) {
+      await removeSongOffline(currentSong.id);
+    } else {
+      await saveSongOffline(currentSong);
+    }
+  };
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -62,12 +83,15 @@ export default function MobileFullPlayer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in slide-in-from-bottom-4 duration-200">
+      {currentSong.coverUrl && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-[18%] mx-auto h-72 w-72 rounded-full opacity-[0.12] blur-[72px]" style={{ backgroundImage: `url("${currentSong.coverUrl}")`, backgroundPosition: "center", backgroundSize: "cover" }} />}
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="relative flex items-center justify-between">
         <button
+          type="button"
+          aria-label="Close player"
           onClick={() => setExpandedPlayer(false)}
-          className="p-2 -ml-2 rounded-full text-gray-400 hover:text-white hover:bg-[#151722] transition-colors"
+          className="flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-[#151722] transition-colors"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
@@ -81,22 +105,52 @@ export default function MobileFullPlayer() {
           </p>
         </div>
 
-        {(currentSong.isAuthorizedDownload || currentSong.isDownloadable) ? (
+        <div className="flex items-center gap-1 -mr-2">
+          {/* Offline Save Toggle */}
           <button
-            onClick={handleDownload}
-            className="p-2 -mr-2 rounded-full text-gray-400 hover:text-white transition-colors"
-            title="Download song"
+            type="button"
+            aria-label={isCurrentSavedOffline ? "Saved offline (tap to remove)" : "Save for offline playback"}
+            onClick={handleToggleOfflineCurrent}
+            disabled={isCurrentSavingOffline}
+            className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+              isCurrentSavedOffline
+                ? "text-emerald-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+            title={
+              isCurrentSavingOffline
+                ? "Saving offline..."
+                : isCurrentSavedOffline
+                ? "Saved offline (tap to remove)"
+                : "Save to device for offline listening"
+            }
           >
-            <Download className="w-5 h-5" />
+            {isCurrentSavingOffline ? (
+              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            ) : isCurrentSavedOffline ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <ArrowDownToLine className="w-5 h-5" />
+            )}
           </button>
-        ) : (
-          <div className="w-9" />
-        )}
+
+          {(currentSong.isAuthorizedDownload || currentSong.isDownloadable) ? (
+            <button
+              type="button"
+              aria-label="Download song"
+              onClick={handleDownload}
+              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
+              title="Download song"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {/* Album Artwork & Vinyl effect */}
-      <div className="my-auto py-5 sm:py-6 flex items-center justify-center">
-        <div className="relative h-[min(68vw,18rem)] w-[min(68vw,18rem)] sm:h-80 sm:w-80 rounded-2xl overflow-hidden bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
+      <div className="relative my-auto py-5 sm:py-6 flex items-center justify-center">
+        <div className="relative aspect-square w-full max-w-[20rem] overflow-hidden rounded-[20px] bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
           {currentSong.coverUrl ? (
             <Image
               src={currentSong.coverUrl}
@@ -125,8 +179,10 @@ export default function MobileFullPlayer() {
             </p>
           </div>
           <button
+            type="button"
+            aria-label={currentSong.isFavorite ? "Remove from favorites" : "Add to favorites"}
             onClick={() => toggleFavorite(currentSong.id)}
-            className="p-2 rounded-full text-gray-400 hover:text-white transition-colors"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-110"
           >
             <Heart
               className={`w-6 h-6 ${
@@ -161,8 +217,10 @@ export default function MobileFullPlayer() {
         {/* Controls */}
         <div className="flex items-center justify-between px-2 pt-2">
           <button
+            type="button"
+            aria-label={`Shuffle ${isShuffle ? "on" : "off"}`}
             onClick={toggleShuffle}
-            className={`p-2 transition-colors ${
+            className={`flex h-11 w-11 items-center justify-center transition-colors ${
               isShuffle ? "text-blue-500" : "text-gray-400"
             }`}
           >
@@ -170,13 +228,17 @@ export default function MobileFullPlayer() {
           </button>
 
           <button
+            type="button"
+            aria-label="Previous song"
             onClick={prevSong}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors"
           >
             <SkipBack className="w-7 h-7 fill-current" />
           </button>
 
           <button
+            type="button"
+            aria-label={isPlaying ? "Pause" : "Play"}
             onClick={togglePlayPause}
             className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
           >
@@ -188,15 +250,19 @@ export default function MobileFullPlayer() {
           </button>
 
           <button
+            type="button"
+            aria-label="Next song"
             onClick={nextSong}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors"
           >
             <SkipForward className="w-7 h-7 fill-current" />
           </button>
 
           <button
+            type="button"
+            aria-label={`Repeat ${repeatMode}`}
             onClick={cycleRepeat}
-            className={`p-2 transition-colors ${
+            className={`flex h-11 w-11 items-center justify-center transition-colors ${
               repeatMode !== "off" ? "text-blue-500" : "text-gray-400"
             }`}
           >
@@ -209,8 +275,8 @@ export default function MobileFullPlayer() {
         </div>
 
         {/* Volume */}
-        <div className="flex items-center gap-3 pt-2 px-4">
-          <button onClick={toggleMute} className="text-gray-400">
+        <div className="flex items-center gap-3 pt-2 px-2 sm:px-4">
+          <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="flex h-11 w-11 shrink-0 items-center justify-center text-gray-400">
             {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
           </button>
           <input
@@ -220,7 +286,7 @@ export default function MobileFullPlayer() {
             step={0.01}
             value={isMuted ? 0 : volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="w-full accent-blue-600"
+            className="h-11 w-full accent-blue-600"
           />
         </div>
       </div>

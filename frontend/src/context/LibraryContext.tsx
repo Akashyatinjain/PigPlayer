@@ -6,17 +6,24 @@ import { songService } from "@/services/song.service";
 import { playlistService } from "@/services/playlist.service";
 import { favoriteService } from "@/services/favorite.service";
 import { historyService } from "@/services/history.service";
+import { offlineStorageService } from "@/services/offline-storage.service";
+
+export type LibraryTab = "home" | "songs" | "library" | "favorites" | "playlists" | "history" | "settings" | "offline";
 
 interface LibraryContextType {
   songs: Song[];
   playlists: Playlist[];
   favorites: Song[];
   history: PlayHistoryItem[];
+  offlineSongs: Song[];
+  offlineSongIds: Set<string>;
+  isOfflineSaving: Record<string, boolean>;
+  isOnline: boolean;
   isLoading: boolean;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  activeTab: "home" | "songs" | "favorites" | "playlists" | "history" | "settings";
-  setActiveTab: (tab: "home" | "songs" | "favorites" | "playlists" | "history" | "settings") => void;
+  activeTab: LibraryTab;
+  setActiveTab: (tab: LibraryTab) => void;
   selectedPlaylistId: string | null;
   setSelectedPlaylistId: (id: string | null) => void;
   
@@ -34,6 +41,10 @@ interface LibraryContextType {
 
   // Actions
   refreshLibrary: () => Promise<void>;
+  refreshOfflineSongs: () => Promise<void>;
+  saveSongOffline: (song: Song) => Promise<boolean>;
+  removeSongOffline: (songId: string) => Promise<boolean>;
+  importLocalAudio: (file: File) => Promise<Song | null>;
   toggleFavorite: (songId: string) => Promise<boolean>;
   deleteSong: (songId: string) => Promise<boolean>;
   createPlaylist: (name: string, description?: string) => Promise<Playlist | null>;
@@ -49,12 +60,14 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [favorites, setFavorites] = useState<Song[]>([]);
   const [history, setHistory] = useState<PlayHistoryItem[]>([]);
+  const [offlineSongs, setOfflineSongs] = useState<Song[]>([]);
+  const [offlineSongIds, setOfflineSongIds] = useState<Set<string>>(new Set());
+  const [isOfflineSaving, setIsOfflineSaving] = useState<Record<string, boolean>>({});
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<
-    "home" | "songs" | "favorites" | "playlists" | "history" | "settings"
-  >("home");
+  const [activeTab, setActiveTab] = useState<LibraryTab>("home");
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
 
   // Modals state
@@ -63,6 +76,47 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const [songForPlaylist, setSongForPlaylist] = useState<Song | null>(null);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  // Check online/offline network status
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      void Promise.resolve().then(() => setIsOnline(navigator.onLine));
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
+
+  // Refresh offline vault songs
+  const refreshOfflineSongs = useCallback(async () => {
+    try {
+      const stored = await offlineStorageService.getAllOfflineSongs();
+      setOfflineSongs(stored);
+      setOfflineSongIds(new Set(stored.map((s) => s.id)));
+    } catch (err) {
+      console.error("Failed to load offline songs:", err);
+    }
+  }, []);
+
+  // Listen to offline changes across the app
+  useEffect(() => {
+    void Promise.resolve().then(refreshOfflineSongs);
+
+    if (typeof window !== "undefined") {
+      const handleOfflineEvent = () => void refreshOfflineSongs();
+      window.addEventListener("soundify:offline-change", handleOfflineEvent);
+      return () => {
+        window.removeEventListener("soundify:offline-change", handleOfflineEvent);
+      };
+    }
+  }, [refreshOfflineSongs]);
 
   const refreshLibrary = useCallback(async () => {
     try {
@@ -79,7 +133,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         isFavorite: favIds.has(s.id),
       }));
 
-      setSongs(enrichedSongs);
+      // If online songs fetched, use them; if empty/offline, fall back to offline songs
+      if (enrichedSongs.length > 0) {
+        setSongs(enrichedSongs);
+      } else {
+        const stored = await offlineStorageService.getAllOfflineSongs();
+        if (stored.length > 0) {
+          setSongs(stored);
+        }
+      }
+
       setPlaylists(playlistsData);
       setFavorites(favsData);
       setHistory(historyData);
@@ -91,8 +154,45 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshLibrary();
+    void Promise.resolve().then(refreshLibrary);
   }, [refreshLibrary]);
+
+  const saveSongOffline = async (song: Song): Promise<boolean> => {
+    setIsOfflineSaving((prev) => ({ ...prev, [song.id]: true }));
+    try {
+      await offlineStorageService.saveSongOffline(song);
+      await refreshOfflineSongs();
+      return true;
+    } catch (error) {
+      console.error("Failed to save song offline:", error);
+      return false;
+    } finally {
+      setIsOfflineSaving((prev) => ({ ...prev, [song.id]: false }));
+    }
+  };
+
+  const removeSongOffline = async (songId: string): Promise<boolean> => {
+    try {
+      await offlineStorageService.removeSongOffline(songId);
+      await refreshOfflineSongs();
+      return true;
+    } catch (error) {
+      console.error("Failed to remove song offline:", error);
+      return false;
+    }
+  };
+
+  const importLocalAudio = async (file: File): Promise<Song | null> => {
+    try {
+      const newSong = await offlineStorageService.importLocalFile(file);
+      await refreshOfflineSongs();
+      setSongs((prev) => [newSong, ...prev]);
+      return newSong;
+    } catch (error) {
+      console.error("Failed to import local file:", error);
+      return null;
+    }
+  };
 
   const toggleFavorite = async (songId: string): Promise<boolean> => {
     const currentIsFav = songs.find((s) => s.id === songId)?.isFavorite ?? false;
@@ -110,12 +210,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         await favoriteService.removeFavorite(songId);
       }
 
-      // Refresh favorites in background
       favoriteService.getFavorites().then(setFavorites).catch(() => {});
       return nextIsFav;
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
-      // Revert on error
       setSongs((prev) =>
         prev.map((s) => (s.id === songId ? { ...s, isFavorite: currentIsFav } : s))
       );
@@ -125,6 +223,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
   const deleteSong = async (songId: string): Promise<boolean> => {
     try {
+      // Also remove from offline vault if present
+      if (offlineSongIds.has(songId)) {
+        await offlineStorageService.removeSongOffline(songId);
+      }
+
       const success = await songService.deleteSong(songId);
       if (success) {
         setSongs((prev) => prev.filter((s) => s.id !== songId));
@@ -214,6 +317,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         playlists,
         favorites,
         history,
+        offlineSongs,
+        offlineSongIds,
+        isOfflineSaving,
+        isOnline,
         isLoading,
         searchQuery,
         setSearchQuery,
@@ -232,6 +339,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         isShortcutsOpen,
         setIsShortcutsOpen,
         refreshLibrary,
+        refreshOfflineSongs,
+        saveSongOffline,
+        removeSongOffline,
+        importLocalAudio,
         toggleFavorite,
         deleteSong,
         createPlaylist,

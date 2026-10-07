@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import {
   X,
@@ -9,7 +9,6 @@ import {
   Check,
   Loader2,
   Trash2,
-  AlertCircle,
   Plus,
   RefreshCw,
   Sparkles,
@@ -21,7 +20,7 @@ import {
   extractAudioMetadata,
   ExtractedAudioMetadata,
 } from "@/lib/metadata/audioMetadata";
-import { formatDuration, formatFileSize } from "@/lib/utils";
+import { formatDuration, formatFileSize, getErrorMessage } from "@/lib/utils";
 import { uploadService } from "@/services/upload.service";
 import { songService } from "@/services/song.service";
 
@@ -193,8 +192,8 @@ export default function UploadModal() {
       );
 
       return true;
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.message || "Failed to upload";
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err, "Failed to upload");
       setQueue((prev) =>
         prev.map((q) =>
           q.id === item.id
@@ -225,7 +224,6 @@ export default function UploadModal() {
 
     const concurrency = 3;
     let index = 0;
-    let completed = 0;
 
     const runWorker = async () => {
       while (index < pendingItems.length && !cancelRequestedRef.current) {
@@ -234,7 +232,6 @@ export default function UploadModal() {
         setActiveUploadCount((c) => c + 1);
         await uploadSingleItem(currentItem);
         setActiveUploadCount((c) => Math.max(0, c - 1));
-        completed++;
       }
     };
 
@@ -256,10 +253,10 @@ export default function UploadModal() {
   const totalSize = queue.reduce((acc, i) => acc + i.file.size, 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-150">
-      <div className="w-full max-w-4xl bg-white border border-slate-200 rounded-3xl shadow-2xl flex flex-col max-h-[92dvh] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-150">
+      <div className="mobile-safe-bottom w-full max-w-4xl bg-white border border-slate-200 rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top))] md:max-h-[92dvh] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
               <Upload className="w-5 h-5" />
@@ -285,14 +282,15 @@ export default function UploadModal() {
                 setIsUploadOpen(false);
               }
             }}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-200/60 transition-colors"
+            aria-label="Close upload"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-200/60 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 sm:space-y-6">
           {/* Drag & Drop Zone */}
           <div
             onDragOver={handleDragOver}
@@ -325,11 +323,11 @@ export default function UploadModal() {
                 Drop songs here or click to browse
               </p>
               <p className="text-xs text-slate-500 font-medium">
-                Select 1, 10, 50, or 100+ audio files • MP3 • WAV • M4A • OGG • FLAC • AAC
+                MP3 · WAV · M4A · OGG · FLAC · AAC
               </p>
-              <div className="flex items-center gap-2 pt-1 text-[11px] text-blue-600 font-semibold bg-blue-50 px-3 py-1 rounded-full border border-blue-200/50">
+              <div className="flex max-w-full items-center gap-2 pt-1 text-[11px] text-blue-600 font-semibold bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200/50">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Automatic title, artist, album, and embedded artwork extraction</span>
+                <span>Song details and cover art are added when available</span>
               </div>
             </div>
           </div>
@@ -351,7 +349,7 @@ export default function UploadModal() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Download authorization switch */}
-                  <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer bg-slate-100 hover:bg-slate-200/70 px-2.5 py-1.5 rounded-xl transition-colors">
+                  <label className="flex min-h-11 items-center gap-2 text-xs text-slate-600 cursor-pointer bg-slate-100 hover:bg-slate-200/70 px-2.5 rounded-xl transition-colors">
                     <input
                       type="checkbox"
                       checked={isAuthorizedDownload}
@@ -367,7 +365,7 @@ export default function UploadModal() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingAll}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100/70 border border-blue-200/70 rounded-xl transition-all disabled:opacity-50"
+                    className="flex min-h-11 items-center gap-1 px-3 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100/70 border border-blue-200/70 rounded-xl transition-all disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add More</span>
@@ -377,7 +375,7 @@ export default function UploadModal() {
                   <button
                     onClick={handleClearAll}
                     disabled={isUploadingAll}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-50"
+                    className="flex min-h-11 items-center gap-1 px-3 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear</span>
@@ -447,7 +445,7 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Title"
-                              className="w-full text-xs font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-0.5 rounded truncate"
+                              className="w-full min-h-11 text-base sm:text-xs font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-1 rounded truncate"
                             />
                           </div>
 
@@ -467,11 +465,11 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Artist"
-                              className="w-full text-xs text-slate-600 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-0.5 rounded truncate"
+                              className="w-full min-h-11 text-base sm:text-xs text-slate-600 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-1 rounded truncate"
                             />
                           </div>
 
-                          <div className="hidden sm:block">
+                          <div>
                             <input
                               type="text"
                               value={item.customAlbum}
@@ -487,7 +485,7 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Album"
-                              className="w-full text-xs text-slate-500 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-0.5 rounded truncate"
+                              className="w-full min-h-11 text-base sm:text-xs text-slate-500 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 outline-none px-1 py-1 rounded truncate"
                             />
                           </div>
                         </div>

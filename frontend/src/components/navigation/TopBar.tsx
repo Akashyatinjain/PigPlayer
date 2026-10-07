@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Search, Plus, ListMusic, Keyboard, X } from "lucide-react";
+import { Search, Plus, ListMusic, Keyboard, X, Disc3, WifiOff } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAuthStore } from "@/stores/auth-store";
@@ -10,6 +10,8 @@ export default function TopBar() {
   const {
     searchQuery,
     setSearchQuery,
+    activeTab,
+    isOnline,
     setIsUploadOpen,
     setIsShortcutsOpen,
     setActiveTab,
@@ -22,19 +24,54 @@ export default function TopBar() {
     initAuth();
   }, [initAuth]);
 
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    if (window.location.pathname === "/") setActiveTab("songs");
+  };
+
   return (
-    <header className="h-14 sm:h-16 shrink-0 px-3 sm:px-4 md:px-8 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30 shadow-xs">
+    <header className="mobile-header-safe h-14 sm:h-16 shrink-0 px-3 sm:px-4 md:px-8 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30">
+      <div className="flex w-full items-center justify-between gap-3 sm:hidden">
+        {activeTab === "songs" ? (
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              autoFocus
+              type="search"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search songs, artists, albums"
+              aria-label="Search songs, artists, and albums"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-base text-slate-900 outline-none focus:border-blue-500"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-slate-900">
+            <Disc3 className="h-5 w-5 text-blue-500" />
+            <span className="text-sm font-semibold tracking-[0.12em]">SOUNDIFY</span>
+          </div>
+        )}
+        <div className="flex shrink-0 items-center gap-1">
+          <button type="button" onClick={() => setActiveTab(activeTab === "songs" ? "home" : "songs")} aria-label={activeTab === "songs" ? "Close search" : "Search music"} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100">
+            {activeTab === "songs" ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+          </button>
+          <button type="button" onClick={() => setIsUploadOpen(true)} aria-label="Add songs" className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700">
+            <Plus className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={toggleQueueOpen} aria-label="Open queue" className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100">
+            <ListMusic className="h-5 w-5" />
+            {queue.length > 0 && <span className="absolute right-1 top-1 h-4 min-w-4 rounded-full bg-blue-500 px-1 text-[9px] font-bold leading-4 text-white">{queue.length > 99 ? "99+" : queue.length}</span>}
+          </button>
+        </div>
+      </div>
       {/* Search Bar */}
-      <div className="relative flex-1 max-w-md">
+      <div className="relative hidden flex-1 max-w-md sm:block">
         <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => {
-            setSearchQuery(e.target.value);
-            if (e.target.value && window.location.pathname === "/") {
-              setActiveTab("songs");
-            }
+            handleSearch(e.target.value);
           }}
           placeholder="Search your music..."
           className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:bg-white text-sm text-slate-900 placeholder-slate-400 pl-10 pr-9 py-2 rounded-full outline-none transition-all duration-150"
@@ -51,7 +88,19 @@ export default function TopBar() {
       </div>
 
       {/* Right Action Buttons */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="hidden items-center gap-2 sm:flex sm:gap-3">
+        {!isOnline && (
+          <button
+            type="button"
+            onClick={() => setActiveTab("offline")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
+            title="You are currently offline. Click to open Offline Vault."
+          >
+            <WifiOff className="w-3.5 h-3.5" />
+            <span>Offline Mode</span>
+          </button>
+        )}
+
         {/* Upload Song Button */}
         <button
           onClick={() => setIsUploadOpen(true)}

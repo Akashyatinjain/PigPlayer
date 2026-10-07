@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Music, ArrowRight, Lock, Mail, Loader2, Sparkles } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,10 +23,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push("/");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || err.message || "Failed to sign in. Please verify your credentials."
-      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to sign in. Please verify your credentials."));
     } finally {
       setIsLoading(false);
     }
@@ -39,15 +38,15 @@ export default function LoginPage() {
     try {
       await login("demo@soundify.app", "password123");
       router.push("/");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Demo login failed");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Demo login failed"));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f8fafc] p-4 text-[#090a0f]">
+    <div className="soundify-shell min-h-[100dvh] w-full flex items-center justify-center bg-[#0b0d10] p-4 text-[#f5f7fa]">
       <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8 text-center">
@@ -81,7 +80,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -98,7 +97,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
             </div>
           </div>

@@ -39,8 +39,8 @@ export default function PlaylistModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="mobile-safe-bottom max-h-[90dvh] w-full max-w-md overflow-y-auto bg-white border border-slate-200 rounded-t-3xl md:rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 md:zoom-in-95 duration-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <FolderPlus className="w-4 h-4 text-blue-600" />
@@ -49,6 +49,8 @@ export default function PlaylistModal() {
             </h2>
           </div>
           <button
+            type="button"
+            aria-label="Close create playlist"
             onClick={() => setIsPlaylistModalOpen(false)}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
           >
@@ -56,7 +58,7 @@ export default function PlaylistModal() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
               Playlist Name *
@@ -64,11 +66,10 @@ export default function PlaylistModal() {
             <input
               type="text"
               required
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Chill Wave Vibes"
-              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-600 focus:bg-white text-sm text-slate-900 px-3 py-2.5 rounded-xl outline-none font-medium"
+              className="w-full min-h-11 bg-slate-50 border border-slate-200 focus:border-blue-600 focus:bg-white text-base sm:text-sm text-slate-900 px-3 py-2.5 rounded-xl outline-none font-medium"
             />
           </div>
 
@@ -81,7 +82,7 @@ export default function PlaylistModal() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="What makes this collection special?"
-              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-600 focus:bg-white text-sm text-slate-900 px-3 py-2 rounded-xl outline-none resize-none font-medium"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-blue-600 focus:bg-white text-base sm:text-sm text-slate-900 px-3 py-2 rounded-xl outline-none resize-none font-medium"
             />
           </div>
 
@@ -96,7 +97,7 @@ export default function PlaylistModal() {
             <button
               type="submit"
               disabled={isSubmitting || !name.trim()}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-md shadow-blue-500/25 disabled:opacity-50"
+              className="flex min-h-11 items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-md shadow-blue-500/25 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>

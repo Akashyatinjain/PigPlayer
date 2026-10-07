@@ -29,16 +29,16 @@ export default function FavoritesView() {
     <div className="space-y-6 pb-12">
       {/* Banner */}
       <div className="p-6 sm:p-8 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row items-center gap-6 shadow-xs">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xl shadow-blue-600/25 shrink-0">
-          <Heart className="w-12 h-12 fill-current" />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-blue-500 shrink-0">
+          <Heart className="w-10 h-10 fill-current" />
         </div>
 
         <div className="text-center sm:text-left flex-1 space-y-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
-            Curated Collection
+            Your collection
           </p>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            Favorite Tracks
+            Liked Songs
           </h1>
           <p className="text-xs text-slate-500 font-medium">
             {favorites.length} {favorites.length === 1 ? "track" : "tracks"} •{" "}

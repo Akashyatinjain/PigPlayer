@@ -6,7 +6,7 @@ export const favoriteService = {
   async getFavorites(): Promise<Song[]> {
     const res = await api.get('/favorites');
     const list = res.data.data || [];
-    return list.map((s: any) => ({ ...normalizeSong(s), isFavorite: true }));
+    return list.map((song: Record<string, unknown>) => ({ ...normalizeSong(song), isFavorite: true }));
   },
 
   async addFavorite(songId: string): Promise<boolean> {

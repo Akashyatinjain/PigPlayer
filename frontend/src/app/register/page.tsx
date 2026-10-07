@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Music, ArrowRight, Lock, Mail, User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,17 +24,15 @@ export default function RegisterPage() {
     try {
       await register(name, email, password);
       router.push("/");
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || err.message || "Failed to create account"
-      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to create account"));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f8fafc] p-4 text-[#090a0f]">
+    <div className="soundify-shell min-h-[100dvh] w-full flex items-center justify-center bg-[#0b0d10] p-4 text-[#f5f7fa]">
       <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8 text-center">
@@ -67,7 +66,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Alex Mercer"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -84,7 +83,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -102,7 +101,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
               />
             </div>
           </div>
