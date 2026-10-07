@@ -45,18 +45,18 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-56 bg-white border-r border-slate-200 h-full flex flex-col justify-between shrink-0 select-none">
+    <aside className="w-56 bg-[#0c0f14] border-r border-[#1f2631] h-full flex flex-col justify-between shrink-0 select-none text-[#f5f7fa]">
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Brand Header */}
         <div className="p-6 pb-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#090a0f] flex items-center justify-center text-blue-500 shadow-md shadow-blue-500/10">
+          <div className="w-9 h-9 rounded-xl bg-blue-600/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-md shadow-blue-500/10">
             <Disc3 className="w-5 h-5 animate-spin-slow" />
           </div>
           <div>
-            <h1 className="font-extrabold text-base tracking-wider text-[#090a0f]">
+            <h1 className="font-extrabold text-base tracking-wider text-white">
               SOUNDIFY
             </h1>
-            <p className="text-[11px] text-slate-500 font-medium tracking-tight">
+            <p className="text-[11px] text-slate-400 font-medium tracking-tight">
               Personal Hi-Fi Player
             </p>
           </div>
@@ -79,14 +79,14 @@ export default function Sidebar() {
                 }}
                 className={`w-full min-h-11 flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                   isActive
-                    ? "bg-blue-50 text-blue-700 font-semibold border border-blue-200/80 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+                    ? "bg-blue-600/15 text-blue-400 font-semibold border border-blue-500/30 shadow-xs"
+                    : "text-slate-400 hover:text-white hover:bg-[#161c24]"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon
                     className={`w-4 h-4 transition-colors ${
-                      isActive ? "text-blue-600" : "text-slate-400"
+                      isActive ? "text-blue-400" : "text-slate-400"
                     }`}
                   />
                   <span>{item.label}</span>
@@ -95,8 +95,8 @@ export default function Sidebar() {
                   <span
                     className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-medium ${
                       isActive
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-blue-500/20 text-blue-300"
+                        : "bg-[#18202b] text-slate-400 border border-[#232d3d]"
                     }`}
                   >
                     {item.badge}
@@ -116,7 +116,7 @@ export default function Sidebar() {
             <button
               onClick={() => setIsPlaylistModalOpen(true)}
               aria-label="Create playlist"
-              className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-[#161c24] transition-colors"
               title="Create new playlist"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export default function Sidebar() {
 
           <div className="flex-1 overflow-y-auto space-y-0.5 pr-1">
             {playlists.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-2">
+              <p className="text-xs text-slate-500 italic py-2">
                 No playlists yet
               </p>
             ) : (
@@ -142,8 +142,8 @@ export default function Sidebar() {
                     }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-xs truncate transition-all ${
                       isSelected
-                        ? "bg-blue-50 text-blue-700 font-semibold border border-blue-200/50"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
+                        ? "bg-blue-600/15 text-blue-400 font-semibold border border-blue-500/30"
+                        : "text-slate-400 hover:text-white hover:bg-[#161c24]"
                     }`}
                   >
                     {playlist.name}
@@ -156,7 +156,7 @@ export default function Sidebar() {
       </div>
 
       {/* Footer Info */}
-      <div className="p-4 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-between">
+      <div className="p-4 border-t border-[#1f2631] text-[11px] text-slate-500 flex items-center justify-between">
         <span>Soundify</span>
         <span className="font-mono text-[10px]">v1.0.0</span>
       </div>

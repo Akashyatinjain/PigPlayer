@@ -1,13 +1,33 @@
 @import "tailwindcss";
 
+@theme {
+  --color-slate-50: #12161d;
+  --color-slate-100: #171d26;
+  --color-slate-200: #212936;
+  --color-slate-300: #303a4a;
+  --color-slate-400: #8792a0;
+  --color-slate-500: #9da5b1;
+  --color-slate-600: #b2bcc9;
+  --color-slate-700: #cbd3dc;
+  --color-slate-800: #e2e7ee;
+  --color-slate-900: #f5f7fa;
+
+  --color-blue-50: #121d2d;
+  --color-blue-100: #18283e;
+  --color-blue-200: #223f66;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #4c8dff;
+  --color-blue-700: #6ea6ff;
+}
+
 :root {
   --background: #0b0d10;
   --surface: #11151a;
-  --surface-card: #11151a;
-  --surface-elevated: #171c22;
-  --surface-hover: #1d242d;
-  --border: #29313b;
-  --border-subtle: #20272f;
+  --surface-card: #131820;
+  --surface-elevated: #181f2a;
+  --surface-hover: #1d2532;
+  --border: #232b35;
+  --border-subtle: #1c232c;
   --foreground: #f5f7fa;
   --foreground-muted: #9da5b1;
   --obsidian: #0b0d10;
@@ -35,47 +55,80 @@ body {
   color: var(--foreground);
 }
 
-.soundify-shell [class~="bg-[#f8fafc]"],
-.soundify-shell [class~="bg-white"] {
+/* Enforce dark surfaces everywhere - prevent any white cards or white hover states */
+.soundify-shell [class*="bg-white"] {
   background-color: var(--surface) !important;
 }
 
-.soundify-shell [class~="bg-white/95"] {
-  background-color: rgb(17 21 26 / 94%) !important;
+.soundify-shell [class*="bg-slate-50"] {
+  background-color: #12161d !important;
 }
 
-.soundify-shell [class~="bg-slate-50"] { background-color: #171c22 !important; }
-.soundify-shell [class~="bg-slate-100"] { background-color: #1d242d !important; }
-.soundify-shell [class~="bg-slate-200"] { background-color: #29313b !important; }
-.soundify-shell [class~="text-[#090a0f]"],
-.soundify-shell [class~="text-slate-900"] { color: #f5f7fa !important; }
-.soundify-shell [class~="text-slate-800"] { color: #e3e8ef !important; }
-.soundify-shell [class~="text-slate-700"] { color: #c8d0db !important; }
-.soundify-shell [class~="text-slate-600"] { color: #aeb8c5 !important; }
-.soundify-shell [class~="text-slate-500"] { color: #9da5b1 !important; }
-.soundify-shell [class~="text-slate-400"] { color: #8792a0 !important; }
-.soundify-shell [class~="border-slate-100"],
-.soundify-shell [class~="border-slate-200"],
-.soundify-shell [class~="border-slate-200/80"] { border-color: #29313b !important; }
-.soundify-shell [class~="border-slate-300"] { border-color: #38424e !important; }
-.soundify-shell [class~="bg-blue-50"],
-.soundify-shell [class~="bg-blue-50/90"],
-.soundify-shell [class~="bg-blue-50/80"],
-.soundify-shell [class~="bg-blue-50/50"],
-.soundify-shell [class~="bg-blue-50/40"] { background-color: #17243a !important; }
-.soundify-shell [class~="bg-blue-100"] { background-color: #203655 !important; }
-.soundify-shell [class~="border-blue-200"],
-.soundify-shell [class~="border-blue-200/80"] { border-color: #2b4c77 !important; }
-.soundify-shell [class~="bg-blue-600"] { background-color: #4c8dff !important; }
-.soundify-shell [class~="text-blue-600"],
-.soundify-shell [class~="text-blue-700"] { color: #6ea6ff !important; }
-.soundify-shell [class~="hover:bg-slate-50"]:hover { background-color: #1d242d !important; }
-.soundify-shell [class~="hover:bg-slate-100"]:hover { background-color: #252e38 !important; }
-.soundify-shell [class~="hover:bg-blue-700"]:hover { background-color: #6ea6ff !important; }
-.soundify-shell [class~="placeholder-slate-400"]::placeholder { color: #7c8795 !important; }
-.soundify-shell [class~="shadow-xl"],
-.soundify-shell [class~="shadow-2xl"],
-.soundify-shell [class~="shadow-lg"] { box-shadow: 0 8px 24px rgb(0 0 0 / 20%) !important; }
+.soundify-shell [class*="bg-slate-100"] {
+  background-color: #171d26 !important;
+}
+
+.soundify-shell [class*="bg-slate-200"] {
+  background-color: #212936 !important;
+}
+
+.soundify-shell [class*="hover:bg-slate-"]:hover {
+  background-color: #1c2432 !important;
+}
+
+.soundify-shell [class*="hover:bg-white"]:hover {
+  background-color: #1c2432 !important;
+}
+
+.soundify-shell [class*="bg-blue-50"] {
+  background-color: #121d2d !important;
+}
+
+.soundify-shell [class*="bg-blue-100"] {
+  background-color: #18283e !important;
+}
+
+.soundify-shell [class*="text-[#090a0f]"],
+.soundify-shell [class*="text-slate-900"] {
+  color: #f5f7fa !important;
+}
+
+.soundify-shell [class*="text-slate-800"] {
+  color: #e2e7ee !important;
+}
+
+.soundify-shell [class*="text-slate-700"] {
+  color: #cbd3dc !important;
+}
+
+.soundify-shell [class*="text-slate-600"] {
+  color: #b2bcc9 !important;
+}
+
+.soundify-shell [class*="text-slate-500"] {
+  color: #9da5b1 !important;
+}
+
+.soundify-shell [class*="text-slate-400"] {
+  color: #8792a0 !important;
+}
+
+.soundify-shell [class*="border-slate-"] {
+  border-color: #232b35 !important;
+}
+
+.soundify-shell [class*="border-blue-200"] {
+  border-color: #223f66 !important;
+}
+
+.soundify-shell [class*="text-blue-600"],
+.soundify-shell [class*="text-blue-700"] {
+  color: #6ea6ff !important;
+}
+
+.soundify-shell [class*="placeholder-slate-400"]::placeholder {
+  color: #6b7787 !important;
+}
 
 .mobile-nav {
   border-top: 1px solid var(--border);
@@ -171,16 +224,16 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 9999px;
-  background: #e2e8f0;
+  background: #232b35;
   touch-action: pan-y;
 }
 
 .player-seek::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, #2563eb var(--seek-progress), #1b1f2b var(--seek-progress));
+  background: linear-gradient(to right, #4c8dff var(--seek-progress), #1b222d var(--seek-progress));
 }
 
 .player-seek::-moz-range-track {
-  background: linear-gradient(to right, #2563eb var(--seek-progress), #1b1f2b var(--seek-progress));
+  background: linear-gradient(to right, #4c8dff var(--seek-progress), #1b222d var(--seek-progress));
 }
 
 .player-seek { height: 44px; }
@@ -192,20 +245,20 @@ input[type="range"]::-webkit-slider-thumb {
   height: 14px;
   width: 14px;
   border-radius: 9999px;
-  background-color: #1d4ed8;
-  box-shadow: 0 1px 4px rgba(29, 78, 216, 0.4);
+  background-color: #4c8dff;
+  box-shadow: 0 1px 4px rgba(76, 141, 255, 0.4);
   transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 input[type="range"]:hover::-webkit-slider-thumb {
   transform: scale(1.25);
-  background-color: #1e40af;
+  background-color: #6ea6ff;
 }
 
 input[type="range"]::-moz-range-track {
   height: 4px;
   border-radius: 9999px;
-  background: #e2e8f0;
+  background: #232b35;
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -213,8 +266,8 @@ input[type="range"]::-moz-range-thumb {
   width: 14px;
   border: none;
   border-radius: 9999px;
-  background-color: #1d4ed8;
-  box-shadow: 0 1px 4px rgba(29, 78, 216, 0.4);
+  background-color: #4c8dff;
+  box-shadow: 0 1px 4px rgba(76, 141, 255, 0.4);
   transition: transform 0.15s ease;
 }
 
@@ -229,10 +282,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #232b35;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #313d4b;
 }

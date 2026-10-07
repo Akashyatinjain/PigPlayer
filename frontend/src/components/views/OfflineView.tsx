@@ -10,7 +10,6 @@ import {
   Trash2,
   Music2,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";

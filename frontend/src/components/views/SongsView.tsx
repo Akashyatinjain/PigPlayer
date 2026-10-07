@@ -68,12 +68,12 @@ export default function SongsView() {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header & Action Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#232b35] pb-5">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">
             All Songs
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">
+          <p className="text-xs text-slate-400 mt-0.5 font-medium">
             {filteredAndSortedSongs.length}{" "}
             {filteredAndSortedSongs.length === 1 ? "track" : "tracks"}
             {searchQuery && ` matching "${searchQuery}"`}
@@ -85,7 +85,7 @@ export default function SongsView() {
             <>
               <button
                 onClick={handlePlayAll}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
@@ -93,32 +93,32 @@ export default function SongsView() {
 
               <button
                 onClick={handleShufflePlay}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 rounded-full transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all"
               >
-                <Shuffle className="w-3.5 h-3.5" />
+                <Shuffle className="w-3.5 h-3.5 text-slate-400" />
                 <span>Shuffle</span>
               </button>
             </>
           )}
 
           {/* Sort Selector */}
-          <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1.5 rounded-full text-xs text-slate-700 shadow-xs">
+          <div className="flex items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
             <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-transparent outline-none cursor-pointer text-xs font-medium"
+              className="bg-transparent outline-none cursor-pointer text-xs font-medium text-slate-300"
             >
-              <option value="date">Date Added</option>
-              <option value="title">Title</option>
-              <option value="artist">Artist</option>
-              <option value="duration">Duration</option>
+              <option value="date" className="bg-[#141922] text-white">Date Added</option>
+              <option value="title" className="bg-[#141922] text-white">Title</option>
+              <option value="artist" className="bg-[#141922] text-white">Artist</option>
+              <option value="duration" className="bg-[#141922] text-white">Duration</option>
             </select>
           </div>
 
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex items-center gap-1 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-blue-600 rounded-full transition-all shadow-xs"
+            className="flex items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add</span>
@@ -128,19 +128,19 @@ export default function SongsView() {
 
       {/* Song Table */}
       {filteredAndSortedSongs.length === 0 ? (
-        <div className="text-center py-16 space-y-3 bg-white rounded-2xl border border-slate-200 p-8 shadow-xs">
-          <Music2 className="w-10 h-10 text-slate-400 mx-auto stroke-[1.5]" />
-          <h2 className="text-base font-bold text-slate-800">No songs found</h2>
-          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+        <div className="text-center py-16 space-y-3 bg-[#0d1015] rounded-2xl border border-[#232b35] p-8 shadow-xs">
+          <Music2 className="w-10 h-10 text-slate-500 mx-auto stroke-[1.5]" />
+          <h2 className="text-base font-bold text-white">No songs found</h2>
+          <p className="text-xs text-slate-400 max-w-xs mx-auto">
             {searchQuery
               ? `No tracks match your query "${searchQuery}". Try searching by another artist, title, or album.`
               : "You haven't added any songs yet. Click Upload to get started."}
           </p>
         </div>
       ) : (
-        <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-[#0d1015] p-2 rounded-2xl border border-[#232b35] shadow-xs space-y-1">
           {/* Table Header */}
-          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1f2631]">
             <div className="flex items-center gap-4 flex-1">
               <span className="w-5 text-center">#</span>
               <span>Title & Artist</span>
