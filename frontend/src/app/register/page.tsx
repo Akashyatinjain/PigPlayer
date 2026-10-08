@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Music, ArrowRight, Lock, Mail, User, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Lock, Mail, User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -36,8 +37,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-3 shadow-md shadow-blue-500/20">
-            <Music className="w-6 h-6" />
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mb-3 shadow-md shadow-pink-500/20">
+            <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={56} height={56} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Create your account

@@ -1,6 +1,6 @@
 {
-  "name": "Soundify",
-  "short_name": "Soundify",
+  "name": "piGGyPlayer",
+  "short_name": "piGGyPlayer",
   "description": "Offline-first personal music player",
   "start_url": "/",
   "display": "standalone",
@@ -8,6 +8,12 @@
   "theme_color": "#090a0f",
   "orientation": "any",
   "icons": [
+    {
+      "src": "/piggy-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icons/icon.svg",
       "sizes": "any",

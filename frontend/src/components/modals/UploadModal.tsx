@@ -73,7 +73,7 @@ export default function UploadModal() {
         progress: 0,
         customTitle: cleanName,
         customArtist: "Unknown Artist",
-        customAlbum: "Soundify Library",
+        customAlbum: "piGGyPlayer Library",
       };
     });
 
@@ -263,7 +263,7 @@ export default function UploadModal() {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Add Songs to Soundify
+                Add Songs to piGGyPlayer
               </h2>
               <p className="text-xs text-slate-400 font-normal">
                 Upload multiple audio files at once with automatic metadata extraction

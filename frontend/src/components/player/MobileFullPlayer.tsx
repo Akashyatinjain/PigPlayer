@@ -101,7 +101,7 @@ export default function MobileFullPlayer() {
             Now Playing
           </p>
           <p className="text-xs text-gray-400 truncate max-w-[200px]">
-            {currentSong.album || "Soundify Library"}
+            {currentSong.album || "piGGyPlayer Library"}
           </p>
         </div>
 

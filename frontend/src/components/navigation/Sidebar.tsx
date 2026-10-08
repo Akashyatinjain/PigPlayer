@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {
   Home,
   Music2,
@@ -8,7 +9,6 @@ import {
   Library,
   History,
   Plus,
-  Disc3,
   Settings,
   HardDriveDownload,
 } from "lucide-react";
@@ -49,15 +49,15 @@ export default function Sidebar() {
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Brand Header */}
         <div className="p-6 pb-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600/15 border border-blue-500/25 flex items-center justify-center text-blue-400 shadow-md shadow-blue-500/10">
-            <Disc3 className="w-5 h-5 animate-spin-slow" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-pink-500/15 border border-pink-500/25 shrink-0">
+            <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={40} height={40} className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-extrabold text-base tracking-wider text-white">
-              SOUNDIFY
+              pi<span className="text-pink-400">GG</span>yPlayer
             </h1>
             <p className="text-[11px] text-slate-400 font-medium tracking-tight">
-              Personal Hi-Fi Player
+              Oink your tunes 🐷
             </p>
           </div>
         </div>
@@ -157,7 +157,7 @@ export default function Sidebar() {
 
       {/* Footer Info */}
       <div className="p-4 border-t border-[#1f2631] text-[11px] text-slate-500 flex items-center justify-between">
-        <span>Soundify</span>
+        <span>piGGyPlayer</span>
         <span className="font-mono text-[10px]">v1.0.0</span>
       </div>
     </aside>

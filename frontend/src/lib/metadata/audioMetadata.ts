@@ -77,7 +77,7 @@ function parseFilenameFallback(filename: string): {
   return {
     title: formattedTitle || "Unknown Track",
     artist: "Unknown Artist",
-    album: "Soundify Library",
+    album: "piGGyPlayer Library",
     trackNumber,
   };
 }

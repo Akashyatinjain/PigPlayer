@@ -178,7 +178,7 @@ export default function GlobalAudioPlayer() {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
         artist: currentSong.artist,
-        album: currentSong.album || "Soundify",
+        album: currentSong.album || "piGGyPlayer",
         artwork: currentSong.coverUrl
           ? [
               { src: currentSong.coverUrl, sizes: "96x96", type: "image/png" },

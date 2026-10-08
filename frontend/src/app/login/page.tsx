@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Music, ArrowRight, Lock, Mail, Loader2, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Lock, Mail, Loader2, Sparkles } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -31,12 +32,12 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    setEmail("demo@soundify.app");
+    setEmail("demo@piggyplayer.app");
     setPassword("password123");
     setIsLoading(true);
     setError(null);
     try {
-      await login("demo@soundify.app", "password123");
+      await login("demo@piggyplayer.app", "password123");
       router.push("/");
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Demo login failed"));
@@ -50,11 +51,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white mb-3 shadow-md shadow-blue-500/20">
-            <Music className="w-6 h-6" />
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mb-3 shadow-md shadow-pink-500/20">
+            <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={56} height={56} className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Welcome back to Soundify
+            Welcome back to pi<span className="text-pink-500">GG</span>yPlayer
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Sign in to access your personal library and playlists
@@ -126,7 +127,7 @@ export default function LoginPage() {
             className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Use Demo Account (demo@soundify.app)</span>
+            <span>Use Demo Account (demo@piggyplayer.app)</span>
           </button>
 
           <p className="text-center text-xs text-slate-500">

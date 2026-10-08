@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Soundify — Offline Music Player",
+  title: "piGGyPlayer — Offline Music Player",
   description:
     "Offline-first personal music player. Your library stays on this machine — no internet required.",
-  applicationName: "Soundify",
+  applicationName: "piGGyPlayer",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "Soundify",
+    title: "piGGyPlayer",
     statusBarStyle: "default",
   },
 };

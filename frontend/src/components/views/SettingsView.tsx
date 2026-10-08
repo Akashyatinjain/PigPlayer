@@ -119,7 +119,7 @@ export default function SettingsView() {
           <div>
             <p className="text-sm font-semibold text-slate-800">Local data directory</p>
             <p className="text-xs text-slate-500 font-mono mt-1 break-all">
-              ./data/soundify.db · ./data/audio · ./data/artwork · ./data/backups
+              ./data/piggyplayer.db · ./data/audio · ./data/artwork · ./data/backups
             </p>
           </div>
         </div>

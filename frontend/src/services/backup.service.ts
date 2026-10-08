@@ -24,7 +24,7 @@ export const backupService = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'soundify-library.json';
+    a.download = 'piggyplayer-library.json';
     a.click();
     URL.revokeObjectURL(url);
   },

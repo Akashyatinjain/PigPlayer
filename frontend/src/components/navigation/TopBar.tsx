@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Search, Plus, ListMusic, Keyboard, X, Disc3, WifiOff } from "lucide-react";
+import Image from "next/image";
+import { Search, Plus, ListMusic, Keyboard, X, WifiOff } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAuthStore } from "@/stores/auth-store";
@@ -47,8 +48,8 @@ export default function TopBar() {
           </div>
         ) : (
           <div className="flex items-center gap-2 text-slate-900">
-            <Disc3 className="h-5 w-5 text-blue-500" />
-            <span className="text-sm font-semibold tracking-[0.12em]">SOUNDIFY</span>
+            <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={28} height={28} className="w-7 h-7 rounded-lg" />
+            <span className="text-sm font-bold tracking-wide">pi<span className="text-pink-500">GG</span>yPlayer</span>
           </div>
         )}
         <div className="flex shrink-0 items-center gap-1">
