@@ -15,12 +15,17 @@ function findProjectRoot(): string {
 
 /** Monorepo root or backend root */
 export const PROJECT_ROOT = findProjectRoot();
-export const DATA_ROOT = path.join(PROJECT_ROOT, 'data');
+export const DATA_ROOT =
+  process.env.DATA_DIR || process.env.DATA_ROOT
+    ? path.resolve(process.env.DATA_DIR || process.env.DATA_ROOT!)
+    : path.join(PROJECT_ROOT, 'data');
 export const AUDIO_DIR = path.join(DATA_ROOT, 'audio');
 export const ARTWORK_DIR = path.join(DATA_ROOT, 'artwork');
 export const TEMP_DIR = path.join(DATA_ROOT, 'temp');
 export const BACKUPS_DIR = path.join(DATA_ROOT, 'backups');
-export const DB_PATH = path.join(DATA_ROOT, 'soundify.db');
+export const DB_PATH = process.env.SQLITE_PATH
+  ? path.resolve(process.env.SQLITE_PATH)
+  : path.join(DATA_ROOT, 'soundify.db');
 
 const REQUIRED_DIRS = [DATA_ROOT, AUDIO_DIR, ARTWORK_DIR, TEMP_DIR, BACKUPS_DIR];
 

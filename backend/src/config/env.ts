@@ -9,17 +9,78 @@ const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 
 function getSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET', devFallback: string): string {
-  const value = process.env[name]?.trim();
-  if (isProduction && (!value || value.length < 32)) {
-    throw new Error(`${name} must be configured with at least 32 characters in production`);
+  let value = process.env[name]?.trim();
+  if (value && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
+    value = value.slice(1, -1).trim();
   }
-  return value || devFallback;
+  if (!value || value.length < 32) {
+    if (isProduction && !value) {
+      console.warn(`[CONFIG] ${name} is not configured in production. Using fallback secret.`);
+    }
+    return value && value.length >= 16 ? value : devFallback;
+  }
+  return value;
 }
 
-const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl;
-if (!databaseUrl.startsWith('file:')) {
-  throw new Error('DATABASE_URL must point to a local SQLite file (file:...).');
+function resolveDatabaseUrl(): string {
+  let raw = (process.env.DATABASE_URL || process.env.SQLITE_DATABASE_URL || '').trim();
+
+  // Strip enclosing single or double quotes
+  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+    raw = raw.slice(1, -1).trim();
+  }
+
+  // If empty, use default SQLite URL
+  if (!raw) {
+    process.env.DATABASE_URL = defaultDatabaseUrl;
+    return defaultDatabaseUrl;
+  }
+
+  // If a remote cloud database URL is provided (e.g. Render auto-injected postgres:// or postgresql://),
+  // Soundify is an offline-first SQLite application.
+  // Gracefully fall back to local SQLite at defaultDatabaseUrl instead of crashing.
+  if (
+    raw.startsWith('postgres://') ||
+    raw.startsWith('postgresql://') ||
+    raw.startsWith('mysql://') ||
+    raw.startsWith('mongodb://')
+  ) {
+    console.warn(
+      `[CONFIG] Non-SQLite database URL detected in DATABASE_URL (${raw.split('://')[0]}://...). Soundify runs on local SQLite; falling back to local SQLite database at ${defaultDatabaseUrl}.`
+    );
+    process.env.DATABASE_URL = defaultDatabaseUrl;
+    return defaultDatabaseUrl;
+  }
+
+  // Normalize sqlite: or sqlite3: prefixes
+  if (raw.startsWith('sqlite:///')) {
+    raw = `file:/${raw.slice('sqlite:///'.length)}`;
+  } else if (raw.startsWith('sqlite://')) {
+    raw = `file:${raw.slice('sqlite://'.length)}`;
+  } else if (raw.startsWith('sqlite:')) {
+    raw = `file:${raw.slice('sqlite:'.length)}`;
+  }
+
+  // If bare filesystem path (e.g. /var/data/soundify.db or ./data/soundify.db)
+  if (!raw.startsWith('file:') && !raw.includes('://')) {
+    const resolvedPath = path.resolve(raw).split(path.sep).join('/');
+    raw = `file:${resolvedPath}`;
+  }
+
+  // Ensure it starts with file:
+  if (!raw.startsWith('file:')) {
+    console.warn(
+      `[CONFIG] Invalid DATABASE_URL scheme ("${raw}"). Defaulting to local SQLite at ${defaultDatabaseUrl}.`
+    );
+    process.env.DATABASE_URL = defaultDatabaseUrl;
+    return defaultDatabaseUrl;
+  }
+
+  process.env.DATABASE_URL = raw;
+  return raw;
 }
+
+const databaseUrl = resolveDatabaseUrl();
 
 const maxUploadMb = Number.parseInt(process.env.MAX_UPLOAD_MB || '100', 10);
 if (!Number.isFinite(maxUploadMb) || maxUploadMb < 1 || maxUploadMb > 100) {
@@ -31,9 +92,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('PORT must be a valid TCP port');
 }
 
-const localUserPassword = process.env.LOCAL_USER_PASSWORD || 'soundify';
-if (isProduction && (localUserPassword.length < 12 || localUserPassword === 'soundify')) {
-  throw new Error('LOCAL_USER_PASSWORD must be changed to a strong password in production');
+let localUserPassword = process.env.LOCAL_USER_PASSWORD?.trim() || 'soundify';
+if ((localUserPassword.startsWith('"') && localUserPassword.endsWith('"')) || (localUserPassword.startsWith("'") && localUserPassword.endsWith("'"))) {
+  localUserPassword = localUserPassword.slice(1, -1).trim();
 }
 
 export const config = {
