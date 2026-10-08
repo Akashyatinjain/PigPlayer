@@ -41,7 +41,7 @@ function formatBytes(bytes: number) {
 }
 
 export default function SettingsView() {
-  const { refreshLibrary } = useLibrary();
+  const { refreshLibrary, deleteAllSongs } = useLibrary();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [backups, setBackups] = useState<
@@ -212,6 +212,20 @@ export default function SettingsView() {
               run("refresh", async () => {
                 await refreshLibrary();
                 setMessage("Library refreshed");
+              })
+            }
+          />
+          <ActionRow
+            icon={Trash2}
+            title="Delete all songs"
+            desc="Permanently wipe all songs from the library and storage"
+            danger
+            busy={busy === "delete-all"}
+            onClick={() =>
+              run("delete-all", async () => {
+                if (!confirm("Are you sure you want to delete ALL songs? This action cannot be undone.")) return;
+                await deleteAllSongs();
+                setMessage("All songs deleted");
               })
             }
           />

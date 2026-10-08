@@ -160,8 +160,8 @@ function SongRail({ title, action, onAction, songs, allSongs, playSong }: {
         <button type="button" onClick={onAction} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-400 hover:text-blue-400">{action}<ArrowRight className="h-4 w-4" /></button>
       </div>
       <div className="horizontal-rail">
-        {songs.map((song) => (
-          <RailCard key={song.id} song={song} allSongs={allSongs} playSong={playSong} />
+        {songs.map((song, index) => (
+          <RailCard key={`${song.id}-${index}`} song={song} allSongs={allSongs} playSong={playSong} />
         ))}
       </div>
     </section>

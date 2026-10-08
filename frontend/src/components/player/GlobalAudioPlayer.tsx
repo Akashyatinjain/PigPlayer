@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
+import { resolveMediaUrl } from "@/services/song.service";
 
 export default function GlobalAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const loadedSongIdRef = useRef<string | null>(null);
+  const isSeekingRef = useRef(false);
 
   const {
     currentSong,
+    queue,
+    currentIndex,
     isPlaying,
     currentTime,
     volume,
@@ -24,10 +29,31 @@ export default function GlobalAudioPlayer() {
     toggleMute,
   } = usePlayerStore();
 
-  // Track whether time update is internal or user-initiated seek
-  const isSeekingRef = useRef(false);
+  /**
+   * Seamless server-shutdown / network drop recovery:
+   * Swaps audio element src to local IndexedDB blob at the exact preserved timestamp.
+   */
+  const handleRecoverFromCache = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || !currentSong) return;
 
-  // Synchronize song change with IndexedDB offline fallback
+    const savedTime = audio.currentTime;
+    try {
+      const cachedBlobUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
+      if (cachedBlobUrl && audio.src !== cachedBlobUrl) {
+        console.info(`[PigPlayer] Recovered playback from local cache at ${savedTime.toFixed(1)}s`);
+        audio.src = cachedBlobUrl;
+        audio.currentTime = savedTime;
+        if (isPlaying) {
+          audio.play().catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn("[PigPlayer] Recovery from cache attempt:", err);
+    }
+  }, [currentSong, isPlaying]);
+
+  // Synchronize song change with cache-first and background buffering
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -35,20 +61,25 @@ export default function GlobalAudioPlayer() {
     let isCancelled = false;
 
     if (currentSong) {
-      const loadAudioSource = async () => {
-        let srcToPlay = currentSong.audioUrl;
+      // If same song is already loaded, avoid resetting buffer and time
+      if (loadedSongIdRef.current === currentSong.id && audio.src) {
+        return;
+      }
 
-        // If network is offline, or if current URL is missing or not a blob, try local IndexedDB
-        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-        if (isOffline || !srcToPlay || !srcToPlay.startsWith("blob:")) {
-          try {
-            const offlineUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
-            if (offlineUrl) {
-              srcToPlay = offlineUrl;
-            }
-          } catch {
-            // Keep default srcToPlay
-          }
+      loadedSongIdRef.current = currentSong.id;
+
+      const prepareAndPlay = async () => {
+        // 1. Check if song already exists in local offline/cache vault
+        let srcToPlay: string | null = null;
+        try {
+          srcToPlay = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
+        } catch {
+          // continue to network fallback
+        }
+
+        // 2. If not in local cache, resolve streaming URL
+        if (!srcToPlay) {
+          srcToPlay = resolveMediaUrl(currentSong.audioUrl);
         }
 
         if (isCancelled || !audio) return;
@@ -60,13 +91,28 @@ export default function GlobalAudioPlayer() {
 
         if (isPlaying) {
           audio.play().catch((err) => {
-            console.warn("Autoplay was blocked or playback interrupted:", err);
+            console.warn("[PigPlayer] Autoplay prevented or interrupted:", err);
           });
+        }
+
+        // 3. In background: cache the current track for 100% offline immunity
+        void offlineStorageService.cacheSongForPlayback(currentSong).then((blobUrl) => {
+          // If playback hasn't started or fails later, the blob is already ready
+          if (blobUrl && audioRef.current && audioRef.current.error) {
+            void handleRecoverFromCache();
+          }
+        });
+
+        // 4. In background: preload the next track in queue so next song plays even if server is stopped
+        const nextTrack = queue[currentIndex + 1] || (repeatMode === "all" ? queue[0] : null);
+        if (nextTrack) {
+          void offlineStorageService.preloadSong(nextTrack);
         }
       };
 
-      void loadAudioSource();
+      void prepareAndPlay();
     } else {
+      loadedSongIdRef.current = null;
       audio.pause();
       audio.removeAttribute("src");
     }
@@ -74,9 +120,9 @@ export default function GlobalAudioPlayer() {
     return () => {
       isCancelled = true;
     };
-  }, [currentSong, isPlaying]);
+  }, [currentSong?.id, queue, currentIndex, repeatMode, handleRecoverFromCache]);
 
-  // Synchronize play/pause
+  // Synchronize play/pause state independently without reloading audio source
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
@@ -84,7 +130,7 @@ export default function GlobalAudioPlayer() {
     if (isPlaying) {
       if (audio.paused) {
         audio.play().catch((err) => {
-          console.warn("Play interrupted or blocked:", err);
+          console.warn("[PigPlayer] Play interrupted or blocked:", err);
         });
       }
     } else {
@@ -111,7 +157,20 @@ export default function GlobalAudioPlayer() {
     }
   }, [currentTime]);
 
-  // MediaSession API integration
+  // Render Keep-Alive Heartbeat: keep free tier awake while player tab is open
+  useEffect(() => {
+    const pingKeepAlive = () => {
+      const rawUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").trim().replace(/\/+$/, "");
+      const origin = rawUrl.replace(/\/api\/?$/, "");
+      fetch(`${origin}/health`, { method: "GET", keepalive: true }).catch(() => {});
+    };
+
+    pingKeepAlive();
+    const interval = setInterval(pingKeepAlive, 3.5 * 60 * 1000); // every 3.5 mins
+    return () => clearInterval(interval);
+  }, []);
+
+  // MediaSession API integration for native notification controls
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
 
@@ -197,7 +256,8 @@ export default function GlobalAudioPlayer() {
     <audio
       ref={audioRef}
       id="soundify-audio-element"
-      preload="metadata"
+      preload="auto"
+      crossOrigin="anonymous"
       onTimeUpdate={() => {
         if (!audioRef.current || isSeekingRef.current) return;
         setCurrentTime(audioRef.current.currentTime);
@@ -219,22 +279,13 @@ export default function GlobalAudioPlayer() {
           nextSong();
         }
       }}
-      onError={async (e) => {
-        console.warn("Audio element network/source error, attempting offline storage fallback...", e);
-        if (currentSong?.id && audioRef.current) {
-          try {
-            const offlineUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
-            if (offlineUrl && audioRef.current.src !== offlineUrl) {
-              audioRef.current.src = offlineUrl;
-              audioRef.current.load();
-              if (isPlaying) {
-                audioRef.current.play().catch(() => {});
-              }
-            }
-          } catch (err) {
-            console.error("Offline fallback failed:", err);
-          }
-        }
+      onStalled={() => {
+        console.warn("[PigPlayer] Stream stalled, verifying cache availability...");
+        void handleRecoverFromCache();
+      }}
+      onError={(e) => {
+        console.warn("[PigPlayer] Audio network error encountered, activating local cache fallback...", e);
+        void handleRecoverFromCache();
       }}
     />
   );

@@ -93,6 +93,18 @@ export class SongController {
     }
   }
 
+  static async deleteAllSongs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      await SongService.deleteAllSongs();
+      res.status(200).json({
+        success: true,
+        message: 'All songs deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async streamAudio(req: Request, res: Response, next: NextFunction) {
     try {
       await MediaService.streamAudio(req, res);

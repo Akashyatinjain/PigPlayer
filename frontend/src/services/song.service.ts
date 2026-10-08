@@ -46,9 +46,30 @@ export const normalizeSong = (song: Record<string, unknown>): Song => {
 
 export const songService = {
   async getSongs(params?: { q?: string; genre?: string; page?: number; limit?: number }): Promise<Song[]> {
-    const res = await api.get('/songs', { params });
-    const list = res.data.data || [];
-    return list.map((s: Record<string, unknown>) => normalizeSong(s));
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 50;
+    const res = await api.get('/songs', {
+      params: { ...params, page, limit },
+    });
+    const songs = res.data.data || [];
+    const totalPages = params?.page
+      ? page
+      : Math.max(1, Number(res.data.pagination?.totalPages) || 1);
+
+    if (totalPages > page) {
+      const remainingPages = await Promise.all(
+        Array.from({ length: totalPages - page }, (_, index) =>
+          api.get('/songs', {
+            params: { ...params, page: page + index + 1, limit },
+          })
+        )
+      );
+      for (const pageResponse of remainingPages) {
+        songs.push(...(pageResponse.data.data || []));
+      }
+    }
+
+    return songs.map((s: Record<string, unknown>) => normalizeSong(s));
   },
 
   async getSong(id: string): Promise<Song> {
@@ -78,6 +99,11 @@ export const songService = {
 
   async deleteSong(id: string): Promise<boolean> {
     const res = await api.delete(`/songs/${id}`);
+    return res.data.success;
+  },
+
+  async deleteAllSongs(): Promise<boolean> {
+    const res = await api.delete('/songs/all');
     return res.data.success;
   },
 

@@ -26,29 +26,51 @@ const allowedOrigins = [
   config.clientUrl,
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
 ].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Audio element requests, curl, server-to-server, and mobile web views often send no origin
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.onrender.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
         return callback(null, true);
       }
       if (config.env === 'development') {
         return callback(null, true);
       }
-      callback(new Error('Blocked by CORS policy'));
+      // Never throw an unhandled error inside cors callback to avoid 500 responses
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Range',
+      'Accept',
+      'Accept-Ranges',
+      'Cache-Control',
+      'If-Range',
+      'If-None-Match',
+    ],
+    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'ETag'],
   })
 );
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5000,
+  max: 10000,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -57,13 +79,18 @@ app.use('/api', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.get('/health', (_req, res) => {
+// Ultra-fast Health / Keepalive endpoints for Render free-tier wakeups
+const handleHealth = (_req: express.Request, res: express.Response) => {
   res.status(200).json({
     status: 'ok',
     mode: 'offline-first',
+    uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
   });
-});
+};
+
+app.get('/health', handleHealth);
+app.get('/api/health', handleHealth);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/songs', songRoutes);
@@ -75,7 +102,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/backups', backupRoutes);
 app.use('/api/backup', backupRoutes);
 
-// Compatibility aliases if client calls without /api
+// Compatibility aliases if client calls without /api prefix
 app.use('/auth', authRoutes);
 app.use('/songs', songRoutes);
 app.use('/search', searchRoutes);

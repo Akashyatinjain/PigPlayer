@@ -1,8 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 
-/** Monorepo root: soundify/ (two levels up from backend/src/config) */
-export const PROJECT_ROOT = path.resolve(__dirname, '../../../');
+function findProjectRoot(): string {
+  const threeLevelsUp = path.resolve(__dirname, '../../../');
+  if (fs.existsSync(path.join(threeLevelsUp, 'data')) || fs.existsSync(path.join(threeLevelsUp, 'frontend'))) {
+    return threeLevelsUp;
+  }
+  const twoLevelsUp = path.resolve(__dirname, '../../');
+  if (fs.existsSync(path.join(twoLevelsUp, 'data')) || fs.existsSync(path.join(twoLevelsUp, 'package.json'))) {
+    return twoLevelsUp;
+  }
+  return threeLevelsUp;
+}
+
+/** Monorepo root or backend root */
+export const PROJECT_ROOT = findProjectRoot();
 export const DATA_ROOT = path.join(PROJECT_ROOT, 'data');
 export const AUDIO_DIR = path.join(DATA_ROOT, 'audio');
 export const ARTWORK_DIR = path.join(DATA_ROOT, 'artwork');

@@ -1,4 +1,5 @@
 import { Song } from "@/types/music";
+import { resolveMediaUrl } from "./song.service";
 
 export interface OfflineTrackRecord {
   id: string;
@@ -9,12 +10,24 @@ export interface OfflineTrackRecord {
   sizeBytes: number;
 }
 
+export interface CachedTrackRecord {
+  id: string;
+  song: Song;
+  audioBlob: Blob;
+  coverBlob?: Blob | null;
+  cachedAt: number;
+  sizeBytes: number;
+}
+
 const DB_NAME = "soundify_offline_vault";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "offline_tracks";
+const CACHE_STORE_NAME = "playback_cache";
+const MAX_CACHE_ITEMS = 40;
 
 // Cache blob URLs in memory to avoid redundant object URLs and memory leaks
 const objectUrlCache = new Map<string, string>();
+const activeFetchPromises = new Map<string, Promise<string | null>>();
 
 class OfflineStorageService {
   private dbPromise: Promise<IDBDatabase> | null = null;
@@ -34,6 +47,10 @@ class OfflineStorageService {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: "id" });
         }
+        if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
+          const cacheStore = db.createObjectStore(CACHE_STORE_NAME, { keyPath: "id" });
+          cacheStore.createIndex("cachedAt", "cachedAt", { unique: false });
+        }
       };
 
       request.onsuccess = () => {
@@ -50,48 +67,70 @@ class OfflineStorageService {
   }
 
   /**
-   * Save a song (audio + optional cover) into IndexedDB
+   * Helper to fetch audio blob from multiple candidate URLs
+   */
+  private async fetchAudioBlob(song: Song): Promise<Blob | null> {
+    const rawAudioUrl = song.audioUrl || (song.id ? `/api/songs/${song.id}/audio` : "");
+    const audioSources = [
+      resolveMediaUrl(rawAudioUrl),
+      song.id ? resolveMediaUrl(`/api/songs/${song.id}/audio`) : null,
+      song.id ? resolveMediaUrl(`/api/songs/${song.id}/download`) : null,
+      song.audioUrl,
+    ].filter(Boolean) as string[];
+
+    // Remove duplicates
+    const uniqueSources = Array.from(new Set(audioSources));
+
+    for (const src of uniqueSources) {
+      try {
+        const res = await fetch(src, {
+          headers: { Accept: "audio/*, */*" },
+          cache: "force-cache",
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob && blob.size > 1000) {
+            return blob;
+          }
+        }
+      } catch {
+        // Try next candidate
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Save a song explicitly (user clicked "Save Offline")
    */
   async saveSongOffline(song: Song): Promise<boolean> {
     try {
       const db = await this.getDB();
 
-      // 1. Fetch audio stream
+      // Check if already in cache or fetch blob
       let audioBlob: Blob | null = null;
-      const audioSources = [
-        song.audioUrl,
-        song.id ? `/api/songs/${song.id}/audio` : null,
-        song.id ? `/api/songs/${song.id}/download` : null,
-      ].filter(Boolean) as string[];
-
-      for (const src of audioSources) {
-        try {
-          const res = await fetch(src);
-          if (res.ok) {
-            audioBlob = await res.blob();
-            if (audioBlob && audioBlob.size > 1000) {
-              break;
-            }
-          }
-        } catch {
-          // Try next fallback
-        }
+      const cached = await this.getCachedRecord(song.id);
+      if (cached?.audioBlob) {
+        audioBlob = cached.audioBlob;
+      } else {
+        audioBlob = await this.fetchAudioBlob(song);
       }
 
       if (!audioBlob || audioBlob.size === 0) {
         throw new Error(`Failed to download audio for song "${song.title}"`);
       }
 
-      // 2. Fetch cover image if available
+      // Fetch cover image if available
       let coverBlob: Blob | null = null;
-      if (song.coverUrl && !song.coverUrl.startsWith("blob:")) {
+      const resolvedCover = resolveMediaUrl(song.coverUrl);
+      if (resolvedCover && !resolvedCover.startsWith("blob:")) {
         try {
-          const coverRes = await fetch(song.coverUrl);
+          const coverRes = await fetch(resolvedCover);
           if (coverRes.ok) {
             coverBlob = await coverRes.blob();
           }
         } catch {
-          // Cover is optional, proceed without it
+          // Cover is optional
         }
       }
 
@@ -119,6 +158,10 @@ class OfflineStorageService {
         req.onerror = () => reject(req.error);
       });
 
+      // Update objectUrlCache
+      const blobUrl = URL.createObjectURL(audioBlob);
+      objectUrlCache.set(song.id, blobUrl);
+
       this.notifyOfflineChange();
       return true;
     } catch (err) {
@@ -128,7 +171,137 @@ class OfflineStorageService {
   }
 
   /**
-   * Remove a song from IndexedDB
+   * Automatically cache a song into the resilient playback buffer in the background.
+   * This guarantees that if the server closes or Render sleeps, playback never drops!
+   */
+  async cacheSongForPlayback(song: Song): Promise<string | null> {
+    if (!song?.id) return null;
+
+    // 1. If already in memory cache, return immediately
+    if (objectUrlCache.has(song.id)) {
+      return objectUrlCache.get(song.id)!;
+    }
+
+    // 2. If already fetching, wait for that fetch
+    if (activeFetchPromises.has(song.id)) {
+      return activeFetchPromises.get(song.id)!;
+    }
+
+    const fetchPromise = (async (): Promise<string | null> => {
+      try {
+        const db = await this.getDB();
+
+        // 3. Check offline tracks store
+        const offlineUrl = await this.getOfflineAudioUrl(song.id);
+        if (offlineUrl) return offlineUrl;
+
+        // 4. Check playback cache store
+        const cached = await this.getCachedRecord(song.id);
+        if (cached?.audioBlob) {
+          const blobUrl = URL.createObjectURL(cached.audioBlob);
+          objectUrlCache.set(song.id, blobUrl);
+          return blobUrl;
+        }
+
+        // 5. Fetch audio from backend in the background
+        const audioBlob = await this.fetchAudioBlob(song);
+        if (!audioBlob) return null;
+
+        const blobUrl = URL.createObjectURL(audioBlob);
+        objectUrlCache.set(song.id, blobUrl);
+
+        // Save into playback_cache
+        const record: CachedTrackRecord = {
+          id: song.id,
+          song,
+          audioBlob,
+          cachedAt: Date.now(),
+          sizeBytes: audioBlob.size,
+        };
+
+        const tx = db.transaction(CACHE_STORE_NAME, "readwrite");
+        const store = tx.objectStore(CACHE_STORE_NAME);
+        store.put(record);
+
+        // Prune LRU if needed
+        this.prunePlaybackCache(db).catch(() => {});
+
+        return blobUrl;
+      } catch (err) {
+        console.warn(`[OfflineService] Background cache skipped for ${song.title}:`, err);
+        return null;
+      } finally {
+        activeFetchPromises.delete(song.id);
+      }
+    })();
+
+    activeFetchPromises.set(song.id, fetchPromise);
+    return fetchPromise;
+  }
+
+  /**
+   * Preload the next song in queue with low network priority
+   */
+  async preloadSong(song: Song): Promise<void> {
+    if (!song?.id || objectUrlCache.has(song.id)) return;
+    try {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        window.requestIdleCallback(() => {
+          void this.cacheSongForPlayback(song);
+        });
+      } else {
+        setTimeout(() => {
+          void this.cacheSongForPlayback(song);
+        }, 1500);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Helper to retrieve record from playback_cache
+   */
+  private async getCachedRecord(songId: string): Promise<CachedTrackRecord | null> {
+    try {
+      const db = await this.getDB();
+      return new Promise<CachedTrackRecord | null>((resolve) => {
+        const tx = db.transaction(CACHE_STORE_NAME, "readonly");
+        const store = tx.objectStore(CACHE_STORE_NAME);
+        const req = store.get(songId);
+        req.onsuccess = () => resolve((req.result as CachedTrackRecord) || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Prune oldest records in playback_cache to stay under MAX_CACHE_ITEMS
+   */
+  private async prunePlaybackCache(db: IDBDatabase): Promise<void> {
+    try {
+      const tx = db.transaction(CACHE_STORE_NAME, "readwrite");
+      const store = tx.objectStore(CACHE_STORE_NAME);
+      const req = store.getAllKeys();
+
+      req.onsuccess = () => {
+        const keys = req.result;
+        if (keys && keys.length > MAX_CACHE_ITEMS) {
+          const deleteCount = keys.length - MAX_CACHE_ITEMS;
+          for (let i = 0; i < deleteCount; i++) {
+            store.delete(keys[i]);
+          }
+        }
+      };
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
+   * Remove a song from explicit offline storage
    */
   async removeSongOffline(songId: string): Promise<boolean> {
     try {
@@ -143,7 +316,6 @@ class OfflineStorageService {
         req.onerror = () => reject(req.error);
       });
 
-      // Revoke cached blob URL if any
       const cachedUrl = objectUrlCache.get(songId);
       if (cachedUrl) {
         URL.revokeObjectURL(cachedUrl);
@@ -159,7 +331,7 @@ class OfflineStorageService {
   }
 
   /**
-   * Check if a specific song is saved offline
+   * Check if a specific song is explicitly saved offline
    */
   async isSongOffline(songId: string): Promise<boolean> {
     try {
@@ -201,32 +373,45 @@ class OfflineStorageService {
   }
 
   /**
-   * Get playable blob URL for an offline song
+   * Get playable blob URL for an offline or cached song.
+   * Checks memory cache -> offline vault -> automatic playback cache.
    */
   async getOfflineAudioUrl(songId: string): Promise<string | null> {
     try {
+      // 1. Fast path: in-memory blob URL
       if (objectUrlCache.has(songId)) {
         return objectUrlCache.get(songId)!;
       }
 
       const db = await this.getDB();
-      return new Promise<string | null>((resolve) => {
+
+      // 2. Check offline vault
+      const offlineBlob = await new Promise<Blob | null>((resolve) => {
         const tx = db.transaction(STORE_NAME, "readonly");
         const store = tx.objectStore(STORE_NAME);
         const req = store.get(songId);
-
         req.onsuccess = () => {
-          const record = req.result as OfflineTrackRecord | undefined;
-          if (record?.audioBlob) {
-            const blobUrl = URL.createObjectURL(record.audioBlob);
-            objectUrlCache.set(songId, blobUrl);
-            resolve(blobUrl);
-          } else {
-            resolve(null);
-          }
+          const rec = req.result as OfflineTrackRecord | undefined;
+          resolve(rec?.audioBlob || null);
         };
         req.onerror = () => resolve(null);
       });
+
+      if (offlineBlob) {
+        const blobUrl = URL.createObjectURL(offlineBlob);
+        objectUrlCache.set(songId, blobUrl);
+        return blobUrl;
+      }
+
+      // 3. Check playback cache
+      const cachedRecord = await this.getCachedRecord(songId);
+      if (cachedRecord?.audioBlob) {
+        const blobUrl = URL.createObjectURL(cachedRecord.audioBlob);
+        objectUrlCache.set(songId, blobUrl);
+        return blobUrl;
+      }
+
+      return null;
     } catch {
       return null;
     }
@@ -280,8 +465,7 @@ class OfflineStorageService {
   async importLocalFile(file: File): Promise<Song> {
     const db = await this.getDB();
     const id = `local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-    
-    // Parse title & artist from file name
+
     const rawName = file.name.replace(/\.[^/.]+$/, "");
     let title = rawName;
     let artist = "Local Device";
@@ -332,7 +516,7 @@ class OfflineStorageService {
   }
 
   /**
-   * Calculate storage used by offline tracks
+   * Calculate storage used by offline tracks and cache
    */
   async getStorageInfo(): Promise<{ usedBytes: number; quotaBytes: number; count: number }> {
     try {
@@ -357,17 +541,17 @@ class OfflineStorageService {
   }
 
   /**
-   * Clear all offline songs
+   * Clear all offline songs and cached buffers
    */
   async clearAll(): Promise<void> {
     try {
       const db = await this.getDB();
       await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.clear();
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+        const tx = db.transaction([STORE_NAME, CACHE_STORE_NAME], "readwrite");
+        tx.objectStore(STORE_NAME).clear();
+        tx.objectStore(CACHE_STORE_NAME).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
       });
 
       objectUrlCache.forEach((url) => URL.revokeObjectURL(url));

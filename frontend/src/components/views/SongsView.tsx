@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Play, Shuffle, Music2, ArrowUpDown, Plus } from "lucide-react";
+import { Play, Shuffle, Music2, ArrowUpDown, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import SongRow from "@/components/music/SongRow";
@@ -9,10 +9,12 @@ import SongRow from "@/components/music/SongRow";
 type SortOption = "date" | "title" | "artist" | "duration";
 
 export default function SongsView() {
-  const { songs, searchQuery, setIsUploadOpen } = useLibrary();
+  const { songs, searchQuery, setIsUploadOpen, deleteAllSongs } = useLibrary();
   const { playSong } = usePlayerStore();
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter and sort songs
   const filteredAndSortedSongs = useMemo(() => {
@@ -63,6 +65,16 @@ export default function SongsView() {
     if (filteredAndSortedSongs.length === 0) return;
     const shuffled = [...filteredAndSortedSongs].sort(() => Math.random() - 0.5);
     playSong(shuffled[0], shuffled);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAllSongs();
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -123,6 +135,19 @@ export default function SongsView() {
             <Plus className="w-3.5 h-3.5" />
             <span>Add</span>
           </button>
+
+          {/* Delete All Button */}
+          {songs.length > 0 && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isDeleting}
+              className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-500/25 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-full transition-all shadow-xs disabled:opacity-50"
+              title="Delete all songs from library"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete All</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -159,6 +184,57 @@ export default function SongsView() {
               allSongs={filteredAndSortedSongs}
             />
           ))}
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-[#0f131a] border border-[#232b35] rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="p-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 shrink-0">
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete All Songs?</h3>
+                <p className="text-xs text-slate-400">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Are you sure you want to permanently delete all <span className="font-bold text-white">{songs.length}</span> songs? All local audio files, artwork, and offline caches will be removed from your device and library.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1e2531]">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#161c26] hover:bg-[#1e2533] border border-[#2a3442] rounded-full transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDeleteAll}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 active:scale-95 rounded-full transition-all shadow-md shadow-rose-600/30 disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Yes, Delete All</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

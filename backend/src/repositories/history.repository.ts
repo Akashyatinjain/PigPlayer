@@ -20,6 +20,17 @@ export class HistoryRepository {
     userId?: string,
     durationPlayed?: number
   ) {
+    // Guard: skip if songId is a local/demo ID that never existed in DB
+    if (!songId || songId.startsWith('demo-') || songId.startsWith('local-')) {
+      return null;
+    }
+
+    // Verify the song still exists before inserting (prevents FK violation after Delete All)
+    const songExists = await prisma.song.findUnique({ where: { id: songId }, select: { id: true } });
+    if (!songExists) {
+      return null;
+    }
+
     const item = await prisma.playHistory.create({
       data: {
         songId,

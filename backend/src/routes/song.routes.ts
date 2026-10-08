@@ -19,6 +19,8 @@ router.get('/:id/download', SongController.downloadSong);
 router.get('/:id', SongController.getSongById);
 router.post('/', optionalAuth, validateBody(createSongSchema), SongController.createSong);
 router.put('/:id', optionalAuth, validateBody(updateSongSchema), SongController.updateSong);
+router.delete('/all', optionalAuth, SongController.deleteAllSongs);
+router.delete('/', optionalAuth, SongController.deleteAllSongs);
 router.delete('/:id', optionalAuth, SongController.deleteSong);
 
 export default router;

@@ -7,6 +7,7 @@ import { playlistService } from "@/services/playlist.service";
 import { favoriteService } from "@/services/favorite.service";
 import { historyService } from "@/services/history.service";
 import { offlineStorageService } from "@/services/offline-storage.service";
+import { usePlayerStore } from "@/lib/store/usePlayerStore";
 
 export type LibraryTab = "home" | "songs" | "library" | "favorites" | "playlists" | "history" | "settings" | "offline";
 
@@ -47,6 +48,7 @@ interface LibraryContextType {
   importLocalAudio: (file: File) => Promise<Song | null>;
   toggleFavorite: (songId: string) => Promise<boolean>;
   deleteSong: (songId: string) => Promise<boolean>;
+  deleteAllSongs: () => Promise<boolean>;
   createPlaylist: (name: string, description?: string) => Promise<Playlist | null>;
   deletePlaylist: (playlistId: string) => Promise<boolean>;
   addSongToPlaylist: (playlistId: string, songId: string) => Promise<boolean>;
@@ -118,6 +120,31 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshOfflineSongs]);
 
+  // Hydrate from localStorage on initial render for instant offline presentation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const cached = localStorage.getItem("soundify_cached_songs");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSongs(parsed);
+          setIsLoading(false);
+        }
+      }
+      const cachedPlaylists = localStorage.getItem("soundify_cached_playlists");
+      if (cachedPlaylists) {
+        setPlaylists(JSON.parse(cachedPlaylists));
+      }
+      const cachedFavs = localStorage.getItem("soundify_cached_favorites");
+      if (cachedFavs) {
+        setFavorites(JSON.parse(cachedFavs));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const refreshLibrary = useCallback(async () => {
     try {
       const [songsData, playlistsData, favsData, historyData] = await Promise.all([
@@ -133,18 +160,33 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         isFavorite: favIds.has(s.id),
       }));
 
-      // If online songs fetched, use them; if empty/offline, fall back to offline songs
       if (enrichedSongs.length > 0) {
         setSongs(enrichedSongs);
+        try {
+          localStorage.setItem("soundify_cached_songs", JSON.stringify(enrichedSongs));
+        } catch {}
       } else {
+        // Fall back to stored offline vault tracks if online fetch returned empty or server dropped
         const stored = await offlineStorageService.getAllOfflineSongs();
         if (stored.length > 0) {
-          setSongs(stored);
+          setSongs((prev) => (prev.length > 0 ? prev : stored));
         }
       }
 
-      setPlaylists(playlistsData);
-      setFavorites(favsData);
+      if (playlistsData.length > 0) {
+        setPlaylists(playlistsData);
+        try {
+          localStorage.setItem("soundify_cached_playlists", JSON.stringify(playlistsData));
+        } catch {}
+      }
+
+      if (favsData.length > 0) {
+        setFavorites(favsData);
+        try {
+          localStorage.setItem("soundify_cached_favorites", JSON.stringify(favsData));
+        } catch {}
+      }
+
       setHistory(historyData);
     } catch (err) {
       console.error("Failed to load music library:", err);
@@ -238,6 +280,46 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (err) {
       console.error("Failed to delete song:", err);
+      return false;
+    }
+  };
+
+  const deleteAllSongs = async (): Promise<boolean> => {
+    try {
+      // 1. Clear IndexedDB offline tracks & playback cache
+      await offlineStorageService.clearAll();
+
+      // 2. Clear active player state and queue
+      const { clearQueue, pause } = usePlayerStore.getState();
+      pause();
+      clearQueue();
+
+      // 3. Delete all songs from backend API
+      await songService.deleteAllSongs().catch(() => {});
+
+      // 4. Reset local library and caches
+      setSongs([]);
+      setFavorites([]);
+      setOfflineSongs([]);
+      setOfflineSongIds(new Set());
+      try {
+        localStorage.removeItem("soundify_cached_songs");
+        localStorage.removeItem("soundify_cached_favorites");
+      } catch {}
+
+      await refreshLibrary();
+      await refreshOfflineSongs();
+      return true;
+    } catch (err) {
+      console.error("Failed to delete all songs:", err);
+      setSongs([]);
+      setFavorites([]);
+      try {
+        localStorage.removeItem("soundify_cached_songs");
+      } catch {}
+      const { clearQueue, pause } = usePlayerStore.getState();
+      pause();
+      clearQueue();
       return false;
     }
   };
@@ -345,6 +427,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         importLocalAudio,
         toggleFavorite,
         deleteSong,
+        deleteAllSongs,
         createPlaylist,
         deletePlaylist,
         addSongToPlaylist,

@@ -17,17 +17,16 @@ export class SongRepository {
     const where: Prisma.SongWhereInput = {};
 
     if (query) {
-      // SQLite: Prisma does not support mode:insensitive; LIKE is case-insensitive for ASCII
       where.OR = [
-        { title: { contains: query } },
-        { artist: { contains: query } },
-        { album: { contains: query } },
-        { genre: { contains: query } },
+        { title: { contains: query, mode: 'insensitive' } },
+        { artist: { contains: query, mode: 'insensitive' } },
+        { album: { contains: query, mode: 'insensitive' } },
+        { genre: { contains: query, mode: 'insensitive' } },
       ];
     }
 
     if (genre && genre !== 'All') {
-      where.genre = { contains: genre };
+      where.genre = { contains: genre, mode: 'insensitive' };
     }
 
     const skip = (page - 1) * limit;
@@ -120,7 +119,21 @@ export class SongRepository {
   }
 
   static async delete(id: string) {
-    return prisma.song.delete({ where: { id } });
+    return prisma.$transaction([
+      prisma.playHistory.deleteMany({ where: { songId: id } }),
+      prisma.favorite.deleteMany({ where: { songId: id } }),
+      prisma.playlistSong.deleteMany({ where: { songId: id } }),
+      prisma.song.delete({ where: { id } }),
+    ]);
+  }
+
+  static async deleteAll() {
+    return prisma.$transaction([
+      prisma.playHistory.deleteMany({}),
+      prisma.favorite.deleteMany({}),
+      prisma.playlistSong.deleteMany({}),
+      prisma.song.deleteMany({}),
+    ]);
   }
 
   static async getLibraryStats() {
