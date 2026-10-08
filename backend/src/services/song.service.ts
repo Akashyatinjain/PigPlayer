@@ -1,7 +1,10 @@
+import fs from 'fs';
+import path from 'path';
 import { SongRepository } from '../repositories/song.repository';
 import { StorageService } from './storage.service';
 import { AppError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
+import { DATA_ROOT } from '../config/paths';
 
 export const FALLBACK_DEMO_SONGS = [
   {
@@ -142,6 +145,22 @@ export const FALLBACK_DEMO_SONGS = [
 ];
 
 let lastSuccessfulSongs: any[] = [];
+try {
+  const exportPath = path.join(DATA_ROOT, 'sqlite_songs_export.json');
+  if (fs.existsSync(exportPath)) {
+    const raw = fs.readFileSync(exportPath, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      lastSuccessfulSongs = parsed.map((s: any) => ({
+        ...s,
+        audioUrl: `/api/songs/${s.id}/audio`,
+        coverUrl: s.coverRelativePath ? `/api/songs/${s.id}/artwork` : null,
+      }));
+    }
+  }
+} catch {
+  // ignore
+}
 
 export class SongService {
   static async listSongs(params: {
@@ -194,33 +213,39 @@ export class SongService {
   static async getSongById(id: string) {
     try {
       const song = await SongRepository.findById(id);
-      if (song) return song;
+      if (!song) {
+        throw new AppError('Song not found', 404);
+      }
+      return song;
     } catch (err: any) {
+      if (err instanceof AppError) throw err;
       logger.warn(`Database error in getSongById(${id}): ${err?.message}`);
+      const memorySong =
+        lastSuccessfulSongs.find((s) => s.id === id) ||
+        FALLBACK_DEMO_SONGS.find((s) => s.id === id);
+
+      if (memorySong) return memorySong;
+      throw new AppError('Song not found', 404);
     }
-
-    const memorySong =
-      lastSuccessfulSongs.find((s) => s.id === id) ||
-      FALLBACK_DEMO_SONGS.find((s) => s.id === id);
-
-    if (memorySong) return memorySong;
-    throw new AppError('Song not found', 404);
   }
 
   static async getSongRaw(id: string) {
     try {
       const song = await SongRepository.findByIdRaw(id);
-      if (song) return song;
+      if (!song) {
+        throw new AppError('Song not found', 404);
+      }
+      return song;
     } catch (err: any) {
+      if (err instanceof AppError) throw err;
       logger.warn(`Database error in getSongRaw(${id}): ${err?.message}`);
+      const memorySong =
+        lastSuccessfulSongs.find((s) => s.id === id) ||
+        FALLBACK_DEMO_SONGS.find((s) => s.id === id);
+
+      if (memorySong) return memorySong as any;
+      throw new AppError('Song not found', 404);
     }
-
-    const memorySong =
-      lastSuccessfulSongs.find((s) => s.id === id) ||
-      FALLBACK_DEMO_SONGS.find((s) => s.id === id);
-
-    if (memorySong) return memorySong as any;
-    throw new AppError('Song not found', 404);
   }
 
   static async checkDuplicate(params: {
@@ -391,6 +416,7 @@ export class SongService {
       }
     }
 
+    lastSuccessfulSongs = lastSuccessfulSongs.filter((s) => s.id !== id);
     return true;
   }
 

@@ -23,9 +23,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Never intercept audio/artwork/download or API mutations
+  // Never intercept audio/artwork/download or API endpoints
   if (
-    url.pathname.includes('/api/songs/') &&
+    url.pathname.includes('/songs/') &&
     (url.pathname.endsWith('/audio') ||
       url.pathname.endsWith('/artwork') ||
       url.pathname.endsWith('/download'))
@@ -33,7 +33,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/api/')) {
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/auth') ||
+    url.pathname.startsWith('/songs') ||
+    url.pathname.startsWith('/search') ||
+    url.pathname.startsWith('/playlists') ||
+    url.pathname.startsWith('/favorites') ||
+    url.pathname.startsWith('/history') ||
+    url.pathname.startsWith('/upload') ||
+    url.pathname.startsWith('/backups') ||
+    url.pathname.startsWith('/health')
+  ) {
     return;
   }
 

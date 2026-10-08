@@ -24,111 +24,177 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 /**
- * Locate fallback demo or local audio files when primary storage path is missing on ephemeral host (e.g. Render).
+ * Fast in-memory cache of audio files in data/audio by title/keywords
+ */
+let audioDirFileCache: Array<{ filename: string; path: string; titleHints: string[] }> | null = null;
+let lastAudioScanTime = 0;
+
+function scanAudioDirectory(): Array<{ filename: string; path: string; titleHints: string[] }> {
+  const now = Date.now();
+  if (audioDirFileCache && now - lastAudioScanTime < 30000) {
+    return audioDirFileCache;
+  }
+
+  const audioDir = path.join(DATA_ROOT, 'audio');
+  const results: Array<{ filename: string; path: string; titleHints: string[] }> = [];
+  if (!fs.existsSync(audioDir)) return results;
+
+  try {
+    const files = fs.readdirSync(audioDir).filter(f => f.endsWith('.mp3') || f.endsWith('.wav') || f.endsWith('.m4a'));
+    for (const f of files) {
+      const fullPath = path.join(audioDir, f);
+      const hints: string[] = [f.toLowerCase()];
+      try {
+        // Read first 2KB for ID3 title strings
+        const buf = Buffer.alloc(2048);
+        const fd = fs.openSync(fullPath, 'r');
+        fs.readSync(fd, buf, 0, 2048, 0);
+        fs.closeSync(fd);
+        const text = buf.toString('latin1').toLowerCase();
+        hints.push(text);
+      } catch {
+        // ignore read error
+      }
+      results.push({ filename: f, path: fullPath, titleHints: hints });
+    }
+    audioDirFileCache = results;
+    lastAudioScanTime = now;
+  } catch {
+    // ignore
+  }
+
+  return results;
+}
+
+/**
+ * Locate audio files prioritizing local storage and content matching before falling back to demo.
  */
 function findAudioFallbackPath(song: {
   audioRelativePath?: string | null;
   audioFileName?: string | null;
   originalFileName?: string | null;
   title?: string;
+  artist?: string;
 }): string | null {
-  const searchDirs = [
-    path.join(PROJECT_ROOT, 'backend/public/demo'),
-    path.join(PROJECT_ROOT, 'frontend/public/demo'),
-    path.join(PROJECT_ROOT, 'public/demo'),
-    path.join(__dirname, '../../public/demo'),
-    path.join(DATA_ROOT, 'audio'),
-  ];
+  const audioDir = path.join(DATA_ROOT, 'audio');
 
-  const possibleNames: string[] = [];
+  // 1. Direct candidate paths inside DATA_ROOT/audio
   if (song.audioRelativePath) {
-    possibleNames.push(path.basename(song.audioRelativePath));
-    possibleNames.push(path.basename(song.audioRelativePath).replace(/^demo_\d+_/, ''));
-  }
-  if (song.audioFileName) {
-    possibleNames.push(song.audioFileName);
-    possibleNames.push(song.audioFileName.replace(/^demo_\d+_/, ''));
-  }
-  if (song.originalFileName) {
-    possibleNames.push(song.originalFileName);
-    possibleNames.push(song.originalFileName.replace(/^demo_\d+_/, ''));
-  }
-  if (song.title) {
-    // Sluggified title match: e.g. "Midnight Drift" -> "midnight-drift.wav"
-    const slug = song.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    possibleNames.push(`${slug}.wav`, `${slug}.mp3`);
+    const direct = path.join(DATA_ROOT, song.audioRelativePath.replace(/^[/\\]+/, ''));
+    if (fs.existsSync(direct)) return direct;
+    const inAudio = path.join(audioDir, path.basename(song.audioRelativePath));
+    if (fs.existsSync(inAudio)) return inAudio;
   }
 
-  for (const dir of searchDirs) {
-    if (!fs.existsSync(dir)) continue;
-    for (const name of possibleNames) {
-      const candidate = path.join(dir, name);
-      if (fs.existsSync(candidate)) {
-        return candidate;
+  if (song.audioFileName) {
+    const inAudio = path.join(audioDir, path.basename(song.audioFileName));
+    if (fs.existsSync(inAudio)) return inAudio;
+  }
+
+  if (song.originalFileName) {
+    const inAudio = path.join(audioDir, path.basename(song.originalFileName));
+    if (fs.existsSync(inAudio)) return inAudio;
+  }
+
+  // 2. Scan DATA_ROOT/audio for matching track title or artist
+  const scanned = scanAudioDirectory();
+  if (song.title && scanned.length > 0) {
+    const cleanTitle = song.title.toLowerCase().replace(/[-_()]+/g, ' ').trim();
+    const titleKeywords = cleanTitle.split(/\s+/).filter(w => w.length > 2 && !['pagalnew', 'audio', 'song'].includes(w));
+
+    // Try exact or high keyword match
+    for (const item of scanned) {
+      const allText = item.titleHints.join(' ');
+      if (titleKeywords.length > 0 && titleKeywords.every(kw => allText.includes(kw))) {
+        return item.path;
+      }
+    }
+
+    // Try at least primary keyword match
+    if (titleKeywords.length > 0) {
+      const primary = titleKeywords[0];
+      for (const item of scanned) {
+        if (item.titleHints.some(h => h.includes(primary))) {
+          return item.path;
+        }
       }
     }
   }
 
-  // Fallback to any available demo audio file if none matched but directory exists
-  for (const dir of searchDirs) {
+  // 3. Demo directory specific title matches (e.g. "Midnight Drift" -> "midnight-drift.wav")
+  const demoDirs = [
+    path.join(PROJECT_ROOT, 'backend/public/demo'),
+    path.join(PROJECT_ROOT, 'frontend/public/demo'),
+    path.join(__dirname, '../../public/demo'),
+  ];
+
+  if (song.title) {
+    const slug = song.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    for (const dir of demoDirs) {
+      if (!fs.existsSync(dir)) continue;
+      for (const ext of ['.wav', '.mp3']) {
+        const candidate = path.join(dir, `${slug}${ext}`);
+        if (fs.existsSync(candidate)) return candidate;
+      }
+    }
+  }
+
+  // 4. Any song in data/audio if available
+  if (scanned.length > 0) {
+    return scanned[0].path;
+  }
+
+  // 5. Fallback demo track
+  for (const dir of demoDirs) {
     if (!fs.existsSync(dir)) continue;
     try {
       const files = fs.readdirSync(dir).filter(f => f.endsWith('.wav') || f.endsWith('.mp3'));
       if (files.length > 0) {
         return path.join(dir, files[0]);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   return null;
 }
 
 /**
- * Locate fallback demo or placeholder artwork when cover is missing on ephemeral disk.
+ * Locate artwork prioritizing local artwork folder before falling back to demo SVG.
  */
 function findArtworkFallbackPath(song: {
   coverRelativePath?: string | null;
   coverFileName?: string | null;
+  title?: string;
 }): string | null {
-  const searchDirs = [
+  const artworkDir = path.join(DATA_ROOT, 'artwork');
+
+  if (song.coverRelativePath) {
+    const direct = path.join(DATA_ROOT, song.coverRelativePath.replace(/^[/\\]+/, ''));
+    if (fs.existsSync(direct)) return direct;
+    const inArtwork = path.join(artworkDir, path.basename(song.coverRelativePath));
+    if (fs.existsSync(inArtwork)) return inArtwork;
+  }
+
+  if (song.coverFileName) {
+    const inArtwork = path.join(artworkDir, path.basename(song.coverFileName));
+    if (fs.existsSync(inArtwork)) return inArtwork;
+  }
+
+  // Check demo covers
+  const demoCovers = [
     path.join(PROJECT_ROOT, 'backend/public/demo/covers'),
     path.join(PROJECT_ROOT, 'frontend/public/demo/covers'),
-    path.join(PROJECT_ROOT, 'public/demo/covers'),
     path.join(__dirname, '../../public/demo/covers'),
-    path.join(DATA_ROOT, 'artwork'),
   ];
 
-  const possibleNames: string[] = [];
-  if (song.coverRelativePath) {
-    possibleNames.push(path.basename(song.coverRelativePath));
-  }
-  if (song.coverFileName) {
-    possibleNames.push(song.coverFileName);
-  }
-
-  for (const dir of searchDirs) {
-    if (!fs.existsSync(dir)) continue;
-    for (const name of possibleNames) {
-      const candidate = path.join(dir, name);
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
-  // First available cover SVG in demo
-  for (const dir of searchDirs) {
+  for (const dir of demoCovers) {
     if (!fs.existsSync(dir)) continue;
     try {
       const covers = fs.readdirSync(dir).filter(f => f.endsWith('.svg') || f.endsWith('.jpg') || f.endsWith('.png'));
       if (covers.length > 0) {
         return path.join(dir, covers[0]);
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
   }
 
   return null;

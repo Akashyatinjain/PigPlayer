@@ -1,20 +1,40 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const rawUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
-const API_BASE_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
+export function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      const trimmed = envUrl.replace(/\/+$/, '');
+      return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+    }
+
+    const { protocol, hostname } = window.location;
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `${protocol}//${hostname}:5000/api`;
+    }
+  }
+
+  const rawUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+  return rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
+}
+
+export function getApiOrigin(): string {
+  return getApiBaseUrl().replace(/\/api\/?$/, '');
+}
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 30000,
 });
 
-// Request interceptor to attach JWT access token
+// Request interceptor to attach JWT access token and ensure dynamic baseURL
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
+      config.baseURL = getApiBaseUrl();
       const token = localStorage.getItem('soundify_access_token');
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -81,7 +101,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
           refreshToken,
         });
 

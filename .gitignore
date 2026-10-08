@@ -37,6 +37,7 @@ data/temp/**
 !data/temp/.gitkeep
 data/backups/**
 !data/backups/.gitkeep
+data/*.json
 
 # Legacy local uploads
 backend/public/uploads/audio/*

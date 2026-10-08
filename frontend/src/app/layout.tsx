@@ -30,6 +30,7 @@ export const viewport: Viewport = {
   themeColor: "#0b0d10",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -45,7 +46,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="h-full bg-[#f8fafc] text-[#090a0f] flex flex-col overflow-hidden"
+        className="h-full bg-[#0b0d10] text-[#f5f7fa] flex flex-col overflow-hidden selection:bg-blue-600/30 selection:text-white"
       >
         <PwaRegister />
         {children}

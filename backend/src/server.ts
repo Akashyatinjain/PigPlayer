@@ -25,10 +25,10 @@ async function main() {
     logger.error('Bootstrap failed', err);
   }
 
-  const server = app.listen(config.port, () => {
-    logger.info(`Soundify backend started on port ${config.port}`);
+  const server = app.listen(config.port, '0.0.0.0', () => {
+    logger.info(`Soundify backend started on port ${config.port} (0.0.0.0)`);
     logger.info(`Client URL: ${config.clientUrl}`);
-    logger.info('Offline-first mode: no internet required');
+    logger.info('Offline-first mode: mobile LAN and offline ready');
   });
 
   const shutdown = async () => {

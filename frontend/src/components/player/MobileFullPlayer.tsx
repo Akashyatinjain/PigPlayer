@@ -23,6 +23,7 @@ import {
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
 import { formatDuration } from "@/lib/utils";
+import { getApiBaseUrl } from "@/lib/api";
 
 export default function MobileFullPlayer() {
   const {
@@ -72,8 +73,7 @@ export default function MobileFullPlayer() {
 
   const handleDownload = () => {
     if (!currentSong.isAuthorizedDownload && !currentSong.isDownloadable) return;
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-    const downloadUrl = `${apiBase}/songs/${currentSong.id}/download`;
+    const downloadUrl = `${getApiBaseUrl()}/songs/${currentSong.id}/download`;
     const link = document.createElement("a");
     link.href = downloadUrl;
     link.download = `${currentSong.artist} - ${currentSong.title}`;

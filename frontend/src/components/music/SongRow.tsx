@@ -20,6 +20,7 @@ import { Song } from "@/types/music";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
 import { formatDuration } from "@/lib/utils";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface SongRowProps {
   song: Song;
@@ -85,8 +86,7 @@ export default function SongRow({
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!song.isAuthorizedDownload && !song.isDownloadable) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-    const downloadUrl = `${apiUrl}/songs/${song.id}/download`;
+    const downloadUrl = `${getApiBaseUrl()}/songs/${song.id}/download`;
     const link = document.createElement("a");
     link.href = downloadUrl;
     link.download = `${song.artist} - ${song.title}`;

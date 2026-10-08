@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
 import { resolveMediaUrl } from "@/services/song.service";
+import { getApiOrigin } from "@/lib/api";
 
 export default function GlobalAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -68,49 +69,48 @@ export default function GlobalAudioPlayer() {
 
       loadedSongIdRef.current = currentSong.id;
 
-      const prepareAndPlay = async () => {
-        // 1. Check if song already exists in local offline/cache vault
-        let srcToPlay: string | null = null;
-        try {
-          srcToPlay = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
-        } catch {
-          // continue to network fallback
-        }
+      const streamingUrl = resolveMediaUrl(currentSong.audioUrl);
 
-        // 2. If not in local cache, resolve streaming URL
-        if (!srcToPlay) {
-          srcToPlay = resolveMediaUrl(currentSong.audioUrl);
-        }
+      // Set audio source synchronously so mobile user-gesture is preserved
+      if (audio.src !== streamingUrl) {
+        audio.src = streamingUrl;
+        audio.load();
+      }
 
-        if (isCancelled || !audio) return;
-
-        if (srcToPlay && audio.src !== srcToPlay) {
-          audio.src = srcToPlay;
-          audio.load();
-        }
-
-        if (isPlaying) {
-          audio.play().catch((err) => {
-            console.warn("[PigPlayer] Autoplay prevented or interrupted:", err);
-          });
-        }
-
-        // 3. In background: cache the current track for 100% offline immunity
-        void offlineStorageService.cacheSongForPlayback(currentSong).then((blobUrl) => {
-          // If playback hasn't started or fails later, the blob is already ready
-          if (blobUrl && audioRef.current && audioRef.current.error) {
-            void handleRecoverFromCache();
-          }
+      if (isPlaying) {
+        audio.play().catch((err) => {
+          console.warn("[PigPlayer] Autoplay prevented or interrupted:", err);
         });
+      }
 
-        // 4. In background: preload the next track in queue so next song plays even if server is stopped
-        const nextTrack = queue[currentIndex + 1] || (repeatMode === "all" ? queue[0] : null);
-        if (nextTrack) {
-          void offlineStorageService.preloadSong(nextTrack);
+      // 1. Check if an offline version is stored locally (especially if offline or network drops)
+      void offlineStorageService.getOfflineAudioUrl(currentSong.id).then((cachedBlobUrl) => {
+        if (isCancelled || !audio) return;
+        if (cachedBlobUrl && audio.src !== cachedBlobUrl) {
+          // If browser encountered error or device is offline, switch immediately to blob
+          if (audio.error || (typeof navigator !== "undefined" && !navigator.onLine)) {
+            const savedTime = audio.currentTime || 0;
+            audio.src = cachedBlobUrl;
+            audio.currentTime = savedTime;
+            if (isPlaying) {
+              audio.play().catch(() => {});
+            }
+          }
         }
-      };
+      });
 
-      void prepareAndPlay();
+      // 2. In background: cache the current track for offline playback
+      void offlineStorageService.cacheSongForPlayback(currentSong).then((blobUrl) => {
+        if (blobUrl && audioRef.current && audioRef.current.error) {
+          void handleRecoverFromCache();
+        }
+      });
+
+      // 3. In background: preload next track in queue
+      const nextTrack = queue[currentIndex + 1] || (repeatMode === "all" ? queue[0] : null);
+      if (nextTrack) {
+        void offlineStorageService.preloadSong(nextTrack);
+      }
     } else {
       loadedSongIdRef.current = null;
       audio.pause();
@@ -160,8 +160,7 @@ export default function GlobalAudioPlayer() {
   // Render Keep-Alive Heartbeat: keep free tier awake while player tab is open
   useEffect(() => {
     const pingKeepAlive = () => {
-      const rawUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").trim().replace(/\/+$/, "");
-      const origin = rawUrl.replace(/\/api\/?$/, "");
+      const origin = getApiOrigin();
       fetch(`${origin}/health`, { method: "GET", keepalive: true }).catch(() => {});
     };
 
@@ -257,7 +256,6 @@ export default function GlobalAudioPlayer() {
       ref={audioRef}
       id="soundify-audio-element"
       preload="auto"
-      crossOrigin="anonymous"
       onTimeUpdate={() => {
         if (!audioRef.current || isSeekingRef.current) return;
         setCurrentTime(audioRef.current.currentTime);

@@ -12,16 +12,26 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "http",
-        hostname: "localhost",
+        hostname: "**",
       },
       {
         protocol: "https",
         hostname: "**",
       },
     ],
+  },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || "http://localhost:5000";
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 };
 

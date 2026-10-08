@@ -1,16 +1,14 @@
-import api from '@/lib/api';
+import api, { getApiBaseUrl, getApiOrigin } from '@/lib/api';
 import { Song } from '@/types/music';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
-
-/** Resolve relative backend paths to absolute localhost URLs */
+/** Resolve relative backend paths to absolute URLs (supports mobile LAN IP, desktop, and production) */
 export const resolveMediaUrl = (url?: string | null): string => {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
   }
-  return `${API_ORIGIN}${url.startsWith('/') ? '' : '/'}${url}`;
+  const origin = getApiOrigin();
+  return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 /** @deprecated use resolveMediaUrl */
@@ -108,7 +106,7 @@ export const songService = {
   },
 
   getDownloadUrl(id: string): string {
-    return `${API_BASE}/songs/${id}/download`;
+    return `${getApiBaseUrl()}/songs/${id}/download`;
   },
 
   async downloadSong(id: string, fileName?: string): Promise<void> {

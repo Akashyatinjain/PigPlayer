@@ -4,8 +4,8 @@
   "description": "Offline-first personal music player",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#090a0f",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "orientation": "any",
   "icons": [
     {
