@@ -285,7 +285,7 @@ export default function SettingsView() {
                       }
                     });
                   }}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-800 shrink-0"
+                  className="flex min-h-11 shrink-0 items-center rounded-lg px-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
                 >
                   Restore
                 </button>

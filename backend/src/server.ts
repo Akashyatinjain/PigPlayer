@@ -5,7 +5,7 @@ import { logger } from './utils/logger';
 ensureStorageDirectories();
 
 async function main() {
-  // Dynamic imports after directories exist so DATABASE_URL file path is valid
+  // Load the local SQLite URL only after the data directories exist.
   const { config } = await import('./config/env');
   const { prisma } = await import('./config/database');
   const { bootstrapLocalApp } = await import('./services/bootstrap.service');

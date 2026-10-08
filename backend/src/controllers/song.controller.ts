@@ -71,7 +71,12 @@ export class SongController {
 
   static async updateSong(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const song = await SongService.updateSong(req.params.id as string, req.body);
+      const song = await SongService.updateSong(
+        req.params.id as string,
+        req.body,
+        req.user?.id,
+        req.user?.role === 'admin'
+      );
       res.status(200).json({
         success: true,
         data: song,
@@ -83,7 +88,11 @@ export class SongController {
 
   static async deleteSong(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await SongService.deleteSong(req.params.id as string);
+      await SongService.deleteSong(
+        req.params.id as string,
+        req.user?.id,
+        req.user?.role === 'admin'
+      );
       res.status(200).json({
         success: true,
         message: 'Song deleted successfully',

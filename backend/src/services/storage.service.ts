@@ -13,6 +13,10 @@ export interface UploadResult {
  * Kept as a thin abstraction so a future cloud provider can be plugged in.
  */
 export class StorageService {
+  static validateAudioBuffer(fileBuffer: Buffer, filename: string) {
+    return localStorage.validateAudioBuffer(fileBuffer, filename);
+  }
+
   static async uploadAudio(
     fileBuffer: Buffer,
     filename: string,

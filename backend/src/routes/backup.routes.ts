@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { BackupController } from '../controllers/backup.controller';
-import { optionalAuth } from '../middleware/auth.middleware';
+import { requireProductionAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', optionalAuth, BackupController.list);
-router.post('/', optionalAuth, BackupController.create);
-router.post('/restore', optionalAuth, BackupController.restore);
-router.get('/export', optionalAuth, BackupController.exportLibrary);
-router.post('/import', optionalAuth, BackupController.importLibrary);
+router.get('/', requireProductionAdmin, BackupController.list);
+router.post('/', requireProductionAdmin, BackupController.create);
+router.post('/restore', requireProductionAdmin, BackupController.restore);
+router.get('/export', requireProductionAdmin, BackupController.exportLibrary);
+router.post('/import', requireProductionAdmin, BackupController.importLibrary);
 
 export default router;

@@ -30,7 +30,7 @@ export default function PlaylistsView() {
     setActiveTab,
   } = useLibrary();
 
-  const { playSong } = usePlayerStore();
+  const { playSong, playShuffled } = usePlayerStore();
 
   const [activePlaylistData, setActivePlaylistData] = useState<Playlist | null>(
     null
@@ -75,8 +75,7 @@ export default function PlaylistsView() {
 
   const handleShufflePlay = () => {
     if (playlistSongs.length === 0) return;
-    const shuffled = [...playlistSongs].sort(() => Math.random() - 0.5);
-    playSong(shuffled[0], shuffled);
+    playShuffled(playlistSongs);
   };
 
   const handleDelete = async () => {
@@ -166,14 +165,14 @@ export default function PlaylistsView() {
                     <>
                       <button
                         onClick={handlePlayAll}
-                        className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25 active:scale-95"
+                        className="flex min-h-11 items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25 active:scale-95"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
                         <span>Play All</span>
                       </button>
                       <button
                         onClick={handleShufflePlay}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 rounded-full transition-all shadow-xs"
+                        className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 rounded-full transition-all shadow-xs"
                       >
                         <Shuffle className="w-3.5 h-3.5" />
                         <span>Shuffle</span>
@@ -183,7 +182,7 @@ export default function PlaylistsView() {
 
                   <button
                     onClick={handleDelete}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors ml-auto"
+                    className="ml-auto flex h-11 w-11 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                     title="Delete playlist"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -204,7 +203,7 @@ export default function PlaylistsView() {
                 </p>
                 <button
                   onClick={() => setActiveTab("songs")}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white rounded-full transition-all shadow-xs"
+                  className="min-h-11 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white rounded-full transition-all shadow-xs"
                 >
                   Find Songs
                 </button>
@@ -245,7 +244,7 @@ export default function PlaylistsView() {
 
         <button
           onClick={() => setIsPlaylistModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25"
+          className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Playlist</span>

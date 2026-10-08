@@ -9,7 +9,7 @@ import { formatDuration } from "@/lib/utils";
 
 export default function FavoritesView() {
   const { favorites, setActiveTab } = useLibrary();
-  const { playSong } = usePlayerStore();
+  const { playSong, playShuffled } = usePlayerStore();
 
   const totalDuration = favorites.reduce((acc, s) => acc + (s.duration || 0), 0);
 
@@ -21,8 +21,7 @@ export default function FavoritesView() {
 
   const handleShufflePlay = () => {
     if (favorites.length === 0) return;
-    const shuffled = [...favorites].sort(() => Math.random() - 0.5);
-    playSong(shuffled[0], shuffled);
+    playShuffled(favorites);
   };
 
   return (
@@ -49,14 +48,14 @@ export default function FavoritesView() {
             <div className="pt-3 flex items-center justify-center sm:justify-start gap-3">
               <button
                 onClick={handlePlayAll}
-                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25 active:scale-95"
+                className="flex min-h-11 items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition-all shadow-sm shadow-blue-500/25 active:scale-95"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
               </button>
               <button
                 onClick={handleShufflePlay}
-                className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 rounded-full transition-all shadow-xs"
+                className="flex min-h-11 items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 rounded-full transition-all shadow-xs"
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 <span>Shuffle</span>

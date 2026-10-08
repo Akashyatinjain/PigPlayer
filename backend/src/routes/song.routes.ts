@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { SongController } from '../controllers/song.controller';
-import { optionalAuth } from '../middleware/auth.middleware';
+import { requireMutationAuth, requireProductionAdmin } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
   createSongSchema,
@@ -17,10 +17,10 @@ router.get('/:id/audio', SongController.streamAudio);
 router.get('/:id/artwork', SongController.streamArtwork);
 router.get('/:id/download', SongController.downloadSong);
 router.get('/:id', SongController.getSongById);
-router.post('/', optionalAuth, validateBody(createSongSchema), SongController.createSong);
-router.put('/:id', optionalAuth, validateBody(updateSongSchema), SongController.updateSong);
-router.delete('/all', optionalAuth, SongController.deleteAllSongs);
-router.delete('/', optionalAuth, SongController.deleteAllSongs);
-router.delete('/:id', optionalAuth, SongController.deleteSong);
+router.post('/', requireMutationAuth, validateBody(createSongSchema), SongController.createSong);
+router.put('/:id', requireMutationAuth, validateBody(updateSongSchema), SongController.updateSong);
+router.delete('/all', requireProductionAdmin, SongController.deleteAllSongs);
+router.delete('/', requireProductionAdmin, SongController.deleteAllSongs);
+router.delete('/:id', requireMutationAuth, SongController.deleteSong);
 
 export default router;

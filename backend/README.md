@@ -1,45 +1,29 @@
-# Soundify — Backend (Node.js + Express + Prisma)
+# Soundify Backend
 
-The standalone REST API server for Soundify, powered by Node.js, Express, TypeScript, Prisma ORM, and PostgreSQL.
+Local REST API for Soundify, built with Node.js, Express, TypeScript, Prisma, and SQLite.
 
-## Features
-- **Clean N-Tier Architecture**: Route -> Controller -> Service -> Repository -> Prisma -> PostgreSQL.
-- **Robust Security**: Helmet security headers, CORS strict origins, rate limiting, and Zod schema validations.
-- **JWT Authentication**: Short-lived access tokens and refresh tokens with bcrypt password hashing.
-- **Audio & Artwork Storage**: Storage abstraction (`StorageService`) supporting Cloudinary or local disk static serving.
-- **Duplicate Prevention**: SHA-256 audio hash checking and metadata comparison.
-- **Authorized Downloads**: Server validates download permissions before generating file URLs.
+## Local data
+
+- SQLite database: `../data/soundify.db`
+- Audio, artwork, temporary files, and backups: `../data/`
+- No PostgreSQL, Neon, Cloudinary, or other remote service is required.
 
 ## Development
+
 ```bash
-# Install dependencies
 npm install
-
-# Push Prisma schema to PostgreSQL
 npm run prisma:push
-
-# Seed demo tracks & test user
 npm run prisma:seed
-
-# Run automated test suite
-npm test
-
-# Run development server on http://localhost:5000
 npm run dev
+```
 
-# Build production bundle
+The API listens on `http://localhost:5000`. The root `.env.example` points Prisma to the SQLite file under the repository's `data/` directory. Copy it to `.env` for a local setup.
+
+## Checks
+
+```bash
 npm run build
+npm test
 ```
 
-## Environment Variables
-Create `.env`:
-```env
-PORT=5000
-CLIENT_URL=http://localhost:3000
-DATABASE_URL=postgresql://user:pass@host:5432/neondb?sslmode=require
-JWT_SECRET=your_jwt_secret
-JWT_REFRESH_SECRET=your_jwt_refresh_secret
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-```
+The default local account is `local@soundify.app` / `soundify`. Change the local password before exposing the backend to other devices.

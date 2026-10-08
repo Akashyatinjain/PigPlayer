@@ -16,6 +16,8 @@ export class UploadController {
       if (!audioFile) {
         throw new AppError('No audio file provided', 400);
       }
+      const validation = StorageService.validateAudioBuffer(audioFile.buffer, audioFile.originalname);
+      if (!validation.ok) throw new AppError(validation.reason || 'Invalid audio file', 400);
 
       const [metadata, fileHash] = await Promise.all([
         MetadataService.extractFromBuffer(
@@ -83,14 +85,20 @@ export class UploadController {
       if (!audioFile) {
         throw new AppError('No audio file provided', 400);
       }
+      const validation = StorageService.validateAudioBuffer(audioFile.buffer, audioFile.originalname);
+      if (!validation.ok) throw new AppError(validation.reason || 'Invalid audio file', 400);
+      if (coverFile && coverFile.size > 10 * 1024 * 1024) {
+        throw new AppError('Cover artwork must be 10 MB or smaller.', 413);
+      }
 
-      const duplicatePolicy = String(req.body.duplicatePolicy || 'skip') as
-        | 'skip'
-        | 'replace'
-        | 'keep';
+      const requestedPolicy = String(req.body.duplicatePolicy || 'skip');
+      if (!['skip', 'replace', 'keep'].includes(requestedPolicy)) {
+        throw new AppError('duplicatePolicy must be skip, replace, or keep', 400);
+      }
+      const duplicatePolicy = requestedPolicy as 'skip' | 'replace' | 'keep';
 
-      const fileHash =
-        req.body.fileHash || (await StorageService.hashBuffer(audioFile.buffer));
+      // Never trust a client-supplied hash: a forged value bypasses exact duplicate checks.
+      const fileHash = await StorageService.hashBuffer(audioFile.buffer);
 
       const existingDup = await SongService.checkDuplicate({ fileHash });
       if (existingDup?.matchType === 'exact') {
@@ -142,8 +150,7 @@ export class UploadController {
         }
       }
 
-      try {
-        const song = await SongService.createSong(
+      const song = await SongService.createSong(
           {
             title,
             artist,
@@ -187,17 +194,14 @@ export class UploadController {
           }
         );
 
-        return res.status(201).json({
-          success: true,
-          data: song,
-        });
-      } catch (dbError) {
-        // Roll back filesystem writes if DB create fails
-        if (writtenAudioPath) await StorageService.deleteAudio(writtenAudioPath);
-        if (writtenCoverPath) await StorageService.deleteArtwork(writtenCoverPath);
-        throw dbError;
-      }
+      return res.status(201).json({
+        success: true,
+        data: song,
+      });
     } catch (error) {
+      // Clean files on failures at every stage, including metadata/artwork processing.
+      if (writtenAudioPath) await StorageService.deleteAudio(writtenAudioPath);
+      if (writtenCoverPath) await StorageService.deleteArtwork(writtenCoverPath);
       next(error);
     }
   }
@@ -206,6 +210,12 @@ export class UploadController {
     try {
       if (!req.file && !req.body.imageData) {
         throw new AppError('No artwork image provided', 400);
+      }
+      if (req.file && req.file.size > 10 * 1024 * 1024) {
+        throw new AppError('Artwork must be 10 MB or smaller.', 413);
+      }
+      if (typeof req.body.imageData === 'string' && req.body.imageData.length > 14 * 1024 * 1024) {
+        throw new AppError('Artwork must be 10 MB or smaller.', 413);
       }
 
       let buffer: Buffer;

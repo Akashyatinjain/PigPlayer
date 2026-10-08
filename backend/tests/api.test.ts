@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 import request from 'supertest';
 import app from '../src/app';
 import { prisma } from '../src/config/database';
-import { ensureStorageDirectories, AUDIO_DIR } from '../src/config/paths';
+import { ensureStorageDirectories, AUDIO_DIR, BACKUPS_DIR } from '../src/config/paths';
 import { bootstrapLocalApp } from '../src/services/bootstrap.service';
 
 describe('Soundify Offline-First API Suite', () => {
@@ -11,6 +12,7 @@ describe('Soundify Offline-First API Suite', () => {
   let testUserId = '';
   let testSongId = '';
   let testPlaylistId = '';
+  let testBackupFileName = '';
   const testUserEmail = `test_${Date.now()}@soundify.app`;
   const createdAudioFiles: string[] = [];
 
@@ -31,6 +33,10 @@ describe('Soundify Offline-First API Suite', () => {
         await prisma.favorite.deleteMany({ where: { userId: testUserId } });
         await prisma.playHistory.deleteMany({ where: { userId: testUserId } });
         await prisma.user.deleteMany({ where: { id: testUserId } });
+      }
+      if (testBackupFileName) {
+        const backupPath = path.join(BACKUPS_DIR, testBackupFileName);
+        if (fs.existsSync(backupPath)) await fs.promises.unlink(backupPath);
       }
       for (const f of createdAudioFiles) {
         const p = path.join(AUDIO_DIR, f);
@@ -102,10 +108,11 @@ describe('Soundify Offline-First API Suite', () => {
   });
 
   describe('3. Upload, Duplicate, Stream, Download', () => {
-    const fileHash = `test_hash_${Date.now()}`;
+    let fileHash = '';
 
     it('POST /api/upload/song creates a local song', async () => {
       const wav = makeMinimalWav();
+      fileHash = createHash('sha256').update(wav).digest('hex');
       const res = await request(app)
         .post('/api/upload/song')
         .set('Authorization', `Bearer ${authToken}`)
@@ -210,6 +217,24 @@ describe('Soundify Offline-First API Suite', () => {
       expect(remove.status).toBe(200);
     });
 
+    it('returns 404 when adding non-existent song to playlist or favorites', async () => {
+      const plRes = await request(app)
+        .post(`/api/playlists/${testPlaylistId}/songs`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ songId: 'non-existent-song-id' });
+      expect(plRes.status).toBe(404);
+
+      const favRes = await request(app)
+        .post('/api/favorites/non-existent-song-id')
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(favRes.status).toBe(404);
+    });
+
+    it('returns 404 when streaming non-existent song', async () => {
+      const res = await request(app).get('/api/songs/non-existent-song-id/audio');
+      expect(res.status).toBe(404);
+    });
+
     it('records and lists history', async () => {
       const record = await request(app)
         .post('/api/history')
@@ -233,6 +258,7 @@ describe('Soundify Offline-First API Suite', () => {
         .send({ includeMedia: false });
       expect(res.status).toBe(201);
       expect(res.body.data.fileName).toMatch(/\.zip$/);
+      testBackupFileName = res.body.data.fileName;
     });
 
     it('exports library JSON', async () => {

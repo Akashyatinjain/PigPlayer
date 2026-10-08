@@ -27,6 +27,7 @@ const MAX_CACHE_ITEMS = 40;
 
 // Cache blob URLs in memory to avoid redundant object URLs and memory leaks
 const objectUrlCache = new Map<string, string>();
+const coverObjectUrlCache = new Map<string, { blob: Blob; url: string }>();
 const activeFetchPromises = new Map<string, Promise<string | null>>();
 
 class OfflineStorageService {
@@ -159,6 +160,10 @@ class OfflineStorageService {
       });
 
       // Update objectUrlCache
+      const existingUrl = objectUrlCache.get(song.id);
+      if (existingUrl) {
+        URL.revokeObjectURL(existingUrl);
+      }
       const blobUrl = URL.createObjectURL(audioBlob);
       objectUrlCache.set(song.id, blobUrl);
 
@@ -198,6 +203,8 @@ class OfflineStorageService {
         // 4. Check playback cache store
         const cached = await this.getCachedRecord(song.id);
         if (cached?.audioBlob) {
+          const existingUrl = objectUrlCache.get(song.id);
+          if (existingUrl) URL.revokeObjectURL(existingUrl);
           const blobUrl = URL.createObjectURL(cached.audioBlob);
           objectUrlCache.set(song.id, blobUrl);
           return blobUrl;
@@ -207,6 +214,8 @@ class OfflineStorageService {
         const audioBlob = await this.fetchAudioBlob(song);
         if (!audioBlob) return null;
 
+        const existingUrl = objectUrlCache.get(song.id);
+        if (existingUrl) URL.revokeObjectURL(existingUrl);
         const blobUrl = URL.createObjectURL(audioBlob);
         objectUrlCache.set(song.id, blobUrl);
 
@@ -291,7 +300,13 @@ class OfflineStorageService {
         if (keys && keys.length > MAX_CACHE_ITEMS) {
           const deleteCount = keys.length - MAX_CACHE_ITEMS;
           for (let i = 0; i < deleteCount; i++) {
+            const keyStr = String(keys[i]);
             store.delete(keys[i]);
+            const cachedUrl = objectUrlCache.get(keyStr);
+            if (cachedUrl) {
+              URL.revokeObjectURL(cachedUrl);
+              objectUrlCache.delete(keyStr);
+            }
           }
         }
       };
@@ -320,6 +335,11 @@ class OfflineStorageService {
       if (cachedUrl) {
         URL.revokeObjectURL(cachedUrl);
         objectUrlCache.delete(songId);
+      }
+      const cachedCover = coverObjectUrlCache.get(songId);
+      if (cachedCover) {
+        URL.revokeObjectURL(cachedCover.url);
+        coverObjectUrlCache.delete(songId);
       }
 
       this.notifyOfflineChange();
@@ -439,7 +459,19 @@ class OfflineStorageService {
 
             let coverUrl = rec.song.coverUrl;
             if (rec.coverBlob) {
-              coverUrl = URL.createObjectURL(rec.coverBlob);
+              let cachedCover = coverObjectUrlCache.get(rec.id);
+              if (!cachedCover || cachedCover.blob !== rec.coverBlob) {
+                if (cachedCover) URL.revokeObjectURL(cachedCover.url);
+                cachedCover = { blob: rec.coverBlob, url: URL.createObjectURL(rec.coverBlob) };
+                coverObjectUrlCache.set(rec.id, cachedCover);
+              }
+              coverUrl = cachedCover.url;
+            } else {
+              const cachedCover = coverObjectUrlCache.get(rec.id);
+              if (cachedCover) {
+                URL.revokeObjectURL(cachedCover.url);
+                coverObjectUrlCache.delete(rec.id);
+              }
             }
 
             return {
@@ -556,6 +588,8 @@ class OfflineStorageService {
 
       objectUrlCache.forEach((url) => URL.revokeObjectURL(url));
       objectUrlCache.clear();
+      coverObjectUrlCache.forEach(({ url }) => URL.revokeObjectURL(url));
+      coverObjectUrlCache.clear();
       this.notifyOfflineChange();
     } catch (err) {
       console.error("Failed to clear offline storage:", err);

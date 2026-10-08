@@ -24,19 +24,22 @@ const AUDIO_SIGNATURES: Array<{ ext: string; check: (buf: Buffer) => boolean }> 
   { ext: '.flac', check: (b) => b.length > 4 && b.toString('ascii', 0, 4) === 'fLaC' },
   { ext: '.ogg', check: (b) => b.length > 4 && b.toString('ascii', 0, 4) === 'OggS' },
   { ext: '.m4a', check: (b) => b.length > 8 && b.toString('ascii', 4, 8) === 'ftyp' },
-  { ext: '.aac', check: (b) => b.length > 2 && b[0] === 0xff && (b[1] & 0xf0) === 0xf0 },
+  { ext: '.aac', check: (b) => b.length > 2 && ((b[0] === 0xff && (b[1] & 0xf0) === 0xf0) || (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33)) },
+];
+
+const ARTWORK_SIGNATURES: Array<{ ext: string; check: (buf: Buffer) => boolean }> = [
+  { ext: '.jpg', check: (b) => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { ext: '.png', check: (b) => b.length > 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { ext: '.webp', check: (b) => b.length > 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP' },
+  { ext: '.gif', check: (b) => b.length > 6 && ['GIF87a', 'GIF89a'].includes(b.toString('ascii', 0, 6)) },
 ];
 
 function randomId(): string {
   return crypto.randomBytes(8).toString('hex');
 }
 
-function sanitizeExtension(filename: string, fallback: string): string {
-  const ext = path.extname(filename).toLowerCase();
-  if (config.upload.allowedAudioExt.includes(ext as typeof config.upload.allowedAudioExt[number])) {
-    return ext;
-  }
-  return fallback;
+function getAudioExtension(filename: string): string {
+  return path.extname(filename).toLowerCase();
 }
 
 export class LocalStorageProvider {
@@ -46,9 +49,7 @@ export class LocalStorageProvider {
 
   exists(relativeOrAbsolute: string): boolean {
     try {
-      const absolute = path.isAbsolute(relativeOrAbsolute)
-        ? relativeOrAbsolute
-        : resolveSafeDataPath(relativeOrAbsolute);
+      const absolute = resolveSafeDataPath(relativeOrAbsolute);
       return fs.existsSync(absolute);
     } catch {
       return false;
@@ -64,9 +65,9 @@ export class LocalStorageProvider {
   }
 
   validateAudioBuffer(buffer: Buffer, filename: string): { ok: boolean; reason?: string; ext: string } {
-    const ext = sanitizeExtension(filename, '.mp3');
+    const ext = getAudioExtension(filename);
     if (!config.upload.allowedAudioExt.includes(ext as typeof config.upload.allowedAudioExt[number])) {
-      return { ok: false, reason: `Unsupported audio format: ${ext}`, ext };
+      return { ok: false, reason: `Unsupported audio format: ${ext || 'unknown'}`, ext };
     }
 
     const maxBytes = config.upload.maxFileSizeMb * 1024 * 1024;
@@ -80,14 +81,26 @@ export class LocalStorageProvider {
 
     const known = AUDIO_SIGNATURES.find((s) => s.ext === ext);
     if (known && !known.check(buffer)) {
-      // Soft fail: some valid files have odd headers; warn via reason but allow common containers
-      const anyMatch = AUDIO_SIGNATURES.some((s) => s.check(buffer));
-      if (!anyMatch && ext !== '.aac' && ext !== '.m4a') {
-        return { ok: false, reason: 'File signature does not match declared audio type', ext };
-      }
+      return { ok: false, reason: 'File signature does not match declared audio type', ext };
     }
 
     return { ok: true, ext };
+  }
+
+  validateArtworkBuffer(buffer: Buffer): { ok: boolean; ext: string } {
+    const signature = ARTWORK_SIGNATURES.find((item) => item.check(buffer));
+    return signature ? { ok: true, ext: signature.ext } : { ok: false, ext: '' };
+  }
+
+  private async writeAtomically(targetPath: string, buffer: Buffer): Promise<void> {
+    const tempPath = path.join(TEMP_DIR, `upload_${randomId()}.part`);
+    try {
+      await fs.promises.writeFile(tempPath, buffer, { flag: 'wx' });
+      await fs.promises.rename(tempPath, targetPath);
+    } catch (error) {
+      await fs.promises.unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
   }
 
   async uploadAudio(buffer: Buffer, originalFilename: string): Promise<StoredFile> {
@@ -98,7 +111,7 @@ export class LocalStorageProvider {
 
     const fileName = `song_${Date.now()}_${randomId()}${validation.ext}`;
     const absolutePath = path.join(AUDIO_DIR, fileName);
-    await fs.promises.writeFile(absolutePath, buffer);
+    await this.writeAtomically(absolutePath, buffer);
 
     return {
       absolutePath,
@@ -109,15 +122,13 @@ export class LocalStorageProvider {
   }
 
   async saveArtwork(buffer: Buffer, preferredExt = '.jpg'): Promise<StoredFile> {
-    let ext = preferredExt.startsWith('.') ? preferredExt.toLowerCase() : `.${preferredExt}`;
-    if (!['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
-      ext = '.jpg';
-    }
-    if (ext === '.jpeg') ext = '.jpg';
+    const validation = this.validateArtworkBuffer(buffer);
+    if (!validation.ok) throw new Error('Artwork file signature is not a supported image format');
+    const ext = validation.ext || preferredExt.toLowerCase();
 
     const fileName = `cover_${Date.now()}_${randomId()}${ext}`;
     const absolutePath = path.join(ARTWORK_DIR, fileName);
-    await fs.promises.writeFile(absolutePath, buffer);
+    await this.writeAtomically(absolutePath, buffer);
 
     return {
       absolutePath,
@@ -161,8 +172,10 @@ export class LocalStorageProvider {
 
   async removeTemp(absolutePath: string): Promise<void> {
     try {
-      if (absolutePath.startsWith(TEMP_DIR) && fs.existsSync(absolutePath)) {
-        await fs.promises.unlink(absolutePath);
+      const resolved = path.resolve(absolutePath);
+      const relative = path.relative(TEMP_DIR, resolved);
+      if (relative && !relative.startsWith('..') && !path.isAbsolute(relative) && fs.existsSync(resolved)) {
+        await fs.promises.unlink(resolved);
       }
     } catch {
       // ignore

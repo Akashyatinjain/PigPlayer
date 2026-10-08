@@ -13,7 +13,7 @@ export default function QueueDrawer() {
     isPlaying,
     isQueueOpen,
     setQueueOpen,
-    playSong,
+    playQueueItem,
     removeFromQueue,
     clearQueue,
   } = usePlayerStore();
@@ -81,7 +81,7 @@ export default function QueueDrawer() {
                 }`}
               >
                 <div
-                  onClick={() => playSong(song, queue)}
+                  onClick={() => playQueueItem(idx)}
                   className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                 >
                   {/* Thumbnail / Indicator */}

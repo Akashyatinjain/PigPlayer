@@ -10,7 +10,7 @@ type SortOption = "date" | "title" | "artist" | "duration";
 
 export default function SongsView() {
   const { songs, searchQuery, setIsUploadOpen, deleteAllSongs } = useLibrary();
-  const { playSong } = usePlayerStore();
+  const { playSong, playShuffled } = usePlayerStore();
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -26,7 +26,8 @@ export default function SongsView() {
         (s) =>
           s.title.toLowerCase().includes(q) ||
           s.artist.toLowerCase().includes(q) ||
-          (s.album && s.album.toLowerCase().includes(q))
+          (s.album && s.album.toLowerCase().includes(q)) ||
+          (s.genre && s.genre.toLowerCase().includes(q))
       );
     }
 
@@ -63,8 +64,7 @@ export default function SongsView() {
 
   const handleShufflePlay = () => {
     if (filteredAndSortedSongs.length === 0) return;
-    const shuffled = [...filteredAndSortedSongs].sort(() => Math.random() - 0.5);
-    playSong(shuffled[0], shuffled);
+    playShuffled(filteredAndSortedSongs);
   };
 
   const handleConfirmDeleteAll = async () => {
@@ -97,7 +97,7 @@ export default function SongsView() {
             <>
               <button
                 onClick={handlePlayAll}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
+                className="flex min-h-11 items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
@@ -105,7 +105,7 @@ export default function SongsView() {
 
               <button
                 onClick={handleShufflePlay}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all"
+                className="flex min-h-11 items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all"
               >
                 <Shuffle className="w-3.5 h-3.5 text-slate-400" />
                 <span>Shuffle</span>
@@ -114,7 +114,7 @@ export default function SongsView() {
           )}
 
           {/* Sort Selector */}
-          <div className="flex items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
+          <div className="flex min-h-11 items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
             <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={sortBy}
@@ -130,7 +130,7 @@ export default function SongsView() {
 
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs"
+            className="flex min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add</span>
@@ -141,7 +141,7 @@ export default function SongsView() {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
-              className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-500/25 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-full transition-all shadow-xs disabled:opacity-50"
+              className="flex min-h-11 items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-500/25 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-full transition-all shadow-xs disabled:opacity-50"
               title="Delete all songs from library"
             >
               <Trash2 className="w-3.5 h-3.5" />

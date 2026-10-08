@@ -47,6 +47,18 @@ export const optionalAuth = (
   next();
 };
 
+/** Keep guest editing available for local development, but require identity on a deployed API. */
+export const requireMutationAuth = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (config.env === 'production') {
+    return authenticate(req, res, next);
+  }
+  return optionalAuth(req, res, next);
+};
+
 export const requireRole = (role: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
@@ -57,4 +69,17 @@ export const requireRole = (role: string) => {
     }
     next();
   };
+};
+
+/** Backups can export or replace the whole library, so production access is admin-only. */
+export const requireProductionAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (config.env !== 'production') return next();
+  return authenticate(req, res, (error?: unknown) => {
+    if (error) return next(error);
+    return requireRole('admin')(req, res, next);
+  });
 };

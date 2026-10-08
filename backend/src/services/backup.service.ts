@@ -15,6 +15,7 @@ import {
 import { AppError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
 import { SongRepository } from '../repositories/song.repository';
+import { getDefaultLocalUserId } from './bootstrap.service';
 
 export class BackupService {
   static async listBackups() {
@@ -40,7 +41,7 @@ export class BackupService {
   static async createBackup(options?: { includeMedia?: boolean }) {
     ensureStorageDirectories();
     const includeMedia = options?.includeMedia !== false;
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const stamp = `${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${Math.random().toString(36).slice(2, 8)}`;
     const fileName = `soundify-backup-${stamp}.zip`;
     const outPath = path.join(BACKUPS_DIR, fileName);
 
@@ -133,33 +134,40 @@ export class BackupService {
     try {
       await Extract(zipPath, { dir: staging });
 
-      const stagedDb = path.join(staging, 'soundify.db');
       const stagedLibrary = path.join(staging, 'library.json');
+      if (!fs.existsSync(stagedLibrary)) {
+        throw new AppError('Backup does not contain a library snapshot.', 400);
+      }
+      let library: unknown;
+      try {
+        library = JSON.parse(await fs.promises.readFile(stagedLibrary, 'utf-8'));
+      } catch {
+        throw new AppError('Backup library snapshot is invalid JSON.', 400);
+      }
+      if (!library || typeof library !== 'object' || Array.isArray(library)) {
+        throw new AppError('Backup library snapshot has an invalid format.', 400);
+      }
+      const snapshot = library as Record<string, unknown>;
+      const songCount = Array.isArray(snapshot.songs) ? snapshot.songs.length : 0;
+      const playlistCount = Array.isArray(snapshot.playlists) ? snapshot.playlists.length : 0;
+      const hasAudio = fs.existsSync(path.join(staging, 'audio'));
+      const hasArtwork = fs.existsSync(path.join(staging, 'artwork'));
 
       if (!confirmReplace) {
         return {
           preview: true,
-          message:
-            'Backup extracted for preview. Pass confirmReplace=true to apply (current DB will be copied aside first).',
-          hasDatabase: fs.existsSync(stagedDb),
-          hasLibraryJson: fs.existsSync(stagedLibrary),
-          stagingDir: path.basename(staging),
+          message: 'Snapshot validated. Confirm replacement to apply this library backup.',
+          hasDatabase: false,
+          hasLibraryJson: true,
+          songCount,
+          playlistCount,
+          hasAudio,
+          hasArtwork,
         };
       }
 
-      // Safety copy of current DB
-      if (fs.existsSync(DB_PATH)) {
-        const safety = path.join(
-          BACKUPS_DIR,
-          `pre-restore-${Date.now()}.db`
-        );
-        await fs.promises.copyFile(DB_PATH, safety);
-      }
-
-      if (fs.existsSync(stagedDb)) {
-        await prisma.$disconnect();
-        await fs.promises.copyFile(stagedDb, DB_PATH);
-      }
+      // Keep a recoverable snapshot before changing the live database or media.
+      const safetyBackup = await this.createBackup({ includeMedia: true });
 
       // Restore media folders if present
       for (const folder of ['audio', 'artwork'] as const) {
@@ -170,12 +178,16 @@ export class BackupService {
         }
       }
 
+      const importResult = await this.importLibraryJson(snapshot, 'replace');
+
       logger.info(`Backup restored from: ${safeName}`);
       return {
         preview: false,
         restored: true,
         fileName: safeName,
-        message: 'Backup restored. Restart the backend if connections fail.',
+        safetyBackup: safetyBackup.fileName,
+        ...importResult,
+        message: 'Backup restored successfully. A safety backup was created first.',
       };
     } finally {
       await fs.promises.rm(staging, { recursive: true, force: true }).catch(() => undefined);
@@ -205,68 +217,214 @@ export class BackupService {
   }
 
   static async importLibraryJson(
-    payload: {
-      songs?: Array<Record<string, unknown>>;
-      playlists?: Array<Record<string, unknown>>;
-      favorites?: Array<Record<string, unknown>>;
-      history?: Array<Record<string, unknown>>;
-    },
+    payload: Record<string, unknown>,
     mode: 'merge' | 'replace' = 'merge'
   ) {
-    if (mode === 'replace') {
-      await prisma.$transaction([
-        prisma.playHistory.deleteMany(),
-        prisma.favorite.deleteMany(),
-        prisma.playlistSong.deleteMany(),
-        prisma.playlist.deleteMany(),
-        prisma.song.deleteMany(),
-      ]);
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new AppError('Library import must be a JSON object.', 400);
+    }
+    const readRows = (key: string): Array<Record<string, unknown>> => {
+      const value = payload[key];
+      if (!Array.isArray(value) || value.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) {
+        throw new AppError(`Library import field "${key}" must be an array of objects.`, 400);
+      }
+      return value as Array<Record<string, unknown>>;
+    };
+    const inputSongs = readRows('songs');
+    const inputPlaylists = readRows('playlists');
+    const inputFavorites = readRows('favorites');
+    const inputHistory = readRows('history');
+    const inputUsers = Array.isArray(payload.users) ? payload.users as Array<Record<string, unknown>> : [];
+
+    const existingSongs = mode === 'merge'
+      ? await prisma.song.findMany({ select: { id: true } })
+      : [];
+    const existingSongIds = new Set(existingSongs.map((song) => song.id));
+    const seenSongIds = new Set<string>();
+    const songsToImport: Array<Record<string, unknown> & { id: string; audioRelativePath: string }> = [];
+    let skippedSongs = 0;
+
+    for (const song of inputSongs) {
+      const id = typeof song.id === 'string' ? song.id.trim() : '';
+      const title = typeof song.title === 'string' ? song.title.trim() : '';
+      const artist = typeof song.artist === 'string' ? song.artist.trim() : '';
+      const audioRelativePath = typeof song.audioRelativePath === 'string' ? song.audioRelativePath.trim() : '';
+      if (!id || id.length > 191 || !title || !artist || !audioRelativePath || seenSongIds.has(id)) {
+        throw new AppError('Library import contains a song with invalid or duplicate required fields.', 400);
+      }
+      seenSongIds.add(id);
+
+      if (existingSongIds.has(id)) {
+        skippedSongs++;
+        continue;
+      }
+
+      let audioExists = id.startsWith('demo-');
+      try {
+        const absoluteAudioPath = resolveSafeDataPath(audioRelativePath);
+        audioExists ||= fs.existsSync(absoluteAudioPath);
+      } catch {
+        throw new AppError(`Unsafe audio path in imported song "${title}".`, 400);
+      }
+      if (!audioExists) {
+        if (mode === 'replace') {
+          throw new AppError(`Audio file for "${title}" is missing; library was not changed.`, 400);
+        }
+        skippedSongs++;
+        continue;
+      }
+
+      const coverRelativePath = typeof song.coverRelativePath === 'string' && song.coverRelativePath.trim()
+        ? song.coverRelativePath.trim()
+        : null;
+      if (coverRelativePath) {
+        try {
+          resolveSafeDataPath(coverRelativePath);
+        } catch {
+          throw new AppError(`Unsafe artwork path in imported song "${title}".`, 400);
+        }
+      }
+
+      const duration = Number(song.duration ?? 0);
+      if (!Number.isFinite(duration) || duration < 0) {
+        throw new AppError(`Invalid duration in imported song "${title}".`, 400);
+      }
+      songsToImport.push({ ...song, id, title, artist, audioRelativePath, coverRelativePath });
     }
 
-    let importedSongs = 0;
-    if (payload.songs?.length) {
-      for (const song of payload.songs) {
-        const id = String(song.id || '');
-        const audioRelativePath = String(song.audioRelativePath || '');
-        if (!id || !audioRelativePath) continue;
+    const availableSongIds = new Set(mode === 'merge' ? existingSongIds : []);
+    songsToImport.forEach((song) => availableSongIds.add(song.id));
+    const existingPlaylists = mode === 'merge'
+      ? await prisma.playlist.findMany({ select: { id: true } })
+      : [];
+    const existingPlaylistIds = new Set(existingPlaylists.map((playlist) => playlist.id));
 
-        const exists = await prisma.song.findUnique({ where: { id } });
-        if (exists && mode === 'merge') continue;
+    const existingUsers = await prisma.user.findMany({ select: { id: true, email: true } });
+    const usersByEmail = new Map(existingUsers.map((user) => [user.email.toLowerCase(), user.id]));
+    const knownUserIds = new Set(existingUsers.map((user) => user.id));
+    const fallbackUserId = await getDefaultLocalUserId();
+    const userIdMap = new Map<string, string>();
+    for (const user of inputUsers) {
+      if (typeof user.id !== 'string') continue;
+      const sameId = knownUserIds.has(user.id) ? user.id : undefined;
+      const sameEmail = typeof user.email === 'string' ? usersByEmail.get(user.email.toLowerCase()) : undefined;
+      userIdMap.set(user.id, sameId || sameEmail || fallbackUserId);
+    }
+    const mapUserId = (value: unknown): string | null => {
+      if (value == null || value === '') return null;
+      if (typeof value !== 'string') throw new AppError('Invalid user reference in import.', 400);
+      return userIdMap.get(value) || (knownUserIds.has(value) ? value : fallbackUserId);
+    };
 
-        await prisma.song.upsert({
-          where: { id },
-          create: {
-            id,
-            title: String(song.title || 'Unknown'),
-            artist: String(song.artist || 'Unknown'),
-            album: (song.album as string) || null,
-            albumArtist: (song.albumArtist as string) || null,
-            genre: (song.genre as string) || null,
-            duration: Number(song.duration) || 0,
-            trackNumber: song.trackNumber != null ? Number(song.trackNumber) : null,
-            discNumber: song.discNumber != null ? Number(song.discNumber) : null,
-            releaseYear: song.releaseYear != null ? Number(song.releaseYear) : null,
-            composer: (song.composer as string) || null,
-            audioRelativePath,
-            audioFileName: (song.audioFileName as string) || null,
-            coverRelativePath: (song.coverRelativePath as string) || null,
-            coverFileName: (song.coverFileName as string) || null,
-            audioUrl: `/api/songs/${id}/audio`,
-            coverUrl: song.coverRelativePath ? `/api/songs/${id}/artwork` : null,
-            mimeType: (song.mimeType as string) || 'audio/mpeg',
-            fileSize: song.fileSize != null ? Number(song.fileSize) : null,
-            fileHash: (song.fileHash as string) || null,
-            bitrate: song.bitrate != null ? Number(song.bitrate) : null,
-            originalFileName: (song.originalFileName as string) || null,
-            isDownloadable: song.isDownloadable !== false,
+    const playlistRows = inputPlaylists.filter((playlist) => {
+      const id = typeof playlist.id === 'string' ? playlist.id : '';
+      const name = typeof playlist.name === 'string' ? playlist.name.trim() : '';
+      if (!id || id.length > 191 || !name || name.length > 100) {
+        throw new AppError('Library import contains a playlist with invalid fields.', 400);
+      }
+      return !existingPlaylistIds.has(id);
+    });
+
+    const songData = (song: Record<string, unknown> & { id: string; audioRelativePath: string }) => ({
+      id: song.id,
+      title: song.title as string,
+      artist: song.artist as string,
+      album: typeof song.album === 'string' ? song.album : null,
+      albumArtist: typeof song.albumArtist === 'string' ? song.albumArtist : null,
+      genre: typeof song.genre === 'string' ? song.genre : null,
+      duration: Number(song.duration || 0),
+      trackNumber: Number.isInteger(song.trackNumber) ? Number(song.trackNumber) : null,
+      discNumber: Number.isInteger(song.discNumber) ? Number(song.discNumber) : null,
+      releaseYear: Number.isInteger(song.releaseYear) ? Number(song.releaseYear) : null,
+      composer: typeof song.composer === 'string' ? song.composer : null,
+      audioRelativePath: song.audioRelativePath,
+      audioFileName: typeof song.audioFileName === 'string' ? song.audioFileName : null,
+      coverRelativePath: song.coverRelativePath as string | null,
+      coverFileName: typeof song.coverFileName === 'string' ? song.coverFileName : null,
+      audioUrl: `/api/songs/${song.id}/audio`,
+      coverUrl: song.coverRelativePath ? `/api/songs/${song.id}/artwork` : null,
+      mimeType: typeof song.mimeType === 'string' ? song.mimeType : 'audio/mpeg',
+      fileSize: Number.isSafeInteger(song.fileSize) && Number(song.fileSize) >= 0 ? Number(song.fileSize) : null,
+      fileHash: typeof song.fileHash === 'string' ? song.fileHash : null,
+      bitrate: Number.isInteger(song.bitrate) && Number(song.bitrate) >= 0 ? Number(song.bitrate) : null,
+      originalFileName: typeof song.originalFileName === 'string' ? song.originalFileName : null,
+      isDownloadable: song.isDownloadable !== false,
+      ...(song.userId != null ? { user: { connect: { id: mapUserId(song.userId)! } } } : {}),
+    });
+
+    await prisma.$transaction(async (tx) => {
+      if (mode === 'replace') {
+        await tx.playHistory.deleteMany();
+        await tx.favorite.deleteMany();
+        await tx.playlistSong.deleteMany();
+        await tx.playlist.deleteMany();
+        await tx.song.deleteMany();
+      }
+
+      for (const song of songsToImport) {
+        await tx.song.create({ data: songData(song) });
+      }
+
+      for (const playlist of playlistRows) {
+        const playlistId = playlist.id as string;
+        const links = Array.isArray(playlist.songs) ? playlist.songs : [];
+        const seenLinks = new Set<string>();
+        const songs = links.flatMap((link, index) => {
+          const row = typeof link === 'string' ? { songId: link } : link as Record<string, unknown>;
+          const songId = typeof row.songId === 'string' ? row.songId : '';
+          if (!songId || !availableSongIds.has(songId) || seenLinks.has(songId)) return [];
+          seenLinks.add(songId);
+          return [{ songId, position: Number.isInteger(row.position) ? Number(row.position) : index }];
+        });
+        await tx.playlist.create({
+          data: {
+            id: playlistId,
+            name: playlist.name as string,
+            description: typeof playlist.description === 'string' ? playlist.description : null,
+            coverUrl: typeof playlist.coverUrl === 'string' ? playlist.coverUrl : null,
+            userId: mapUserId(playlist.userId),
+            ...(songs.length
+              ? {
+                  songs: {
+                    create: songs.map(({ songId, position }) => ({
+                      position,
+                      song: { connect: { id: songId } },
+                    })),
+                  },
+                }
+              : {}),
           },
+        });
+      }
+
+      const favorites = inputFavorites.flatMap((favorite) => {
+        const songId = typeof favorite.songId === 'string' ? favorite.songId : '';
+        if (!availableSongIds.has(songId)) return [];
+        return [{ songId, userId: mapUserId(favorite.userId) || fallbackUserId }];
+      });
+      for (const favorite of favorites) {
+        await tx.favorite.upsert({
+          where: { userId_songId: { userId: favorite.userId, songId: favorite.songId } },
+          create: favorite,
           update: {},
         });
-        importedSongs++;
       }
-    }
 
-    logger.info(`Library import complete: ${importedSongs} songs`);
-    return { importedSongs, mode };
+      const history = inputHistory.flatMap((item) => {
+        const songId = typeof item.songId === 'string' ? item.songId : '';
+        if (!availableSongIds.has(songId)) return [];
+        const durationPlayed = item.durationPlayed == null ? null : Number(item.durationPlayed);
+        if (durationPlayed !== null && (!Number.isFinite(durationPlayed) || durationPlayed < 0)) return [];
+        const playedAt = item.playedAt ? new Date(String(item.playedAt)) : new Date();
+        if (!Number.isFinite(playedAt.getTime())) return [];
+        return [{ songId, userId: mapUserId(item.userId), durationPlayed, playedAt }];
+      });
+      if (history.length) await tx.playHistory.createMany({ data: history });
+    });
+
+    const importedSongs = songsToImport.length;
+    const importedPlaylists = playlistRows.length;
+    logger.info(`Library import complete: ${importedSongs} songs, ${importedPlaylists} playlists`);
+    return { importedSongs, importedPlaylists, skippedSongs, mode };
   }
 }

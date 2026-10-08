@@ -5,7 +5,7 @@ import { SongService } from './song.service';
 import { StorageService } from './storage.service';
 import { AppError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
-import { PROJECT_ROOT, DATA_ROOT } from '../config/paths';
+import { PROJECT_ROOT, DATA_ROOT, resolveSafeDataPath } from '../config/paths';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.mp3': 'audio/mpeg',
@@ -80,8 +80,12 @@ function findAudioFallbackPath(song: {
 
   // 1. Direct candidate paths inside DATA_ROOT/audio
   if (song.audioRelativePath) {
-    const direct = path.join(DATA_ROOT, song.audioRelativePath.replace(/^[/\\]+/, ''));
-    if (fs.existsSync(direct)) return direct;
+    try {
+      const direct = resolveSafeDataPath(song.audioRelativePath);
+      if (fs.existsSync(direct)) return direct;
+    } catch {
+      // Ignore invalid legacy paths and continue with safe basename fallbacks.
+    }
     const inAudio = path.join(audioDir, path.basename(song.audioRelativePath));
     if (fs.existsSync(inAudio)) return inAudio;
   }
@@ -121,41 +125,46 @@ function findAudioFallbackPath(song: {
     }
   }
 
-  // 3. Demo directory specific title matches (e.g. "Midnight Drift" -> "midnight-drift.wav")
-  const demoDirs = [
-    path.join(PROJECT_ROOT, 'backend/public/demo'),
-    path.join(PROJECT_ROOT, 'frontend/public/demo'),
-    path.join(__dirname, '../../public/demo'),
-  ];
+  // 3. Demo directory specific title matches (only for demo/seeded tracks)
+  const isDemo =
+    Boolean(song.audioRelativePath?.startsWith('demo/')) ||
+    Boolean((song as { id?: string }).id?.startsWith('demo-'));
 
-  if (song.title) {
-    const slug = song.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  if (isDemo) {
+    const demoDirs = [
+      path.join(PROJECT_ROOT, 'backend/public/demo'),
+      path.join(PROJECT_ROOT, 'frontend/public/demo'),
+      path.join(__dirname, '../../public/demo'),
+    ];
+
+    if (song.title) {
+      const slug = song.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      for (const dir of demoDirs) {
+        if (!fs.existsSync(dir)) continue;
+        for (const ext of ['.wav', '.mp3']) {
+          const candidate = path.join(dir, `${slug}${ext}`);
+          if (fs.existsSync(candidate)) return candidate;
+        }
+      }
+    }
+
     for (const dir of demoDirs) {
       if (!fs.existsSync(dir)) continue;
-      for (const ext of ['.wav', '.mp3']) {
-        const candidate = path.join(dir, `${slug}${ext}`);
-        if (fs.existsSync(candidate)) return candidate;
-      }
+      try {
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.wav') || f.endsWith('.mp3'));
+        if (files.length > 0) {
+          return path.join(dir, files[0]);
+        }
+      } catch {}
     }
   }
 
-  // 4. Any song in data/audio if available
-  if (scanned.length > 0) {
-    return scanned[0].path;
-  }
-
-  // 5. Fallback demo track
-  for (const dir of demoDirs) {
-    if (!fs.existsSync(dir)) continue;
-    try {
-      const files = fs.readdirSync(dir).filter(f => f.endsWith('.wav') || f.endsWith('.mp3'));
-      if (files.length > 0) {
-        return path.join(dir, files[0]);
-      }
-    } catch {}
-  }
-
   return null;
+}
+
+function isManagedAudioPath(relativePath?: string | null): boolean {
+  return typeof relativePath === 'string' &&
+    relativePath.replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase().startsWith('audio/');
 }
 
 /**
@@ -169,8 +178,12 @@ function findArtworkFallbackPath(song: {
   const artworkDir = path.join(DATA_ROOT, 'artwork');
 
   if (song.coverRelativePath) {
-    const direct = path.join(DATA_ROOT, song.coverRelativePath.replace(/^[/\\]+/, ''));
-    if (fs.existsSync(direct)) return direct;
+    try {
+      const direct = resolveSafeDataPath(song.coverRelativePath);
+      if (fs.existsSync(direct)) return direct;
+    } catch {
+      // Ignore invalid legacy paths and continue with safe basename fallbacks.
+    }
     const inArtwork = path.join(artworkDir, path.basename(song.coverRelativePath));
     if (fs.existsSync(inArtwork)) return inArtwork;
   }
@@ -220,32 +233,41 @@ export function streamFileWithRange(
   const rangeHeader = req.headers.range;
 
   if (downloadName) {
+    const safeFallback = downloadName.replace(/["\\]/g, '_');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}`
+      `attachment; filename="${safeFallback}"; filename*=UTF-8''${encodeURIComponent(downloadName)}`
     );
   }
 
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Content-Type', mimeType);
-  // Cache static audio files aggressively to enable browser audio pre-buffering
-  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  // The URL is keyed by song ID, while a replace upload can change its file.
+  // Revalidate on every playback request instead of treating this mutable URL as immutable.
+  res.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
 
   if (rangeHeader) {
-    const rawRange = rangeHeader.replace(/bytes=/, '').trim();
-    const parts = rawRange.split('-');
+    const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader.trim());
+    if (!match || (!match[1] && !match[2])) {
+      res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+      return;
+    }
 
     let start: number;
     let end: number;
 
-    if (parts[0] === '' && parts[1]) {
+    if (!match[1]) {
       // Suffix range: bytes=-500 (last 500 bytes)
-      const suffix = parseInt(parts[1], 10);
+      const suffix = Number.parseInt(match[2], 10);
+      if (!Number.isSafeInteger(suffix) || suffix <= 0) {
+        res.status(416).setHeader('Content-Range', `bytes */${fileSize}`).end();
+        return;
+      }
       start = Math.max(0, fileSize - suffix);
       end = fileSize - 1;
     } else {
-      start = parseInt(parts[0], 10);
-      end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      start = Number.parseInt(match[1], 10);
+      end = match[2] ? Number.parseInt(match[2], 10) : fileSize - 1;
     }
 
     // Clamp end to file size per RFC 7233
@@ -266,17 +288,14 @@ export function streamFileWithRange(
 
     const stream = fs.createReadStream(absolutePath, { start, end });
 
-    const cleanup = () => {
-      if (!stream.destroyed) {
-        stream.destroy();
-      }
-    };
-    req.on('close', cleanup);
-    res.on('close', cleanup);
-    res.on('finish', cleanup);
+    // IncomingMessage 'close' also fires after a normal GET request body ends;
+    // using it here can destroy the response stream before the first bytes arrive.
+    res.on('close', () => {
+      if (!res.writableFinished && !stream.destroyed) stream.destroy();
+    });
 
     stream.on('error', (err) => {
-      cleanup();
+      if (!stream.destroyed) stream.destroy();
       logger.error('Audio stream range error', err.message);
       if (!res.headersSent) res.status(500).end();
       else res.destroy();
@@ -290,17 +309,12 @@ export function streamFileWithRange(
   res.setHeader('Content-Length', fileSize);
   const stream = fs.createReadStream(absolutePath);
 
-  const cleanup = () => {
-    if (!stream.destroyed) {
-      stream.destroy();
-    }
-  };
-  req.on('close', cleanup);
-  res.on('close', cleanup);
-  res.on('finish', cleanup);
+  res.on('close', () => {
+    if (!res.writableFinished && !stream.destroyed) stream.destroy();
+  });
 
   stream.on('error', (err) => {
-    cleanup();
+    if (!stream.destroyed) stream.destroy();
     logger.error('Audio stream error', err.message);
     if (!res.headersSent) res.status(500).end();
     else res.destroy();
@@ -316,12 +330,7 @@ export class MediaService {
       throw new AppError('Song not found', 404);
     }
 
-    // 1. If remote audio URL exists (Cloudinary, external CDN, S3), redirect
-    if (song.audioUrl && (song.audioUrl.startsWith('http://') || song.audioUrl.startsWith('https://'))) {
-      return res.redirect(song.audioUrl);
-    }
-
-    // 2. Check local disk path
+    // Local-only library: never redirect playback to a remote URL.
     if (song.audioRelativePath) {
       const absolutePath = StorageService.getAudioAbsolutePath(song.audioRelativePath);
       if (fs.existsSync(absolutePath)) {
@@ -329,9 +338,13 @@ export class MediaService {
         const mime = song.mimeType || MIME_BY_EXT[ext] || 'audio/mpeg';
         return streamFileWithRange(req, res, absolutePath, mime);
       }
+      // Never substitute another track when a managed upload is missing.
+      if (isManagedAudioPath(song.audioRelativePath)) {
+        throw new AppError('Audio file not found in local storage', 404);
+      }
     }
 
-    // 3. Check demo / fallback audio files (especially on Render ephemeral containers)
+    // Check bundled demo/fallback audio for seeded tracks.
     const fallbackAudio = findAudioFallbackPath(song);
     if (fallbackAudio) {
       const ext = path.extname(fallbackAudio).toLowerCase();
@@ -339,7 +352,7 @@ export class MediaService {
       return streamFileWithRange(req, res, fallbackAudio, mime);
     }
 
-    // 4. Check if audioUrl has relative path on disk
+    // Check legacy relative URLs as local paths; resolveSafeDataPath keeps them inside data/.
     if (song.audioUrl && !song.audioUrl.startsWith('/api/')) {
       const altPath = StorageService.getAudioAbsolutePath(song.audioUrl);
       if (fs.existsSync(altPath)) {
@@ -349,7 +362,7 @@ export class MediaService {
       }
     }
 
-    throw new AppError('Audio file not found on disk or remote storage', 404);
+    throw new AppError('Audio file not found in local storage', 404);
   }
 
   static async streamArtwork(req: Request, res: Response) {
@@ -358,12 +371,7 @@ export class MediaService {
       throw new AppError('Song not found', 404);
     }
 
-    // 1. Remote cover redirect
-    if (song.coverUrl && (song.coverUrl.startsWith('http://') || song.coverUrl.startsWith('https://'))) {
-      return res.redirect(song.coverUrl);
-    }
-
-    // 2. Local disk cover
+    // Local-only library: artwork URLs are resolved from managed storage.
     if (song.coverRelativePath) {
       const absolutePath = StorageService.getArtworkAbsolutePath(song.coverRelativePath);
       if (fs.existsSync(absolutePath)) {
@@ -373,7 +381,7 @@ export class MediaService {
       }
     }
 
-    // 3. Fallback demo cover
+    // Fallback demo cover
     const fallbackCover = findArtworkFallbackPath(song);
     if (fallbackCover) {
       const ext = path.extname(fallbackCover).toLowerCase();
@@ -381,7 +389,7 @@ export class MediaService {
       return streamFileWithRange(req, res, fallbackCover, mime);
     }
 
-    // 4. Default high-contrast SVG cover placeholder (prevents broken 404 image icons)
+    // Default SVG cover placeholder (prevents broken image icons).
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.send(
@@ -398,11 +406,6 @@ export class MediaService {
       throw new AppError('This song is not authorized for download.', 403);
     }
 
-    // 1. Remote download redirect
-    if (song.audioUrl && (song.audioUrl.startsWith('http://') || song.audioUrl.startsWith('https://'))) {
-      return res.redirect(song.audioUrl);
-    }
-
     const fileName =
       song.originalFileName ||
       song.audioFileName ||
@@ -415,6 +418,9 @@ export class MediaService {
         const ext = path.extname(absolutePath).toLowerCase();
         const mime = song.mimeType || MIME_BY_EXT[ext] || 'audio/mpeg';
         return streamFileWithRange(req, res, absolutePath, mime, fileName);
+      }
+      if (isManagedAudioPath(song.audioRelativePath)) {
+        throw new AppError('Audio file not found for download', 404);
       }
     }
 

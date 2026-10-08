@@ -7,8 +7,8 @@ export const songBaseSchema = z.object({
   albumArtist: z.string().optional().nullable(),
   genre: z.string().optional().nullable(),
   duration: z.coerce.number().min(0).default(0),
-  audioRelativePath: z.string().optional(),
-  audioUrl: z.string().optional(),
+  audioRelativePath: z.string().trim().min(1).optional(),
+  audioUrl: z.string().trim().optional(),
   coverRelativePath: z.string().optional().nullable(),
   coverUrl: z.string().optional().nullable(),
   audioFileName: z.string().optional().nullable(),
@@ -23,13 +23,21 @@ export const songBaseSchema = z.object({
   releaseYear: z.coerce.number().optional().nullable(),
   composer: z.string().optional().nullable(),
   bitrate: z.coerce.number().optional().nullable(),
-  isDownloadable: z.coerce.boolean().default(true),
+  isDownloadable: z
+    .union([
+      z.boolean(),
+      z.enum(['true', 'false']).transform((value) => value === 'true'),
+    ])
+    .default(true),
 });
 
 export const createSongSchema = songBaseSchema.refine(
-  (d) => Boolean(d.audioRelativePath || d.audioUrl),
+  (d) => Boolean(
+    d.audioRelativePath ||
+      (d.audioUrl && !/^https?:\/\//i.test(d.audioUrl) && !d.audioUrl.startsWith('/api/'))
+  ),
   {
-    message: 'audioRelativePath or audioUrl is required',
+    message: 'A local audioRelativePath is required',
     path: ['audioRelativePath'],
   }
 );

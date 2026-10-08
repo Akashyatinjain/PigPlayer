@@ -141,7 +141,7 @@ export default function OfflineView() {
               <button
                 type="button"
                 onClick={handlePlayAll}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-transform active:scale-95 shadow-lg shadow-blue-600/30"
+                className="flex min-h-11 items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-transform active:scale-95 shadow-lg shadow-blue-600/30"
               >
                 <Play className="w-4 h-4 fill-current" />
                 Play Offline
@@ -152,7 +152,7 @@ export default function OfflineView() {
               type="button"
               disabled={isImporting}
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors active:scale-95"
+              className="flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors active:scale-95"
               title="Import audio files from this phone/computer into offline library"
             >
               <Upload className="w-4 h-4" />
@@ -163,7 +163,7 @@ export default function OfflineView() {
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="flex items-center justify-center p-2.5 rounded-xl bg-slate-800/80 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-800/80 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
                 title="Clear all offline songs from device"
               >
                 <Trash2 className="w-4 h-4" />

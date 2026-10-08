@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PlaylistController } from '../controllers/playlist.controller';
-import { optionalAuth, authenticate } from '../middleware/auth.middleware';
+import { optionalAuth, requireMutationAuth } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
   createPlaylistSchema,
@@ -11,14 +11,14 @@ import {
 
 const router = Router();
 
-router.get('/', optionalAuth, PlaylistController.listPlaylists);
-router.get('/:id', PlaylistController.getPlaylistById);
-router.post('/', optionalAuth, validateBody(createPlaylistSchema), PlaylistController.createPlaylist);
-router.put('/:id', optionalAuth, validateBody(updatePlaylistSchema), PlaylistController.updatePlaylist);
-router.delete('/:id', optionalAuth, PlaylistController.deletePlaylist);
+router.get('/', requireMutationAuth, PlaylistController.listPlaylists);
+router.get('/:id', requireMutationAuth, PlaylistController.getPlaylistById);
+router.post('/', requireMutationAuth, validateBody(createPlaylistSchema), PlaylistController.createPlaylist);
+router.put('/:id', requireMutationAuth, validateBody(updatePlaylistSchema), PlaylistController.updatePlaylist);
+router.delete('/:id', requireMutationAuth, PlaylistController.deletePlaylist);
 
-router.post('/:id/songs', optionalAuth, validateBody(addSongToPlaylistSchema), PlaylistController.addSong);
-router.delete('/:id/songs/:songId', optionalAuth, PlaylistController.removeSong);
-router.put('/:id/reorder', optionalAuth, validateBody(reorderPlaylistSchema), PlaylistController.reorderSongs);
+router.post('/:id/songs', requireMutationAuth, validateBody(addSongToPlaylistSchema), PlaylistController.addSong);
+router.delete('/:id/songs/:songId', requireMutationAuth, PlaylistController.removeSong);
+router.put('/:id/reorder', requireMutationAuth, validateBody(reorderPlaylistSchema), PlaylistController.reorderSongs);
 
 export default router;

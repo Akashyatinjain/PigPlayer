@@ -15,9 +15,9 @@ export class PlaylistController {
     }
   }
 
-  static async getPlaylistById(req: Request, res: Response, next: NextFunction) {
+  static async getPlaylistById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const playlist = await PlaylistService.getPlaylistById(req.params.id as string);
+      const playlist = await PlaylistService.getPlaylistById(req.params.id as string, req.user?.id);
       res.status(200).json({
         success: true,
         data: playlist,

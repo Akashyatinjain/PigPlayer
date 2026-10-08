@@ -225,12 +225,18 @@ export default function UploadModal() {
     let index = 0;
 
     const runWorker = async () => {
-      while (index < pendingItems.length && !cancelRequestedRef.current) {
+      while (!cancelRequestedRef.current) {
         const currentIndex = index++;
+        if (currentIndex >= pendingItems.length) break;
         const currentItem = pendingItems[currentIndex];
+        if (!currentItem) break;
+
         setActiveUploadCount((c) => c + 1);
-        await uploadSingleItem(currentItem);
-        setActiveUploadCount((c) => Math.max(0, c - 1));
+        try {
+          await uploadSingleItem(currentItem);
+        } finally {
+          setActiveUploadCount((c) => Math.max(0, c - 1));
+        }
       }
     };
 

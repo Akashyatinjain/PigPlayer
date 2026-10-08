@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 export const createPlaylistSchema = z.object({
-  name: z.string().min(1, 'Playlist name is required'),
-  description: z.string().optional().nullable(),
-  coverUrl: z.string().optional().nullable(),
+  name: z.string().trim().min(1, 'Playlist name is required').max(100),
+  description: z.string().max(1000).optional().nullable(),
+  coverUrl: z.string().max(2048).optional().nullable(),
 });
 
 export const updatePlaylistSchema = createPlaylistSchema.partial();

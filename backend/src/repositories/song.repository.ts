@@ -18,15 +18,15 @@ export class SongRepository {
 
     if (query) {
       where.OR = [
-        { title: { contains: query, mode: 'insensitive' } },
-        { artist: { contains: query, mode: 'insensitive' } },
-        { album: { contains: query, mode: 'insensitive' } },
-        { genre: { contains: query, mode: 'insensitive' } },
+        { title: { contains: query } },
+        { artist: { contains: query } },
+        { album: { contains: query } },
+        { genre: { contains: query } },
       ];
     }
 
     if (genre && genre !== 'All') {
-      where.genre = { contains: genre, mode: 'insensitive' };
+      where.genre = { contains: genre };
     }
 
     const skip = (page - 1) * limit;
@@ -67,6 +67,11 @@ export class SongRepository {
     return song ? mapSongForApi(song) : null;
   }
 
+  static async findRawByHash(fileHash: string) {
+    if (!fileHash) return null;
+    return prisma.song.findFirst({ where: { fileHash } });
+  }
+
   static async findDuplicate({
     fileHash,
     title,
@@ -101,16 +106,18 @@ export class SongRepository {
   }
 
   static async create(data: Prisma.SongCreateInput) {
-    const song = await prisma.song.create({ data });
-    // Backfill audioUrl/coverUrl stream paths
-    const updated = await prisma.song.update({
-      where: { id: song.id },
+    const id =
+      (data as { id?: string }).id ||
+      `c${Date.now().toString(36)}${Math.random().toString(36).substring(2, 9)}`;
+    const song = await prisma.song.create({
       data: {
-        audioUrl: `/api/songs/${song.id}/audio`,
-        coverUrl: song.coverRelativePath ? `/api/songs/${song.id}/artwork` : null,
+        ...data,
+        id,
+        audioUrl: `/api/songs/${id}/audio`,
+        coverUrl: data.coverRelativePath ? `/api/songs/${id}/artwork` : null,
       },
     });
-    return mapSongForApi(updated);
+    return mapSongForApi(song);
   }
 
   static async update(id: string, data: Prisma.SongUpdateInput) {

@@ -31,7 +31,7 @@ export default function LibraryView() {
   ];
   const filteredSongs = searchQuery.trim()
     ? songs.filter((song) =>
-        `${song.title} ${song.artist} ${song.album || ""}`
+        `${song.title} ${song.artist} ${song.album || ""} ${song.genre || ""}`
           .toLowerCase()
           .includes(searchQuery.trim().toLowerCase()),
       )

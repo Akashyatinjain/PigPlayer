@@ -17,7 +17,7 @@ function mapPlaylist<T extends { songs?: Array<{ song: Parameters<typeof mapSong
 export class PlaylistRepository {
   static async findByUser(userId?: string) {
     const playlists = await prisma.playlist.findMany({
-      where: userId ? { userId } : {},
+      where: userId ? { OR: [{ userId }, { userId: null }] } : {},
       include: {
         songs: {
           include: { song: true },

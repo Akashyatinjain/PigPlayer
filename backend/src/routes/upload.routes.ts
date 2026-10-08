@@ -1,20 +1,20 @@
 import { Router } from 'express';
 import { UploadController } from '../controllers/upload.controller';
-import { optionalAuth } from '../middleware/auth.middleware';
+import { requireMutationAuth } from '../middleware/auth.middleware';
 import { audioUpload } from '../middleware/upload.middleware';
 
 const router = Router();
 
 router.post(
   '/analyze',
-  optionalAuth,
+  requireMutationAuth,
   audioUpload.single('audio'),
   UploadController.analyze
 );
 
 router.post(
   '/song',
-  optionalAuth,
+  requireMutationAuth,
   audioUpload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'cover', maxCount: 1 },
@@ -25,7 +25,7 @@ router.post(
 // Alias for bulk clients that POST /api/upload
 router.post(
   '/',
-  optionalAuth,
+  requireMutationAuth,
   audioUpload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'cover', maxCount: 1 },
@@ -35,7 +35,7 @@ router.post(
 
 router.post(
   '/bulk',
-  optionalAuth,
+  requireMutationAuth,
   audioUpload.fields([
     { name: 'audio', maxCount: 1 },
     { name: 'cover', maxCount: 1 },
@@ -45,7 +45,7 @@ router.post(
 
 router.post(
   '/artwork',
-  optionalAuth,
+  requireMutationAuth,
   audioUpload.single('cover'),
   UploadController.uploadArtwork
 );

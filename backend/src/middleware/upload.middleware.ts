@@ -1,5 +1,6 @@
 import multer from 'multer';
 import { AppError } from './error.middleware';
+import { config } from '../config/env';
 
 const storage = multer.memoryStorage();
 
@@ -28,7 +29,11 @@ const allowedImageMimes = [
 export const audioUpload = multer({
   storage,
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100 MB max for audio
+    fileSize: config.upload.maxFileSizeMb * 1024 * 1024,
+    files: 2,
+    fields: 32,
+    fieldSize: 1024 * 1024,
+    parts: 34,
   },
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'audio') {

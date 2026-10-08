@@ -4,7 +4,8 @@ import { SongRepository } from '../repositories/song.repository';
 import { StorageService } from './storage.service';
 import { AppError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
-import { DATA_ROOT } from '../config/paths';
+import { DATA_ROOT, TEMP_DIR } from '../config/paths';
+import { config } from '../config/env';
 
 export const FALLBACK_DEMO_SONGS = [
   {
@@ -289,12 +290,16 @@ export class SongService {
     userId?: string,
     options?: { replaceHash?: boolean; allowDuplicate?: boolean }
   ) {
+    let replacement: Awaited<ReturnType<typeof SongRepository.findRawByHash>> = null;
     if (data.fileHash && !options?.allowDuplicate) {
       try {
-        const existing = await SongRepository.findByHash(data.fileHash);
+        const existing = await SongRepository.findRawByHash(data.fileHash);
         if (existing) {
           if (options?.replaceHash) {
-            await this.deleteSong(existing.id);
+            if (config.env === 'production' && existing.userId !== userId) {
+              throw new AppError('Only the owner can replace this song.', 403);
+            }
+            replacement = existing;
           } else {
             throw new AppError(
               'A song with this exact audio file hash already exists.',
@@ -317,6 +322,15 @@ export class SongService {
       throw new AppError('audioRelativePath is required', 400);
     }
 
+    const absoluteAudioPath = StorageService.getAudioAbsolutePath(audioRelativePath);
+    const resolvedTempDir = path.resolve(TEMP_DIR);
+    if (
+      absoluteAudioPath === resolvedTempDir ||
+      absoluteAudioPath.startsWith(`${resolvedTempDir}${path.sep}`)
+    ) {
+      throw new AppError('Uploaded audio must be stored in permanent media storage', 400);
+    }
+
     if (!StorageService.exists(audioRelativePath)) {
       throw new AppError('Audio file missing on disk', 400);
     }
@@ -329,7 +343,7 @@ export class SongService {
         ? String(data.coverUrl).replace(/^\//, '')
         : null);
 
-    const song = await SongRepository.create({
+    const songData = {
       title: data.title,
       artist: data.artist,
       album: data.album || null,
@@ -351,6 +365,27 @@ export class SongService {
       bitrate: data.bitrate != null ? Number(data.bitrate) : null,
       isDownloadable:
         data.isDownloadable !== undefined ? Boolean(data.isDownloadable) : true,
+    };
+
+    if (replacement) {
+      // Update the existing row in place so playlist, favorite, and history links survive.
+      const updated = await SongRepository.update(replacement.id, songData);
+      if (replacement.audioRelativePath !== audioRelativePath && replacement.audioRelativePath) {
+        await StorageService.deleteAudio(replacement.audioRelativePath);
+      }
+      if (replacement.coverRelativePath && replacement.coverRelativePath !== (coverRelativePath || null)) {
+        const { prisma } = await import('../config/database');
+        const stillUsed = await prisma.song.count({
+          where: { coverRelativePath: replacement.coverRelativePath },
+        });
+        if (stillUsed === 0) await StorageService.deleteArtwork(replacement.coverRelativePath);
+      }
+      logger.info(`Replaced song media: ${updated.title}`);
+      return updated;
+    }
+
+    const song = await SongRepository.create({
+      ...songData,
       ...(userId ? { user: { connect: { id: userId } } } : {}),
     });
 
@@ -358,10 +393,13 @@ export class SongService {
     return song;
   }
 
-  static async updateSong(id: string, data: Record<string, unknown>) {
+  static async updateSong(id: string, data: Record<string, unknown>, userId?: string, isAdmin = false) {
     const song = await SongRepository.findByIdRaw(id);
     if (!song) {
       throw new AppError('Song not found', 404);
+    }
+    if (config.env === 'production' && !isAdmin && song.userId !== userId) {
+      throw new AppError('Only the song owner can update this song.', 403);
     }
 
     const allowed = [
@@ -395,10 +433,13 @@ export class SongService {
     return SongRepository.update(id, update);
   }
 
-  static async deleteSong(id: string) {
+  static async deleteSong(id: string, userId?: string, isAdmin = false) {
     const song = await SongRepository.findByIdRaw(id);
     if (!song) {
       throw new AppError('Song not found', 404);
+    }
+    if (config.env === 'production' && !isAdmin && song.userId !== userId) {
+      throw new AppError('Only the song owner can delete this song.', 403);
     }
 
     await SongRepository.delete(id);
@@ -421,24 +462,25 @@ export class SongService {
   }
 
   static async deleteAllSongs() {
-    let songs: Array<{ audioRelativePath: string | null; coverRelativePath: string | null }> = [];
-    try {
-      const { prisma } = await import('../config/database');
-      songs = await prisma.song.findMany({
-        select: { audioRelativePath: true, coverRelativePath: true },
-      });
-      await SongRepository.deleteAll();
-    } catch (err: any) {
-      logger.warn(`Database error in deleteAllSongs: ${err?.message}`);
-    }
+    const { prisma } = await import('../config/database');
+    const songs = await prisma.song.findMany({
+      select: { audioRelativePath: true, coverRelativePath: true },
+    });
+
+    // Do not delete media or report success unless the database deletion succeeds.
+    await SongRepository.deleteAll();
 
     // Delete associated physical media files (skipping demo files)
     for (const song of songs) {
       if (song.audioRelativePath && !song.audioRelativePath.startsWith('demo/')) {
-        await StorageService.deleteAudio(song.audioRelativePath).catch(() => {});
+        await StorageService.deleteAudio(song.audioRelativePath).catch((error) => {
+          logger.warn(`Failed to remove audio file ${song.audioRelativePath}: ${String(error)}`);
+        });
       }
       if (song.coverRelativePath && !song.coverRelativePath.startsWith('demo/')) {
-        await StorageService.deleteArtwork(song.coverRelativePath).catch(() => {});
+        await StorageService.deleteArtwork(song.coverRelativePath).catch((error) => {
+          logger.warn(`Failed to remove artwork file ${song.coverRelativePath}: ${String(error)}`);
+        });
       }
     }
 

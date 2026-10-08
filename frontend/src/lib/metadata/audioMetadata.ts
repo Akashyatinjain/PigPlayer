@@ -92,27 +92,44 @@ function getDurationFromAudioElement(file: File): Promise<number> {
       const objectUrl = URL.createObjectURL(file);
       audio.src = objectUrl;
 
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+
       const cleanup = () => {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        audio.onloadedmetadata = null;
+        audio.onerror = null;
         URL.revokeObjectURL(objectUrl);
         audio.removeAttribute("src");
       };
 
+      timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          resolve(0);
+        }
+      }, 3000);
+
       audio.onloadedmetadata = () => {
-        const dur = audio.duration;
-        cleanup();
-        resolve(!isNaN(dur) && isFinite(dur) ? Math.round(dur) : 0);
+        if (!settled) {
+          settled = true;
+          const dur = audio.duration;
+          cleanup();
+          resolve(!isNaN(dur) && isFinite(dur) ? Math.round(dur) : 0);
+        }
       };
 
       audio.onerror = () => {
-        cleanup();
-        resolve(0);
+        if (!settled) {
+          settled = true;
+          cleanup();
+          resolve(0);
+        }
       };
-
-      // Timeout fallback after 3 seconds
-      setTimeout(() => {
-        cleanup();
-        resolve(0);
-      }, 3000);
     } catch {
       resolve(0);
     }
@@ -204,7 +221,7 @@ export async function extractAudioMetadata(
   let fileHash: string | undefined;
   try {
     if (typeof window !== "undefined" && window.crypto?.subtle) {
-      const buffer = await file.slice(0, 5 * 1024 * 1024).arrayBuffer(); // Hash first 5MB or entire file for speed
+      const buffer = await file.arrayBuffer();
       const hashBuffer = await window.crypto.subtle.digest("SHA-256", buffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       fileHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");

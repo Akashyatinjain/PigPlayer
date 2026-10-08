@@ -24,10 +24,8 @@ app.use(
 
 const allowedOrigins = [
   config.clientUrl,
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:5000',
-  'http://127.0.0.1:5000',
+  ...config.allowedOrigins,
+  ...(config.env === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000']),
 ].filter(Boolean);
 
 app.use(
@@ -37,20 +35,20 @@ app.use(
       if (!origin) {
         return callback(null, true);
       }
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.endsWith('.vercel.app') ||
-        origin.endsWith('.onrender.com') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1')
-      ) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       if (config.env === 'development') {
-        return callback(null, true);
+        try {
+          const url = new URL(origin);
+          if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
+            return callback(null, true);
+          }
+        } catch {
+          return callback(null, false);
+        }
       }
-      // Never throw an unhandled error inside cors callback to avoid 500 responses
-      return callback(null, true);
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -70,11 +68,23 @@ app.use(
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10000,
+  max: config.env === 'production' ? 600 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use('/api', limiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.env === 'production' ? 20 : 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many authentication attempts. Try again later.' },
+});
+app.use(
+  ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/auth/login', '/auth/register', '/auth/refresh'],
+  authLimiter
+);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

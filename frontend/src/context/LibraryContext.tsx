@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { Song, Playlist, PlayHistoryItem } from "@/types/music";
 import { songService } from "@/services/song.service";
 import { playlistService } from "@/services/playlist.service";
@@ -78,6 +78,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const [songForPlaylist, setSongForPlaylist] = useState<Song | null>(null);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const isRefreshingRef = useRef(false);
 
   // Check online/offline network status
   useEffect(() => {
@@ -123,74 +124,82 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   // Hydrate from localStorage on initial render for instant offline presentation
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const cached = localStorage.getItem("soundify_cached_songs");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSongs(parsed);
-          setIsLoading(false);
+    void Promise.resolve().then(() => {
+      try {
+        const cached = localStorage.getItem("soundify_cached_songs");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSongs(parsed);
+            setIsLoading(false);
+          }
         }
+        const cachedPlaylists = localStorage.getItem("soundify_cached_playlists");
+        if (cachedPlaylists) {
+          setPlaylists(JSON.parse(cachedPlaylists));
+        }
+        const cachedFavs = localStorage.getItem("soundify_cached_favorites");
+        if (cachedFavs) {
+          setFavorites(JSON.parse(cachedFavs));
+        }
+      } catch {
+        // ignore
       }
-      const cachedPlaylists = localStorage.getItem("soundify_cached_playlists");
-      if (cachedPlaylists) {
-        setPlaylists(JSON.parse(cachedPlaylists));
-      }
-      const cachedFavs = localStorage.getItem("soundify_cached_favorites");
-      if (cachedFavs) {
-        setFavorites(JSON.parse(cachedFavs));
-      }
-    } catch {
-      // ignore
-    }
+    });
   }, []);
 
   const refreshLibrary = useCallback(async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
     try {
       const [songsData, playlistsData, favsData, historyData] = await Promise.all([
-        songService.getSongs().catch(() => []),
-        playlistService.getPlaylists().catch(() => []),
-        favoriteService.getFavorites().catch(() => []),
-        historyService.getHistory().catch(() => []),
+        songService.getSongs().catch(() => null),
+        playlistService.getPlaylists().catch(() => null),
+        favoriteService.getFavorites().catch(() => null),
+        historyService.getHistory().catch(() => null),
       ]);
 
-      const favIds = new Set(favsData.map((f) => f.id));
-      const enrichedSongs = songsData.map((s) => ({
-        ...s,
-        isFavorite: favIds.has(s.id),
-      }));
+      if (songsData !== null) {
+        const favIds = new Set((favsData || []).map((favorite) => favorite.id));
+        const enrichedSongs = songsData.map((song) => ({
+          ...song,
+          ...(favsData === null ? {} : { isFavorite: favIds.has(song.id) }),
+        }));
 
-      if (enrichedSongs.length > 0) {
-        setSongs(enrichedSongs);
-        try {
-          localStorage.setItem("soundify_cached_songs", JSON.stringify(enrichedSongs));
-        } catch {}
-      } else {
-        // Fall back to stored offline vault tracks if online fetch returned empty or server dropped
-        const stored = await offlineStorageService.getAllOfflineSongs();
-        if (stored.length > 0) {
-          setSongs((prev) => (prev.length > 0 ? prev : stored));
+        if (enrichedSongs.length > 0) {
+          setSongs(enrichedSongs);
+          try {
+            localStorage.setItem("soundify_cached_songs", JSON.stringify(enrichedSongs));
+          } catch {}
+        } else {
+          // Keep explicitly saved offline tracks, but clear stale server songs.
+          const stored = await offlineStorageService.getAllOfflineSongs();
+          setSongs(stored);
+          try {
+            localStorage.setItem("soundify_cached_songs", JSON.stringify(stored));
+          } catch {}
         }
       }
 
-      if (playlistsData.length > 0) {
+      if (playlistsData !== null) {
         setPlaylists(playlistsData);
         try {
           localStorage.setItem("soundify_cached_playlists", JSON.stringify(playlistsData));
         } catch {}
       }
 
-      if (favsData.length > 0) {
+      if (favsData !== null) {
         setFavorites(favsData);
         try {
           localStorage.setItem("soundify_cached_favorites", JSON.stringify(favsData));
         } catch {}
       }
 
-      setHistory(historyData);
+      if (historyData !== null) setHistory(historyData);
     } catch (err) {
       console.error("Failed to load music library:", err);
     } finally {
+      isRefreshingRef.current = false;
       setIsLoading(false);
     }
   }, []);
@@ -274,6 +283,13 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       if (success) {
         setSongs((prev) => prev.filter((s) => s.id !== songId));
         setFavorites((prev) => prev.filter((s) => s.id !== songId));
+
+        const playerState = usePlayerStore.getState();
+        const queueIdx = playerState.queue.findIndex((s) => s.id === songId);
+        if (queueIdx !== -1) {
+          playerState.removeFromQueue(queueIdx);
+        }
+
         refreshLibrary();
         return true;
       }

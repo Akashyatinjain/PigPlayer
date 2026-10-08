@@ -9,26 +9,42 @@ import { getApiOrigin } from "@/lib/api";
 export default function GlobalAudioPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const loadedSongIdRef = useRef<string | null>(null);
-  const isSeekingRef = useRef(false);
+  const hasRecordedHistoryRef = useRef(false);
+  const accumulatedPlayTimeRef = useRef(0);
+  const lastPlayTimeRef = useRef(0);
 
-  const {
-    currentSong,
-    queue,
-    currentIndex,
-    isPlaying,
-    currentTime,
-    volume,
-    isMuted,
-    repeatMode,
-    nextSong,
-    prevSong,
-    togglePlayPause,
-    setCurrentTime,
-    setDuration,
-    seek,
-    setVolume,
-    toggleMute,
-  } = usePlayerStore();
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const queue = usePlayerStore((s) => s.queue);
+  const currentIndex = usePlayerStore((s) => s.currentIndex);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const volume = usePlayerStore((s) => s.volume);
+  const isMuted = usePlayerStore((s) => s.isMuted);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const seekTarget = usePlayerStore((s) => s.seekTarget);
+
+  const nextSong = usePlayerStore((s) => s.nextSong);
+  const prevSong = usePlayerStore((s) => s.prevSong);
+  const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
+  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
+  const setDuration = usePlayerStore((s) => s.setDuration);
+  const seek = usePlayerStore((s) => s.seek);
+  const clearSeekTarget = usePlayerStore((s) => s.clearSeekTarget);
+
+  const currentSongRef = useRef(currentSong);
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+    isPlayingRef.current = isPlaying;
+  });
+
+  const recordPlayHistory = useCallback((songId: string) => {
+    if (!hasRecordedHistoryRef.current && songId) {
+      hasRecordedHistoryRef.current = true;
+      void import("@/services/history.service")
+        .then(({ historyService }) => historyService.recordPlay(songId))
+        .catch(() => {});
+    }
+  }, []);
 
   /**
    * Seamless server-shutdown / network drop recovery:
@@ -36,23 +52,23 @@ export default function GlobalAudioPlayer() {
    */
   const handleRecoverFromCache = useCallback(async () => {
     const audio = audioRef.current;
-    if (!audio || !currentSong) return;
+    const song = currentSongRef.current;
+    if (!audio || !song) return;
 
     const savedTime = audio.currentTime;
     try {
-      const cachedBlobUrl = await offlineStorageService.getOfflineAudioUrl(currentSong.id);
+      const cachedBlobUrl = await offlineStorageService.getOfflineAudioUrl(song.id);
       if (cachedBlobUrl && audio.src !== cachedBlobUrl) {
-        console.info(`[PigPlayer] Recovered playback from local cache at ${savedTime.toFixed(1)}s`);
         audio.src = cachedBlobUrl;
         audio.currentTime = savedTime;
-        if (isPlaying) {
+        if (isPlayingRef.current) {
           audio.play().catch(() => {});
         }
       }
     } catch (err) {
-      console.warn("[PigPlayer] Recovery from cache attempt:", err);
+      console.warn("[Soundify] Recovery from cache attempt:", err);
     }
-  }, [currentSong, isPlaying]);
+  }, []);
 
   // Synchronize song change with cache-first and background buffering
   useEffect(() => {
@@ -60,67 +76,64 @@ export default function GlobalAudioPlayer() {
     if (!audio) return;
 
     let isCancelled = false;
+    const song = currentSong;
 
-    if (currentSong) {
+    if (song) {
+      hasRecordedHistoryRef.current = false;
+      accumulatedPlayTimeRef.current = 0;
+      lastPlayTimeRef.current = 0;
+
       // If same song is already loaded, avoid resetting buffer and time
-      if (loadedSongIdRef.current === currentSong.id && audio.src) {
+      if (loadedSongIdRef.current === song.id && audio.src) {
         return;
       }
 
-      loadedSongIdRef.current = currentSong.id;
+      loadedSongIdRef.current = song.id;
+      const streamingUrl = resolveMediaUrl(song.audioUrl);
 
-      const streamingUrl = resolveMediaUrl(currentSong.audioUrl);
-
-      // Set audio source synchronously so mobile user-gesture is preserved
       if (audio.src !== streamingUrl) {
         audio.src = streamingUrl;
         audio.load();
       }
 
-      if (isPlaying) {
-        audio.play().catch((err) => {
-          console.warn("[PigPlayer] Autoplay prevented or interrupted:", err);
-        });
-      }
-
-      // 1. Check if an offline version is stored locally (especially if offline or network drops)
-      void offlineStorageService.getOfflineAudioUrl(currentSong.id).then((cachedBlobUrl) => {
+      // Check if an offline version is stored locally
+      void offlineStorageService.getOfflineAudioUrl(song.id).then((cachedBlobUrl) => {
         if (isCancelled || !audio) return;
         if (cachedBlobUrl && audio.src !== cachedBlobUrl) {
-          // If browser encountered error or device is offline, switch immediately to blob
           if (audio.error || (typeof navigator !== "undefined" && !navigator.onLine)) {
             const savedTime = audio.currentTime || 0;
             audio.src = cachedBlobUrl;
             audio.currentTime = savedTime;
-            if (isPlaying) {
+            if (isPlayingRef.current) {
               audio.play().catch(() => {});
             }
           }
         }
       });
 
-      // 2. In background: cache the current track for offline playback
-      void offlineStorageService.cacheSongForPlayback(currentSong).then((blobUrl) => {
+      // In background: cache the current track for offline playback
+      void offlineStorageService.cacheSongForPlayback(song).then((blobUrl) => {
         if (blobUrl && audioRef.current && audioRef.current.error) {
           void handleRecoverFromCache();
         }
       });
-
-      // 3. In background: preload next track in queue
-      const nextTrack = queue[currentIndex + 1] || (repeatMode === "all" ? queue[0] : null);
-      if (nextTrack) {
-        void offlineStorageService.preloadSong(nextTrack);
-      }
     } else {
       loadedSongIdRef.current = null;
       audio.pause();
       audio.removeAttribute("src");
+      audio.load();
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [currentSong?.id, queue, currentIndex, repeatMode, handleRecoverFromCache]);
+  }, [currentSong?.id, currentSong?.audioUrl, handleRecoverFromCache, currentSong]);
+
+  // Queue changes should preload independently
+  useEffect(() => {
+    const nextTrack = queue[currentIndex + 1] || (repeatMode === "all" ? queue[0] : null);
+    if (nextTrack) void offlineStorageService.preloadSong(nextTrack);
+  }, [queue, currentIndex, repeatMode]);
 
   // Synchronize play/pause state independently without reloading audio source
   useEffect(() => {
@@ -130,7 +143,7 @@ export default function GlobalAudioPlayer() {
     if (isPlaying) {
       if (audio.paused) {
         audio.play().catch((err) => {
-          console.warn("[PigPlayer] Play interrupted or blocked:", err);
+          console.warn("[Soundify] Play interrupted or blocked:", err);
         });
       }
     } else {
@@ -148,14 +161,17 @@ export default function GlobalAudioPlayer() {
     audio.muted = isMuted;
   }, [volume, isMuted]);
 
-  // Synchronize user seek
+  // Millisecond-accurate user seek (eliminates deadzones)
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    if (Math.abs(audio.currentTime - currentTime) > 1.2) {
-      audio.currentTime = currentTime;
+    if (!audio || seekTarget === null) return;
+    try {
+      audio.currentTime = seekTarget;
+    } catch {
+      // Audio may still be buffering metadata
     }
-  }, [currentTime]);
+    clearSeekTarget();
+  }, [seekTarget, clearSeekTarget]);
 
   // Render Keep-Alive Heartbeat: keep free tier awake while player tab is open
   useEffect(() => {
@@ -165,7 +181,7 @@ export default function GlobalAudioPlayer() {
     };
 
     pingKeepAlive();
-    const interval = setInterval(pingKeepAlive, 3.5 * 60 * 1000); // every 3.5 mins
+    const interval = setInterval(pingKeepAlive, 3.5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -199,7 +215,7 @@ export default function GlobalAudioPlayer() {
     }
   }, [currentSong, togglePlayPause, prevSong, nextSong, seek]);
 
-  // Global Keyboard Shortcuts
+  // Global Keyboard Shortcuts (uses getState to prevent listener rebuild churn)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -212,35 +228,37 @@ export default function GlobalAudioPlayer() {
         return;
       }
 
+      const store = usePlayerStore.getState();
+
       switch (e.code) {
         case "Space":
           e.preventDefault();
-          togglePlayPause();
+          store.togglePlayPause();
           break;
         case "ArrowLeft":
           e.preventDefault();
-          seek(Math.max(0, currentTime - 5));
+          store.seek(Math.max(0, store.currentTime - 5));
           break;
         case "ArrowRight":
           e.preventDefault();
-          seek(currentTime + 5);
+          store.seek(store.currentTime + 5);
           break;
         case "ArrowUp":
           e.preventDefault();
-          setVolume(Math.min(1, volume + 0.05));
+          store.setVolume(Math.min(1, store.volume + 0.05));
           break;
         case "ArrowDown":
           e.preventDefault();
-          setVolume(Math.max(0, volume - 0.05));
+          store.setVolume(Math.max(0, store.volume - 0.05));
           break;
         case "KeyM":
-          toggleMute();
+          store.toggleMute();
           break;
         case "KeyN":
-          nextSong();
+          store.nextSong();
           break;
         case "KeyP":
-          prevSong();
+          store.prevSong();
           break;
         default:
           break;
@@ -249,7 +267,7 @@ export default function GlobalAudioPlayer() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlayPause, seek, currentTime, setVolume, volume, toggleMute, nextSong, prevSong]);
+  }, []);
 
   return (
     <audio
@@ -257,8 +275,20 @@ export default function GlobalAudioPlayer() {
       id="soundify-audio-element"
       preload="auto"
       onTimeUpdate={() => {
-        if (!audioRef.current || isSeekingRef.current) return;
-        setCurrentTime(audioRef.current.currentTime);
+        const audio = audioRef.current;
+        if (!audio) return;
+        setCurrentTime(audio.currentTime);
+
+        // Accumulate listening duration for meaningful history recording (at least 5s)
+        const now = audio.currentTime;
+        if (now > lastPlayTimeRef.current && now - lastPlayTimeRef.current < 2) {
+          accumulatedPlayTimeRef.current += now - lastPlayTimeRef.current;
+        }
+        lastPlayTimeRef.current = now;
+
+        if (accumulatedPlayTimeRef.current >= 5 && currentSongRef.current) {
+          recordPlayHistory(currentSongRef.current.id);
+        }
       }}
       onDurationChange={() => {
         if (!audioRef.current) return;
@@ -268,21 +298,25 @@ export default function GlobalAudioPlayer() {
         }
       }}
       onEnded={() => {
+        if (currentSongRef.current) {
+          recordPlayHistory(currentSongRef.current.id);
+        }
+
         if (repeatMode === "one") {
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(() => {});
+          const audio = audioRef.current;
+          if (audio) {
+            audio.currentTime = 0;
+            setCurrentTime(0);
+            audio.play().catch(() => {});
           }
         } else {
           nextSong();
         }
       }}
       onStalled={() => {
-        console.warn("[PigPlayer] Stream stalled, verifying cache availability...");
         void handleRecoverFromCache();
       }}
-      onError={(e) => {
-        console.warn("[PigPlayer] Audio network error encountered, activating local cache fallback...", e);
+      onError={() => {
         void handleRecoverFromCache();
       }}
     />

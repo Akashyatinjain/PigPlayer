@@ -21,6 +21,11 @@ export class FavoriteRepository {
   }
 
   static async addFavorite(songId: string, userId?: string) {
+    const song = await prisma.song.findUnique({ where: { id: songId } });
+    if (!song) {
+      const { AppError } = await import('../middleware/error.middleware');
+      throw new AppError('Song not found', 404);
+    }
     const uid = await this.resolveUserId(userId);
     const fav = await prisma.favorite.upsert({
       where: {
