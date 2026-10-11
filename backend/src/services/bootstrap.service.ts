@@ -17,10 +17,9 @@ async function ensureDatabaseSchema(): Promise<void> {
       const { execSync } = await import('child_process');
       const path = await import('path');
       const backendRoot = path.resolve(__dirname, '../../');
-      execSync('npx prisma db push --skip-generate', {
+      execSync('node scripts/prisma-safe.js', {
         cwd: backendRoot,
         stdio: 'inherit',
-        env: { ...process.env, DATABASE_URL: config.databaseUrl },
       });
       pushed = true;
       logger.info('Database schema pushed successfully via Prisma CLI');

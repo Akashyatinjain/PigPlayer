@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "prisma generate && prisma db push --skip-generate && tsc",
-    "start": "prisma db push --skip-generate && node dist/server.js",
+    "build": "node scripts/prisma-safe.js && tsc",
+    "start": "node scripts/prisma-safe.js && node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
