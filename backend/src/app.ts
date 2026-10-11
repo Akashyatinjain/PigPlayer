@@ -16,6 +16,8 @@ import backupRoutes from './routes/backup.routes';
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -104,7 +106,7 @@ app.options('*', cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: config.env === 'production' ? 600 : 10000,
+  max: config.env === 'production' ? 2000 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -112,7 +114,7 @@ app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: config.env === 'production' ? 20 : 100,
+  max: config.env === 'production' ? 100 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many authentication attempts. Try again later.' },
