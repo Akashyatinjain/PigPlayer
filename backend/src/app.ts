@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { config } from './config/env';
+import { config, normalizeOrigin } from './config/env';
 import { errorHandler } from './middleware/error.middleware';
 
 import authRoutes from './routes/auth.routes';
@@ -22,49 +22,85 @@ app.use(
   })
 );
 
-const allowedOrigins = [
-  config.clientUrl,
-  ...config.allowedOrigins,
-  ...(config.env === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000']),
-].filter(Boolean);
+const defaultAllowedOrigins = [
+  'https://pig-player.vercel.app',
+  'https://pigplayer.vercel.app',
+];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Audio element requests, curl, server-to-server, and mobile web views often send no origin
-      if (!origin) {
-        return callback(null, true);
+const allowedOrigins = Array.from(
+  new Set([
+    config.clientUrl,
+    ...config.allowedOrigins,
+    ...defaultAllowedOrigins,
+    ...(config.env === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000']),
+  ])
+)
+  .map((origin) => (origin === '*' ? '*' : normalizeOrigin(origin)))
+  .filter(Boolean);
+
+export const isAllowedOrigin = (origin: string): boolean => {
+  if (!origin) return true;
+
+  if (allowedOrigins.includes('*')) {
+    return true;
+  }
+
+  const normalized = normalizeOrigin(origin);
+
+  if (allowedOrigins.some((allowed) => allowed.toLowerCase() === normalized.toLowerCase())) {
+    return true;
+  }
+
+  if (/^https:\/\/(pig-player|pigplayer)(-[a-z0-9_-]+)?\.vercel\.app$/i.test(normalized)) {
+    return true;
+  }
+
+  if (config.env !== 'production') {
+    try {
+      const url = new URL(normalized);
+      if (
+        (url.protocol === 'http:' || url.protocol === 'https:') &&
+        (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+      ) {
+        return true;
       }
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      if (config.env === 'development') {
-        try {
-          const url = new URL(origin);
-          if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
-            return callback(null, true);
-          }
-        } catch {
-          return callback(null, false);
-        }
-      }
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Range',
-      'Accept',
-      'Accept-Ranges',
-      'Cache-Control',
-      'If-Range',
-      'If-None-Match',
-    ],
-    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'ETag'],
-  })
-);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Audio element requests, curl, server-to-server, and mobile web views often send no origin
+    if (!origin || isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Range',
+    'Accept',
+    'Accept-Ranges',
+    'Cache-Control',
+    'If-Range',
+    'If-None-Match',
+    'Origin',
+    'X-Requested-With',
+  ],
+  exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'ETag'],
+  maxAge: 86400,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

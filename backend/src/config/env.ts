@@ -97,14 +97,30 @@ if ((localUserPassword.startsWith('"') && localUserPassword.endsWith('"')) || (l
   localUserPassword = localUserPassword.slice(1, -1).trim();
 }
 
+export function normalizeOrigin(raw: string): string {
+  const trimmed = raw.trim().replace(/^["']|["']$/g, '');
+  if (!trimmed) return '';
+  if (trimmed === '*') return '*';
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
+const configuredClientUrl = process.env.CLIENT_URL ? normalizeOrigin(process.env.CLIENT_URL) : 'http://localhost:3000';
+const configuredAllowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/^["']|["']$/g, ''))
+  .filter(Boolean)
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
 export const config = {
   env: nodeEnv,
   port,
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
-  allowedOrigins: (process.env.CORS_ORIGINS || '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  clientUrl: configuredClientUrl,
+  allowedOrigins: configuredAllowedOrigins,
   databaseUrl,
   jwt: {
     secret: getSecret('JWT_SECRET', 'soundify-local-jwt-secret-offline-2026'),

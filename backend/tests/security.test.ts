@@ -20,6 +20,23 @@ describe('security and playback regressions', () => {
     const allowed = await request(app).get('/health').set('Origin', allowedOrigin);
     expect(allowed.headers['access-control-allow-origin']).toBe(allowedOrigin);
 
+    const vercelOrigin = 'https://pig-player.vercel.app';
+    const vercelAllowed = await request(app).get('/health').set('Origin', vercelOrigin);
+    expect(vercelAllowed.headers['access-control-allow-origin']).toBe(vercelOrigin);
+
+    const previewOrigin = 'https://pig-player-preview-test.vercel.app';
+    const previewAllowed = await request(app).get('/health').set('Origin', previewOrigin);
+    expect(previewAllowed.headers['access-control-allow-origin']).toBe(previewOrigin);
+
+    const preflight = await request(app)
+      .options('/api/upload/song')
+      .set('Origin', vercelOrigin)
+      .set('Access-Control-Request-Method', 'POST')
+      .set('Access-Control-Request-Headers', 'Content-Type,Authorization');
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe(vercelOrigin);
+    expect(preflight.headers['access-control-allow-methods']).toContain('POST');
+
     const blocked = await request(app).get('/health').set('Origin', 'https://attacker.invalid');
     expect(blocked.headers['access-control-allow-origin']).toBeUndefined();
   });
