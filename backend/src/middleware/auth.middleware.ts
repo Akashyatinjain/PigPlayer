@@ -53,6 +53,9 @@ export const requireMutationAuth = (
   res: Response,
   next: NextFunction
 ) => {
+  if (config.allowGuestMutations) {
+    return optionalAuth(req, res, next);
+  }
   if (config.env === 'production') {
     return authenticate(req, res, next);
   }

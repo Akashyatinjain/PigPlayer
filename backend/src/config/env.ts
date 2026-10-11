@@ -116,11 +116,16 @@ const configuredAllowedOrigins = (process.env.CORS_ORIGINS || '')
   .map(normalizeOrigin)
   .filter(Boolean);
 
+const allowGuestMutations =
+  process.env.ALLOW_GUEST_MUTATIONS === 'true' ||
+  process.env.ALLOW_GUEST_UPLOADS === 'true';
+
 export const config = {
   env: nodeEnv,
   port,
   clientUrl: configuredClientUrl,
   allowedOrigins: configuredAllowedOrigins,
+  allowGuestMutations,
   databaseUrl,
   jwt: {
     secret: getSecret('JWT_SECRET', 'soundify-local-jwt-secret-offline-2026'),

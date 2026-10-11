@@ -4,7 +4,7 @@ import { optionalAuth, requireMutationAuth } from '../middleware/auth.middleware
 
 const router = Router();
 
-router.get('/', requireMutationAuth, HistoryController.listHistory);
+router.get('/', optionalAuth, HistoryController.listHistory);
 router.post('/', requireMutationAuth, HistoryController.recordPlay);
 router.delete('/', requireMutationAuth, HistoryController.clearHistory);
 

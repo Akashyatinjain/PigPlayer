@@ -11,8 +11,8 @@ import {
 
 const router = Router();
 
-router.get('/', requireMutationAuth, PlaylistController.listPlaylists);
-router.get('/:id', requireMutationAuth, PlaylistController.getPlaylistById);
+router.get('/', optionalAuth, PlaylistController.listPlaylists);
+router.get('/:id', optionalAuth, PlaylistController.getPlaylistById);
 router.post('/', requireMutationAuth, validateBody(createPlaylistSchema), PlaylistController.createPlaylist);
 router.put('/:id', requireMutationAuth, validateBody(updatePlaylistSchema), PlaylistController.updatePlaylist);
 router.delete('/:id', requireMutationAuth, PlaylistController.deletePlaylist);

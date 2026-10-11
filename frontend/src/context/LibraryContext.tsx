@@ -8,6 +8,7 @@ import { favoriteService } from "@/services/favorite.service";
 import { historyService } from "@/services/history.service";
 import { offlineStorageService } from "@/services/offline-storage.service";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { authService } from "@/services/auth.service";
 
 export type LibraryTab = "home" | "songs" | "library" | "favorites" | "playlists" | "history" | "settings" | "offline";
 
@@ -205,7 +206,13 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void Promise.resolve().then(refreshLibrary);
+    const initAndRefresh = async () => {
+      if (typeof window !== "undefined") {
+        await authService.ensureAuth();
+      }
+      await refreshLibrary();
+    };
+    void initAndRefresh();
   }, [refreshLibrary]);
 
   const saveSongOffline = async (song: Song): Promise<boolean> => {

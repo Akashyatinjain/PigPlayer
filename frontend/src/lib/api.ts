@@ -74,10 +74,12 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      const refreshToken = localStorage.getItem('soundify_refresh_token');
+      const isAuthUrl =
+        originalRequest.url?.includes('/auth/refresh') ||
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/register');
 
-      // If no refresh token or already retried, clear session
-      if (!refreshToken || originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
+      if (isAuthUrl) {
         localStorage.removeItem('soundify_access_token');
         localStorage.removeItem('soundify_refresh_token');
         localStorage.removeItem('soundify_user');
@@ -101,32 +103,62 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
-          refreshToken,
-        });
+        let accessToken: string | null = null;
+        let newRefreshToken: string | null = null;
+        let user: unknown = null;
 
-        const { accessToken, refreshToken: newRefreshToken, user } = response.data.data;
-        localStorage.setItem('soundify_access_token', accessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('soundify_refresh_token', newRefreshToken);
-        }
-        if (user) {
-          localStorage.setItem('soundify_user', JSON.stringify(user));
+        const refreshToken = localStorage.getItem('soundify_refresh_token');
+
+        if (refreshToken) {
+          try {
+            const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, {
+              refreshToken,
+            });
+            accessToken = response.data?.data?.accessToken;
+            newRefreshToken = response.data?.data?.refreshToken;
+            user = response.data?.data?.user;
+          } catch {
+            // refresh token expired or invalid; fall through to auto-login
+          }
         }
 
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        if (!accessToken) {
+          const email = process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL || 'local@soundify.app';
+          const password = process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD || 'soundify';
+          const loginRes = await axios.post(`${getApiBaseUrl()}/auth/login`, {
+            email,
+            password,
+          });
+          accessToken = loginRes.data?.data?.accessToken;
+          newRefreshToken = loginRes.data?.data?.refreshToken;
+          user = loginRes.data?.data?.user;
         }
 
-        processQueue(null, accessToken);
-        return api(originalRequest);
-      } catch (refreshErr) {
-        processQueue(refreshErr, null);
+        if (accessToken) {
+          localStorage.setItem('soundify_access_token', accessToken);
+          if (newRefreshToken) {
+            localStorage.setItem('soundify_refresh_token', newRefreshToken);
+          }
+          if (user) {
+            localStorage.setItem('soundify_user', JSON.stringify(user));
+          }
+
+          api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          }
+
+          processQueue(null, accessToken);
+          return api(originalRequest);
+        } else {
+          throw new Error('Failed to obtain access token');
+        }
+      } catch (authErr) {
+        processQueue(authErr, null);
         localStorage.removeItem('soundify_access_token');
         localStorage.removeItem('soundify_refresh_token');
         localStorage.removeItem('soundify_user');
-        return Promise.reject(refreshErr);
+        return Promise.reject(error);
       } finally {
         isRefreshing = false;
       }

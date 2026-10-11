@@ -23,6 +23,7 @@ import {
 import { formatDuration, formatFileSize, getErrorMessage } from "@/lib/utils";
 import { uploadService } from "@/services/upload.service";
 import { songService } from "@/services/song.service";
+import { authService } from "@/services/auth.service";
 
 interface UploadQueueItem {
   id: string;
@@ -139,6 +140,10 @@ export default function UploadModal() {
   // Upload an individual queue item
   const uploadSingleItem = async (item: UploadQueueItem): Promise<boolean> => {
     try {
+      if (typeof window !== "undefined") {
+        await authService.ensureAuth();
+      }
+
       setQueue((prev) =>
         prev.map((q) =>
           q.id === item.id ? { ...q, status: "uploading", progress: 5 } : q
@@ -212,6 +217,9 @@ export default function UploadModal() {
   // Upload all ready or failed items with concurrency
   const handleUploadAll = async () => {
     if (isUploadingAll) return;
+    if (typeof window !== "undefined") {
+      await authService.ensureAuth();
+    }
     const pendingItems = queue.filter(
       (item) => item.status === "ready" || item.status === "error"
     );

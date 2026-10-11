@@ -68,4 +68,16 @@ export const authService = {
     if (typeof window === 'undefined') return false;
     return Boolean(localStorage.getItem('soundify_access_token'));
   },
+
+  async ensureAuth(): Promise<boolean> {
+    if (this.isAuthenticated()) return true;
+    try {
+      const email = process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL || 'local@soundify.app';
+      const password = process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD || 'soundify';
+      await this.login({ email, password });
+      return true;
+    } catch {
+      return false;
+    }
+  },
 };
