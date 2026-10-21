@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Disc3, Music2, Pause, Play, Plus, HardDriveDownload } from "lucide-react";
+import { ArrowRight, Disc3, Music2, Pause, Play, Plus, HardDriveDownload, FolderPlus } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
@@ -20,13 +20,17 @@ export default function HomeView() {
     setSelectedPlaylistId,
     setIsUploadOpen,
     refreshOfflineSongs,
+    offlineSongs,
   } = useLibrary();
   const { currentSong, isPlaying, playSong, togglePlayPause } = usePlayerStore();
   const featuredSong = currentSong || songs[0];
 
+  const localTracks = offlineSongs.filter((s) => s.id.startsWith("local-") || s.isOfflineAvailable);
+
   const [featuredImgError, setFeaturedImgError] = useState(false);
   const [isImportingLocal, setIsImportingLocal] = useState(false);
   const deviceFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleDeviceFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -68,6 +72,21 @@ export default function HomeView() {
           type="file"
           multiple
           accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+          onChange={(e) => {
+            handleDeviceFiles(e.target.files);
+            e.target.value = "";
+          }}
+          className="hidden"
+        />
+
+        {/* Hidden Device Folder Picker */}
+        <input
+          ref={folderInputRef}
+          type="file"
+          // @ts-expect-error webkitdirectory is standard in HTML5 browsers
+          webkitdirectory=""
+          directory=""
+          multiple
           onChange={(e) => {
             handleDeviceFiles(e.target.files);
             e.target.value = "";
@@ -166,6 +185,118 @@ export default function HomeView() {
           </button>
         </section>
       ) : null}
+
+      {/* 📁 Device Local Storage Section (Directly visible on Home) */}
+      <section className="space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+              <HardDriveDownload className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold tracking-tight text-white">Device Local Storage</h2>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                  No Upload
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">
+                {localTracks.length > 0 ? `${localTracks.length} tracks stored locally on this device` : "Play audio directly from your device storage"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => folderInputRef.current?.click()}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#232b35] bg-[#141922] hover:bg-[#1c2432] text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+              title="Import an entire folder of music from your device"
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-blue-400" />
+              <span>Import Folder</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deviceFileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-xs font-semibold text-emerald-300 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{localTracks.length > 0 ? "Add More" : "Pick Songs"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* If local tracks exist, render a rail of local tracks! */}
+        {localTracks.length > 0 ? (
+          <div className="horizontal-rail">
+            {localTracks.map((song) => (
+              <button
+                key={song.id}
+                type="button"
+                onClick={() => playSong(song, localTracks)}
+                className="group w-36 shrink-0 snap-start text-left sm:w-44"
+              >
+                <span className="relative block aspect-square overflow-hidden rounded-xl bg-[#141922] border border-emerald-500/20 group-hover:border-emerald-400/50 transition-colors shadow-sm">
+                  {song.coverUrl ? (
+                    <Image
+                      src={song.coverUrl}
+                      alt=""
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-emerald-400/60 bg-emerald-950/20">
+                      <Music2 className="h-8 w-8" />
+                    </span>
+                  )}
+                  <span className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </span>
+                </span>
+                <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+                  {song.title}
+                </span>
+                <span className="mt-0.5 block truncate text-xs text-slate-400">
+                  {song.artist}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="p-5 rounded-2xl border border-dashed border-emerald-500/25 bg-emerald-950/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 text-center sm:text-left">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/25">
+                <HardDriveDownload className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">No local files loaded yet</h3>
+                <p className="text-xs text-slate-400">
+                  Select audio files or a folder from your device to play immediately offline with zero upload.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => folderInputRef.current?.click()}
+                className="px-3.5 py-2 rounded-xl border border-[#232b35] bg-[#141922] hover:bg-[#1a212b] text-xs font-semibold text-slate-200 transition-colors"
+              >
+                Select Folder
+              </button>
+              <button
+                type="button"
+                onClick={() => deviceFileInputRef.current?.click()}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/30 active:scale-95"
+              >
+                Choose Audio Files
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
 
       {history.length > 0 && (
         <SongRail title="Recently played" action="See history" onAction={() => setActiveTab("history")} songs={history.slice(0, 10).map((item) => item.song)} allSongs={songs} playSong={playSong} />

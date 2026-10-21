@@ -27,7 +27,7 @@ export default function LibraryView() {
     { id: "favorites", label: "Favorites" },
     { id: "playlists", label: "Playlists" },
     { id: "history", label: "History" },
-    { id: "offline", label: "Offline Vault" },
+    { id: "offline", label: "Local Storage" },
   ];
   const filteredSongs = searchQuery.trim()
     ? songs.filter((song) =>

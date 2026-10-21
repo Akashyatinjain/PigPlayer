@@ -190,24 +190,39 @@ export default function GlobalAudioPlayer() {
     return () => clearInterval(interval);
   }, []);
 
-  // MediaSession API integration for native notification controls
+  // MediaSession API integration for native notification controls & mobile lock screen
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
 
     if (currentSong) {
+      const defaultLogo = typeof window !== "undefined"
+        ? new URL("/piggy-logo.jpg", window.location.origin).href
+        : "/piggy-logo.jpg";
+
+      const artworkUrl = currentSong.coverUrl
+        ? (currentSong.coverUrl.startsWith("http") || currentSong.coverUrl.startsWith("blob:")
+            ? currentSong.coverUrl
+            : new URL(currentSong.coverUrl, window.location.origin).href)
+        : defaultLogo;
+
       navigator.mediaSession.metadata = new MediaMetadata({
         title: currentSong.title,
         artist: currentSong.artist,
         album: currentSong.album || "piGGyPlayer",
-        artwork: currentSong.coverUrl
-          ? [
-              { src: currentSong.coverUrl, sizes: "96x96", type: "image/png" },
-              { src: currentSong.coverUrl, sizes: "192x192", type: "image/png" },
-              { src: currentSong.coverUrl, sizes: "512x512", type: "image/png" },
-            ]
-          : [],
+        artwork: [
+          { src: artworkUrl, sizes: "96x96", type: "image/jpeg" },
+          { src: artworkUrl, sizes: "128x128", type: "image/jpeg" },
+          { src: artworkUrl, sizes: "192x192", type: "image/jpeg" },
+          { src: artworkUrl, sizes: "256x256", type: "image/jpeg" },
+          { src: artworkUrl, sizes: "384x384", type: "image/jpeg" },
+          { src: artworkUrl, sizes: "512x512", type: "image/jpeg" },
+        ],
       });
 
+      // Synchronize notification bar play/pause state
+      navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+      // Native action handlers
       navigator.mediaSession.setActionHandler("play", () => togglePlayPause());
       navigator.mediaSession.setActionHandler("pause", () => togglePlayPause());
       navigator.mediaSession.setActionHandler("previoustrack", () => prevSong());
@@ -217,8 +232,59 @@ export default function GlobalAudioPlayer() {
           seek(details.seekTime);
         }
       });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        const offset = details.seekOffset || 10;
+        const audio = audioRef.current;
+        if (audio) seek(Math.max(audio.currentTime - offset, 0));
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        const offset = details.seekOffset || 10;
+        const audio = audioRef.current;
+        if (audio) seek(Math.min(audio.currentTime + offset, audio.duration || 0));
+      });
+      navigator.mediaSession.setActionHandler("stop", () => {
+        const audio = audioRef.current;
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+      });
+
+      // Status Bar Notification
+      if ("Notification" in window) {
+        const showNotif = () => {
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.ready.then((reg) => {
+                reg.showNotification(currentSong.title, {
+                  body: `${currentSong.artist}${currentSong.album ? ` • ${currentSong.album}` : ""}`,
+                  icon: artworkUrl,
+                  badge: defaultLogo,
+                  tag: "soundify-now-playing",
+                  silent: true,
+                }).catch(() => {});
+              }).catch(() => {});
+            } else {
+              new Notification(currentSong.title, {
+                body: `${currentSong.artist}${currentSong.album ? ` • ${currentSong.album}` : ""}`,
+                icon: artworkUrl,
+                tag: "soundify-now-playing",
+                silent: true,
+              });
+            }
+          } catch {}
+        };
+
+        if (Notification.permission === "granted") {
+          showNotif();
+        } else if (Notification.permission === "default") {
+          Notification.requestPermission().then((p) => {
+            if (p === "granted") showNotif();
+          }).catch(() => {});
+        }
+      }
     }
-  }, [currentSong, togglePlayPause, prevSong, nextSong, seek]);
+  }, [currentSong, isPlaying, togglePlayPause, prevSong, nextSong, seek]);
 
   // Global Keyboard Shortcuts (uses getState to prevent listener rebuild churn)
   useEffect(() => {
@@ -283,6 +349,20 @@ export default function GlobalAudioPlayer() {
         const audio = audioRef.current;
         if (!audio) return;
         setCurrentTime(audio.currentTime);
+
+        // Synchronize notification seekbar position
+        if ("mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+          const dur = audio.duration;
+          if (!isNaN(dur) && dur > 0) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: dur,
+                playbackRate: audio.playbackRate || 1,
+                position: Math.min(audio.currentTime, dur),
+              });
+            } catch {}
+          }
+        }
 
         // Accumulate listening duration for meaningful history recording (at least 5s)
         const now = audio.currentTime;

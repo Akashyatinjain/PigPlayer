@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Play, Shuffle, Music2, ArrowUpDown, Plus, Trash2, AlertTriangle, Loader2, HardDriveDownload } from "lucide-react";
+import { Play, Shuffle, Music2, ArrowUpDown, Plus, Trash2, AlertTriangle, Loader2, HardDriveDownload, FolderPlus } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
@@ -15,9 +15,11 @@ export default function SongsView() {
   const { playSong, playShuffled } = usePlayerStore();
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [filterType, setFilterType] = useState<"all" | "local" | "cloud">("all");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const localInputRef = React.useRef<HTMLInputElement | null>(null);
+  const folderInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleLocalFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -44,8 +46,17 @@ export default function SongsView() {
   };
 
   // Filter and sort songs
+  const localSongsCount = useMemo(() => songs.filter((s) => s.id.startsWith("local-") || s.isOfflineAvailable).length, [songs]);
+  const cloudSongsCount = useMemo(() => songs.filter((s) => !s.id.startsWith("local-")).length, [songs]);
+
   const filteredAndSortedSongs = useMemo(() => {
     let result = [...songs];
+
+    if (filterType === "local") {
+      result = result.filter((s) => s.id.startsWith("local-") || s.isOfflineAvailable);
+    } else if (filterType === "cloud") {
+      result = result.filter((s) => !s.id.startsWith("local-"));
+    }
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -155,7 +166,7 @@ export default function SongsView() {
             </select>
           </div>
 
-          {/* Hidden local input */}
+          {/* Hidden local file input */}
           <input
             ref={localInputRef}
             type="file"
@@ -167,6 +178,31 @@ export default function SongsView() {
             }}
             className="hidden"
           />
+
+          {/* Hidden folder input */}
+          <input
+            ref={folderInputRef}
+            type="file"
+            // @ts-expect-error webkitdirectory is standard in HTML5 browsers
+            webkitdirectory=""
+            directory=""
+            multiple
+            onChange={(e) => {
+              handleLocalFiles(e.target.files);
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={() => folderInputRef.current?.click()}
+            className="hidden md:flex min-h-11 items-center gap-1.5 px-3 py-2 bg-[#141922] hover:bg-[#1c2432] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all shadow-xs"
+            title="Import an entire folder from this device"
+          >
+            <FolderPlus className="w-3.5 h-3.5 text-blue-400" />
+            <span>Import Folder</span>
+          </button>
 
           <button
             type="button"
@@ -199,6 +235,46 @@ export default function SongsView() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Filter Chips: All / Local Storage / Cloud Library */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => { triggerHaptic("light"); setFilterType("all"); }}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
+            filterType === "all"
+              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+              : "bg-[#141922] text-slate-400 hover:text-white border border-[#232b35]"
+          }`}
+        >
+          All Songs ({songs.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { triggerHaptic("light"); setFilterType("local"); }}
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
+            filterType === "local"
+              ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/20"
+              : "bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30"
+          }`}
+        >
+          <HardDriveDownload className="w-3.5 h-3.5" />
+          <span>Device Local ({localSongsCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { triggerHaptic("light"); setFilterType("cloud"); }}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
+            filterType === "cloud"
+              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+              : "bg-[#141922] text-slate-400 hover:text-white border border-[#232b35]"
+          }`}
+        >
+          Cloud Library ({cloudSongsCount})
+        </button>
       </div>
 
       {/* Song Table */}

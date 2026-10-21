@@ -10,6 +10,7 @@ import {
   Trash2,
   Music2,
   Search,
+  FolderPlus,
 } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
@@ -35,6 +36,7 @@ export default function OfflineView() {
   });
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     offlineStorageService.getStorageInfo().then(setStorageInfo).catch(() => {});
@@ -93,7 +95,19 @@ export default function OfflineView() {
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/*"
+        accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+        multiple
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {/* Hidden folder input */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        // @ts-expect-error webkitdirectory is standard in HTML5 browsers
+        webkitdirectory=""
+        directory=""
         multiple
         className="hidden"
         onChange={handleFileChange}
@@ -121,7 +135,7 @@ export default function OfflineView() {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Offline Music Vault
+              Device Local Storage
             </h1>
             <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
               Songs saved directly into your device&apos;s browser memory (IndexedDB).
@@ -151,12 +165,23 @@ export default function OfflineView() {
             <button
               type="button"
               disabled={isImporting}
+              onClick={() => folderInputRef.current?.click()}
+              className="hidden sm:flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors active:scale-95"
+              title="Import an entire folder from this device"
+            >
+              <FolderPlus className="w-4 h-4 text-blue-400" />
+              <span>Import Folder</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isImporting}
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors active:scale-95"
-              title="Import audio files from this phone/computer into offline library"
+              className="flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-all active:scale-95 shadow-lg shadow-emerald-600/25"
+              title="Import audio files from this phone/computer into local library"
             >
               <Upload className="w-4 h-4" />
-              <span>{isImporting ? "Importing..." : "Import Device Audio"}</span>
+              <span>{isImporting ? "Importing..." : "Choose Audio Files"}</span>
             </button>
 
             {offlineSongs.length > 0 && (

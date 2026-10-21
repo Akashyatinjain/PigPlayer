@@ -37,7 +37,7 @@ export default function Sidebar() {
   const navItems: NavItem[] = [
     { id: "home", label: "Home", icon: Home },
     { id: "songs", label: "All Songs", icon: Music2, badge: songs.length },
-    { id: "offline", label: "Offline Vault", icon: HardDriveDownload, badge: offlineSongs.length },
+    { id: "offline", label: "Local Storage", icon: HardDriveDownload, badge: offlineSongs.length },
     { id: "favorites", label: "Favorites", icon: Heart, badge: favorites.length },
     { id: "playlists", label: "Playlists", icon: Library, badge: playlists.length },
     { id: "history", label: "History", icon: History },
