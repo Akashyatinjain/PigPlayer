@@ -70,48 +70,78 @@ export default function TopBar() {
 
   return (
     <header className="mobile-header-safe h-14 sm:h-16 shrink-0 px-3 sm:px-4 md:px-8 border-b border-[#1f2631] bg-[#0c0f14]/95 backdrop-blur-md flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-30">
-      <div className="flex w-full items-center justify-between gap-3 sm:hidden">
+      <div className="flex w-full items-center justify-between gap-2 sm:hidden">
         {activeTab === "songs" ? (
-          <div className="relative min-w-0 flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              autoFocus
-              type="search"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search songs, artists, albums"
-              aria-label="Search songs, artists, and albums"
-              className="w-full rounded-xl border border-[#232b35] bg-[#141922] py-2.5 pl-10 pr-3 text-base text-white placeholder-slate-400 outline-none focus:border-blue-500"
-            />
+          <div className="flex items-center gap-2 w-full">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                autoFocus
+                type="search"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search songs, artists, albums..."
+                aria-label="Search songs, artists, and albums"
+                className="w-full rounded-xl border border-[#232b35] bg-[#141922] py-2 pl-9 pr-8 text-sm text-white placeholder-slate-400 outline-none focus:border-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleMobileSearchToggle}
+              aria-label="Close search"
+              className="flex h-10 px-3 items-center justify-center rounded-xl text-xs font-semibold text-slate-300 hover:bg-[#161c24] shrink-0 active:scale-95 transition-all"
+            >
+              Cancel
+            </button>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-white">
-            <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
-            <span className="text-sm font-bold tracking-wide">pi<span className="text-pink-500">GG</span>yPlayer</span>
-          </div>
+          <>
+            <div className="flex items-center gap-2 text-white shrink-0">
+              <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={28} height={28} className="w-7 h-7 rounded-lg object-cover" />
+              <span className="text-sm font-bold tracking-wide">pi<span className="text-pink-500">GG</span>yPlayer</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleMobileSearchToggle}
+                aria-label="Search music"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white active:scale-95 transition-transform"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { triggerHaptic("light"); setIsUploadOpen(true); }}
+                aria-label="Add songs"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20 active:scale-95 transition-transform"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => { triggerHaptic("light"); toggleQueueOpen(); }}
+                aria-label="Open queue"
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white active:scale-95 transition-transform"
+              >
+                <ListMusic className="h-5 w-5" />
+                {queue.length > 0 && (
+                  <span className="absolute right-1 top-1 h-4 min-w-4 rounded-full bg-blue-500 px-1 text-[9px] font-bold leading-4 text-white">
+                    {queue.length > 99 ? "99+" : queue.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </>
         )}
-        <div className="flex shrink-0 items-center gap-1">
-          {/* Quick local device play button on mobile */}
-          <button
-            type="button"
-            onClick={() => topBarFileInputRef.current?.click()}
-            aria-label="Play local audio"
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-emerald-400 hover:bg-[#161c24] active:scale-95"
-            title="Play local song from device without uploading"
-          >
-            <HardDriveDownload className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={handleMobileSearchToggle} aria-label={activeTab === "songs" ? "Close search" : "Search music"} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white">
-            {activeTab === "songs" ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-          </button>
-          <button type="button" onClick={() => { triggerHaptic("light"); setIsUploadOpen(true); }} aria-label="Add songs" className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20 active:scale-95">
-            <Plus className="h-5 w-5" />
-          </button>
-          <button type="button" onClick={() => { triggerHaptic("light"); toggleQueueOpen(); }} aria-label="Open queue" className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white active:scale-95">
-            <ListMusic className="h-5 w-5" />
-            {queue.length > 0 && <span className="absolute right-1 top-1 h-4 min-w-4 rounded-full bg-blue-500 px-1 text-[9px] font-bold leading-4 text-white">{queue.length > 99 ? "99+" : queue.length}</span>}
-          </button>
-        </div>
       </div>
 
       {/* Hidden local file input */}

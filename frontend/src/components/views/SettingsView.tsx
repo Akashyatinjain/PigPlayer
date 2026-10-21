@@ -83,42 +83,58 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="space-y-8 pb-10 max-w-3xl">
+    <div className="space-y-8 pb-10 max-w-3xl text-[#f5f7fa]">
       <div>
-        <h1 className="text-2xl font-semibold text-[#090a0f] tracking-tight">Profile & settings</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Local library, backups, and storage — everything stays on this machine.
+        <h1 className="text-2xl font-extrabold text-white tracking-tight">Profile & settings</h1>
+        <p className="text-sm text-slate-400 mt-1">
+          Local library, backups, and storage — everything stays on this device.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+      <section className="rounded-2xl border border-[#232b35] bg-[#0d1015] p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-blue-500">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#141922] border border-[#232b35] text-sm font-bold text-blue-400">
             {isAuthenticated && user ? user.name.charAt(0).toUpperCase() : "G"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{isAuthenticated && user ? user.name : "Listening as guest"}</p>
-            <p className="truncate text-xs text-slate-500">{isAuthenticated && user ? user.email : "Your library stays on this device"}</p>
+            <p className="truncate text-sm font-bold text-white">{isAuthenticated && user ? user.name : "Listening as guest"}</p>
+            <p className="truncate text-xs text-slate-400">{isAuthenticated && user ? user.email : "Your library stays on this device"}</p>
           </div>
-          {isAuthenticated && <button type="button" onClick={() => logout()} className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900"><LogOut className="h-4 w-4" /><span className="hidden sm:inline">Sign out</span></button>}
-          {!isAuthenticated && <Link href="/login" className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-blue-500 hover:bg-blue-50">Sign in</Link>}
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-400 hover:bg-[#161c24] hover:text-white transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
+          )}
+          {!isAuthenticated && (
+            <Link
+              href="/login"
+              className="flex min-h-10 sm:min-h-11 items-center rounded-xl px-3.5 text-xs sm:text-sm font-bold text-blue-400 hover:bg-blue-600/10 border border-blue-500/30 transition-colors"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </section>
 
       {message && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="rounded-xl border border-blue-500/30 bg-blue-950/30 px-4 py-3 text-xs sm:text-sm text-blue-300">
           {message}
         </div>
       )}
 
       {/* Storage location */}
       <section className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Storage Location</h2>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 flex items-start gap-3">
-          <HardDrive className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Local data directory</p>
-            <p className="text-xs text-slate-500 font-mono mt-1 break-all">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Storage Location</h2>
+        <div className="rounded-xl border border-[#232b35] bg-[#0d1015] p-4 flex items-start gap-3">
+          <HardDrive className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">Local data directory</p>
+            <p className="text-xs text-slate-400 font-mono mt-1 break-all">
               ./data/piggyplayer.db · ./data/audio · ./data/artwork · ./data/backups
             </p>
           </div>
@@ -127,8 +143,8 @@ export default function SettingsView() {
 
       {/* Stats */}
       <section className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Library Statistics</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Library Statistics</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
           {[
             { label: "Songs", value: stats?.totalSongs ?? "—", icon: Music2 },
             { label: "Artists", value: stats?.totalArtists ?? "—", icon: Users },
@@ -144,11 +160,11 @@ export default function SettingsView() {
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-slate-200 bg-white p-3 flex flex-col gap-1"
+              className="rounded-xl border border-[#232b35] bg-[#0d1015] p-3 sm:p-3.5 flex flex-col gap-1 shadow-xs"
             >
-              <item.icon className="w-4 h-4 text-blue-600" />
-              <p className="text-lg font-bold text-slate-900">{item.value}</p>
-              <p className="text-[11px] text-slate-500 font-medium">{item.label}</p>
+              <item.icon className="w-4 h-4 text-blue-400" />
+              <p className="text-base sm:text-lg font-bold text-white mt-1">{item.value}</p>
+              <p className="text-[11px] text-slate-400 font-medium">{item.label}</p>
             </div>
           ))}
         </div>
@@ -156,8 +172,8 @@ export default function SettingsView() {
 
       {/* Backup / Export */}
       <section className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Backup & Portability</h2>
-        <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Backup & Portability</h2>
+        <div className="rounded-xl border border-[#232b35] bg-[#0d1015] divide-y divide-[#1f2631] overflow-hidden">
           <ActionRow
             icon={Archive}
             title="Create backup"
@@ -251,16 +267,16 @@ export default function SettingsView() {
 
       {/* Existing backups */}
       <section className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Local Backups</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Local Backups</h2>
         {backups.length === 0 ? (
-          <p className="text-sm text-slate-500">No backups yet.</p>
+          <p className="text-xs text-slate-400">No backups yet.</p>
         ) : (
-          <ul className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+          <ul className="rounded-xl border border-[#232b35] bg-[#0d1015] divide-y divide-[#1f2631] overflow-hidden">
             {backups.map((b) => (
               <li key={b.fileName} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{b.fileName}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm font-medium text-white truncate">{b.fileName}</p>
+                  <p className="text-xs text-slate-400">
                     {formatBytes(b.size)} · {new Date(b.createdAt).toLocaleString()}
                   </p>
                 </div>
@@ -285,7 +301,7 @@ export default function SettingsView() {
                       }
                     });
                   }}
-                  className="flex min-h-11 shrink-0 items-center rounded-lg px-3 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-800"
+                  className="flex min-h-10 sm:min-h-11 shrink-0 items-center rounded-xl px-3 text-xs font-semibold text-blue-400 transition-colors hover:bg-blue-600/10 border border-blue-500/30"
                 >
                   Restore
                 </button>
@@ -318,14 +334,14 @@ function ActionRow({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-50 transition-colors disabled:opacity-60"
+      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#141922] transition-colors disabled:opacity-50 active:scale-[0.99]"
     >
-      <Icon className={`w-5 h-5 shrink-0 ${danger ? "text-red-500" : "text-blue-600"}`} />
+      <Icon className={`w-5 h-5 shrink-0 ${danger ? "text-rose-400" : "text-blue-400"}`} />
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${danger ? "text-red-700" : "text-slate-800"}`}>
+        <p className={`text-sm font-bold ${danger ? "text-rose-400" : "text-white"}`}>
           {busy ? "Working…" : title}
         </p>
-        <p className="text-xs text-slate-500">{desc}</p>
+        <p className="text-xs text-slate-400">{desc}</p>
       </div>
     </button>
   );

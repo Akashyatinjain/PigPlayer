@@ -201,7 +201,7 @@ export default function SongRow({
             toggleFavorite(song.id);
           }}
           aria-label={song.isFavorite ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
-          className="min-h-11 min-w-11 flex items-center justify-center rounded-full transition-colors hover:text-rose-400"
+          className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full transition-colors hover:text-rose-400 shrink-0"
           title={song.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         >
           <Heart
@@ -213,12 +213,12 @@ export default function SongRow({
           />
         </button>
 
-        {/* Save for Offline (IndexedDB Toggle) */}
+        {/* Save for Offline (IndexedDB Toggle) - visible on tablet/desktop */}
         <button
           onClick={handleToggleOffline}
           disabled={isSavingOffline}
           aria-label={isSavedOffline ? "Saved offline (tap to remove)" : "Save for offline playback"}
-          className={`min-h-11 min-w-11 flex items-center justify-center rounded-full transition-colors ${
+          className={`hidden sm:flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors shrink-0 ${
             isSavedOffline
               ? "text-emerald-400 hover:text-rose-400 md:opacity-100"
               : "text-slate-400 hover:text-blue-400 md:opacity-0 md:group-hover:opacity-100"
@@ -240,11 +240,11 @@ export default function SongRow({
           )}
         </button>
 
-        {/* Add to Playlist button */}
+        {/* Add to Playlist button - visible on tablet/desktop */}
         <button
           onClick={handleAddToPlaylist}
           aria-label={`Add ${song.title} to a playlist`}
-          className="min-h-11 min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-blue-400 transition-colors md:opacity-0 md:group-hover:opacity-100"
+          className="hidden sm:flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-400 hover:text-blue-400 transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
           title="Add to playlist"
         >
           <Plus className="w-4 h-4" />
@@ -254,7 +254,7 @@ export default function SongRow({
         {song.isAuthorizedDownload && (
           <button
             onClick={handleDownload}
-            className="hidden md:flex p-1.5 rounded-full text-slate-400 hover:text-slate-200 transition-colors md:opacity-0 md:group-hover:opacity-100"
+            className="hidden md:flex p-1.5 rounded-full text-slate-400 hover:text-slate-200 transition-colors md:opacity-0 md:group-hover:opacity-100 shrink-0"
             title="Download audio file to computer"
           >
             <Download className="w-4 h-4" />
@@ -269,20 +269,20 @@ export default function SongRow({
               onRemoveFromPlaylist();
             }}
             aria-label="Remove song from playlist"
-            className="min-h-11 min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-400 transition-colors md:opacity-0 md:group-hover:opacity-100"
+            className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-400 transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
             title="Remove from playlist"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         ) : (
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
               aria-label={`More actions for ${song.title}`}
-              className="min-h-11 min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-white transition-colors md:opacity-0 md:group-hover:opacity-100"
+              className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-white transition-colors"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -296,6 +296,7 @@ export default function SongRow({
                   <p className="truncate px-3 pb-2 text-xs font-semibold text-slate-400 md:hidden">{song.title}</p>
                   <MenuAction icon={<Play className="h-4 w-4" />} label="Play next" onClick={() => { playNextInQueue(song); setShowMenu(false); }} />
                   <MenuAction icon={<ListPlus className="h-4 w-4" />} label="Add to queue" onClick={() => { addToQueue(song); setShowMenu(false); setQueueOpen(true); }} />
+                  <MenuAction icon={<Plus className="h-4 w-4" />} label="Add to playlist" onClick={(e) => { handleAddToPlaylist(e); setShowMenu(false); }} />
                   <MenuAction
                     icon={
                       isSavingOffline ? (

@@ -167,16 +167,16 @@ export default function MobileFullPlayer() {
           </p>
         </div>
 
-        <div className="flex items-center gap-1 -mr-2">
+        <div className="flex items-center gap-1.5 -mr-1">
           {/* Offline Save Toggle */}
           <button
             type="button"
             aria-label={isCurrentSavedOffline ? "Saved offline (tap to remove)" : "Save for offline playback"}
             onClick={handleToggleOfflineCurrent}
             disabled={isCurrentSavingOffline}
-            className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
               isCurrentSavedOffline
-                ? "text-emerald-400"
+                ? "text-emerald-400 bg-emerald-500/10"
                 : "text-gray-400 hover:text-white"
             }`}
             title={
@@ -188,11 +188,11 @@ export default function MobileFullPlayer() {
             }
           >
             {isCurrentSavingOffline ? (
-              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
             ) : isCurrentSavedOffline ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             ) : (
-              <ArrowDownToLine className="w-5 h-5" />
+              <ArrowDownToLine className="w-4 h-4" />
             )}
           </button>
 
@@ -201,18 +201,18 @@ export default function MobileFullPlayer() {
               type="button"
               aria-label="Download song"
               onClick={handleDownload}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
-              title="Download song"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
+              title="Download audio file"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4" />
             </button>
           ) : null}
         </div>
       </div>
 
-      {/* Album Artwork & Vinyl effect */}
-      <div className="relative my-auto py-5 sm:py-6 flex items-center justify-center">
-        <div className="relative aspect-square w-full max-w-[20rem] overflow-hidden rounded-[20px] bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
+      {/* Album Artwork & Vinyl effect - Responsive sizing to guarantee controls fit on screen */}
+      <div className="relative my-auto py-2 sm:py-4 flex items-center justify-center">
+        <div className="relative aspect-square w-48 max-w-[15rem] sm:max-w-[18rem] max-h-[30vh] sm:max-h-[36vh] overflow-hidden rounded-2xl bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
           {currentSong.coverUrl ? (
             <Image
               src={currentSong.coverUrl}
@@ -223,20 +223,21 @@ export default function MobileFullPlayer() {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">
-              <Music className="w-16 h-16" />
+              <Music className="w-12 h-12" />
             </div>
           )}
         </div>
       </div>
 
       {/* Track Details & Favorite */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      {/* Track Details & Favorite */}
+      <div className="space-y-3.5 sm:space-y-5 pb-2">
+        <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-white truncate">
+            <h2 className="text-lg sm:text-2xl font-bold text-white truncate leading-tight">
               {currentSong.title}
             </h2>
-            <p className="text-sm sm:text-base text-gray-400 truncate">
+            <p className="text-xs sm:text-base text-gray-400 truncate mt-0.5">
               {currentSong.artist}
             </p>
           </div>
@@ -247,10 +248,10 @@ export default function MobileFullPlayer() {
               triggerHaptic("success");
               toggleFavorite(currentSong.id);
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-125"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-125"
           >
             <Heart
-              className={`w-6 h-6 ${
+              className={`w-5 h-5 sm:w-6 sm:h-6 ${
                 currentSong.isFavorite
                   ? "fill-[#f43f5e] text-[#f43f5e]"
                   : "text-gray-400"
@@ -273,14 +274,14 @@ export default function MobileFullPlayer() {
             style={{ "--seek-progress": `${progressPercent}%` } as React.CSSProperties}
           />
 
-          <div className="flex justify-between text-xs font-mono text-gray-400">
+          <div className="flex justify-between text-[11px] sm:text-xs font-mono text-gray-400">
             <span>{formatDuration(currentTime)}</span>
             <span>{formatDuration(duration)}</span>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-between px-2 pt-2">
+        <div className="flex items-center justify-between px-1 pt-1">
           <button
             type="button"
             aria-label={`Shuffle ${isShuffle ? "on" : "off"}`}
@@ -288,7 +289,7 @@ export default function MobileFullPlayer() {
               triggerHaptic("light");
               toggleShuffle();
             }}
-            className={`flex h-11 w-11 items-center justify-center transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center transition-colors ${
               isShuffle ? "text-blue-500" : "text-gray-400"
             }`}
           >
@@ -304,7 +305,7 @@ export default function MobileFullPlayer() {
             }}
             className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
           >
-            <SkipBack className="w-7 h-7 fill-current" />
+            <SkipBack className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
           </button>
 
           <button
@@ -314,12 +315,12 @@ export default function MobileFullPlayer() {
               triggerHaptic("medium");
               togglePlayPause();
             }}
-            className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
           >
             {isPlaying ? (
-              <Pause className="w-7 h-7 fill-current" />
+              <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
             ) : (
-              <Play className="w-7 h-7 fill-current translate-x-0.5" />
+              <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current translate-x-0.5" />
             )}
           </button>
 
@@ -332,7 +333,7 @@ export default function MobileFullPlayer() {
             }}
             className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
           >
-            <SkipForward className="w-7 h-7 fill-current" />
+            <SkipForward className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
           </button>
 
           <button
@@ -342,7 +343,7 @@ export default function MobileFullPlayer() {
               triggerHaptic("light");
               cycleRepeat();
             }}
-            className={`flex h-11 w-11 items-center justify-center transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center transition-colors ${
               repeatMode !== "off" ? "text-blue-500" : "text-gray-400"
             }`}
           >
@@ -354,10 +355,10 @@ export default function MobileFullPlayer() {
           </button>
         </div>
 
-        {/* Volume */}
-        <div className="flex items-center gap-3 pt-2 px-2 sm:px-4">
-          <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="flex h-11 w-11 shrink-0 items-center justify-center text-gray-400">
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        {/* Volume - compact on mobile */}
+        <div className="flex items-center gap-2 pt-1 px-1 sm:px-4 opacity-90">
+          <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 hover:text-white">
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <input
             type="range"
@@ -366,7 +367,7 @@ export default function MobileFullPlayer() {
             step={0.01}
             value={isMuted ? 0 : volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="h-11 w-full accent-blue-600"
+            className="h-8 w-full accent-blue-600"
           />
         </div>
       </div>

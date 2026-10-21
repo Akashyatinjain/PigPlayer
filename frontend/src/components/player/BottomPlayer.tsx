@@ -175,51 +175,54 @@ export default function BottomPlayer() {
         </span>
       </button>
 
-      {/* Quick Like Button on Mobile Mini Bar */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          triggerHaptic("success");
-          toggleFavorite(currentSong.id);
-        }}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-400 hover:text-white active:scale-125 transition-transform"
-        aria-label={currentSong.isFavorite ? "Remove favorite" : "Favorite"}
-      >
-        <Heart
-          className={`w-4 h-4 ${
-            currentSong.isFavorite
-              ? "fill-rose-500 text-rose-500"
-              : "text-slate-400"
-          }`}
-        />
-      </button>
+      {/* Mobile Mini Bar Action Controls */}
+      <div className="flex shrink-0 items-center gap-1">
+        {/* Quick Like Button on Mobile Mini Bar */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            triggerHaptic("success");
+            toggleFavorite(currentSong.id);
+          }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:text-white active:scale-125 transition-transform"
+          aria-label={currentSong.isFavorite ? "Remove favorite" : "Favorite"}
+        >
+          <Heart
+            className={`w-4 h-4 ${
+              currentSong.isFavorite
+                ? "fill-rose-500 text-rose-500"
+                : "text-slate-400"
+            }`}
+          />
+        </button>
 
-      {/* Play/Pause Button on Mobile Mini Bar */}
-      <button
-        type="button"
-        onClick={() => {
-          triggerHaptic("medium");
-          togglePlayPause();
-        }}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 active:scale-95 transition-transform shadow-md"
-        aria-label={isPlaying ? "Pause" : "Play"}
-      >
-        {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current translate-x-0.5" />}
-      </button>
+        {/* Play/Pause Button on Mobile Mini Bar */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic("medium");
+            togglePlayPause();
+          }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 active:scale-95 transition-transform shadow-md"
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current translate-x-0.5" />}
+        </button>
 
-      {/* Next Track Button on Mobile Mini Bar */}
-      <button
-        type="button"
-        onClick={() => {
-          triggerHaptic("light");
-          nextSong();
-        }}
-        className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-slate-300 hover:text-white active:scale-90 transition-transform"
-        aria-label="Next song"
-      >
-        <SkipForward className="h-4 w-4 fill-current" />
-      </button>
+        {/* Next Track Button on Mobile Mini Bar */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic("light");
+            nextSong();
+          }}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-300 hover:text-white active:scale-90 transition-transform"
+          aria-label="Next song"
+        >
+          <SkipForward className="h-4 w-4 fill-current" />
+        </button>
+      </div>
     </div>
     <footer className="hidden lg:flex h-20 sm:h-24 bg-[#0c0f14] border-t border-[#1f2631] px-3 sm:px-6 md:px-8 items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-xl text-[#f5f7fa]">
       {/* LEFT: Current Track Info */}

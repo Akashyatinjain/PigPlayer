@@ -12,32 +12,32 @@ export default function HistoryView() {
   const { currentSong, isPlaying, playSong, togglePlayPause } = usePlayerStore();
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+    <div className="space-y-6 pb-12 text-[#f5f7fa]">
+      <div className="border-b border-[#232b35] pb-5">
+        <h1 className="text-2xl font-extrabold text-white tracking-tight">
           Listening History
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5 font-medium">
+        <p className="text-xs text-slate-400 mt-0.5 font-medium">
           Timeline of tracks you have enjoyed recently
         </p>
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center py-16 space-y-3 bg-white rounded-2xl border border-slate-200 p-8 shadow-xs">
-          <History className="w-10 h-10 text-slate-400 mx-auto stroke-[1.5]" />
-          <h2 className="text-base font-bold text-slate-900">No history yet</h2>
-          <p className="text-xs text-slate-500 max-w-xs mx-auto">
+        <div className="text-center py-14 space-y-3 bg-[#0d1015] rounded-2xl border border-[#232b35] p-6 sm:p-8 shadow-xs">
+          <History className="w-10 h-10 text-slate-500 mx-auto stroke-[1.5]" />
+          <h2 className="text-base font-bold text-white">No history yet</h2>
+          <p className="text-xs text-slate-400 max-w-xs mx-auto">
             As you listen to songs, your history will automatically record here.
           </p>
           <button
             onClick={() => setActiveTab("songs")}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white rounded-full transition-all shadow-xs"
+            className="min-h-10 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-full transition-all shadow-xs active:scale-95"
           >
             Start Listening
           </button>
         </div>
       ) : (
-        <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-[#0d1015] p-2 rounded-2xl border border-[#232b35] shadow-xs space-y-1">
           {history.map((item, idx) => {
             const isCurrent = currentSong?.id === item.song.id;
             return (
@@ -50,15 +50,15 @@ export default function HistoryView() {
                     playSong(item.song, songs);
                   }
                 }}
-                className={`group flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
+                className={`group flex items-center justify-between px-3 sm:px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
                   isCurrent
-                    ? "bg-blue-50/90 border border-blue-200 shadow-xs"
-                    : "hover:bg-slate-100/80 border border-transparent"
+                    ? "bg-blue-600/15 border border-blue-500/35 text-white shadow-xs"
+                    : "hover:bg-[#161c24] border border-transparent text-slate-300"
                 }`}
               >
-                <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                   {/* Thumbnail / Play Button */}
-                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#141922] border border-[#232b35] shrink-0">
                     {item.song.coverUrl ? (
                       <Image
                         src={item.song.coverUrl}
@@ -68,11 +68,11 @@ export default function HistoryView() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <div className="w-full h-full flex items-center justify-center text-blue-400">
                         <Music2 className="w-4 h-4" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                       {isCurrent && isPlaying ? (
                         <Pause className="w-4 h-4 fill-current text-white" />
                       ) : (
@@ -81,25 +81,25 @@ export default function HistoryView() {
                     </div>
                   </div>
 
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 pr-2">
                     <p
                       className={`text-xs sm:text-sm font-semibold truncate ${
-                        isCurrent ? "text-blue-700 font-bold" : "text-slate-900"
+                        isCurrent ? "text-blue-400 font-bold" : "text-white"
                       }`}
                     >
                       {item.song.title}
                     </p>
-                    <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                    <p className="text-[11px] sm:text-xs text-slate-400 truncate">
                       {item.song.artist}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs font-mono text-slate-400 shrink-0">
-                  <span className="hidden sm:inline">
+                <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono text-slate-400 shrink-0">
+                  <span className="hidden sm:inline text-[11px]">
                     {formatTimeAgo(item.playedAt)}
                   </span>
-                  <span className="tabular-nums">
+                  <span className="tabular-nums text-[11px] sm:text-xs">
                     {formatDuration(item.song.duration)}
                   </span>
                 </div>

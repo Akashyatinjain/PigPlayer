@@ -789,11 +789,11 @@ export default function UploadModal() {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={handleCloseModal}
-              className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1c2432] rounded-xl transition-colors"
+              className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1c2432] rounded-xl transition-colors shrink-0"
             >
               {completedCount === queue.length && completedCount > 0
                 ? "Close"
@@ -807,9 +807,9 @@ export default function UploadModal() {
                   setQueue([]);
                   fileInputRef.current?.click();
                 }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 active:scale-95"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 active:scale-95"
               >
-                Upload More Songs
+                Upload More
               </button>
             ) : (
               <>
@@ -818,18 +818,19 @@ export default function UploadModal() {
                   type="button"
                   onClick={handlePlayLocallyFromQueue}
                   disabled={isSavingLocally || isUploadingAll || readyCount === 0}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
                   title="Play directly on this device without uploading to server"
                 >
                   {isSavingLocally ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Saving Locally...</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
                       <HardDriveDownload className="w-3.5 h-3.5" />
-                      <span>Play Locally (No Upload)</span>
+                      <span>Play Local</span>
+                      <span className="hidden sm:inline">(No Upload)</span>
                     </>
                   )}
                 </button>
@@ -839,17 +840,17 @@ export default function UploadModal() {
                   type="button"
                   onClick={handleUploadAll}
                   disabled={isUploadingAll || isSavingLocally || readyCount === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploadingAll ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Uploading Songs...</span>
+                      <span>Uploading...</span>
                     </>
                   ) : (
                     <>
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Upload {readyCount > 0 ? `${readyCount} Songs` : "Songs"}</span>
+                      <span>Upload {readyCount > 0 ? `(${readyCount})` : ""}</span>
                     </>
                   )}
                 </button>

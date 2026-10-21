@@ -150,12 +150,12 @@ export default function OfflineView() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
             {filteredSongs.length > 0 && (
               <button
                 type="button"
                 onClick={handlePlayAll}
-                className="flex min-h-11 items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-transform active:scale-95 shadow-lg shadow-blue-600/30"
+                className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-lg shadow-blue-600/30"
               >
                 <Play className="w-4 h-4 fill-current" />
                 Play Offline
@@ -166,7 +166,7 @@ export default function OfflineView() {
               type="button"
               disabled={isImporting}
               onClick={() => folderInputRef.current?.click()}
-              className="hidden sm:flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition-colors active:scale-95"
+              className="hidden sm:flex min-h-10 sm:min-h-11 items-center gap-2 px-3.5 py-2 rounded-xl bg-[#141922] hover:bg-[#1a212c] text-slate-200 border border-[#232b35] font-medium text-xs sm:text-sm transition-colors active:scale-95"
               title="Import an entire folder from this device"
             >
               <FolderPlus className="w-4 h-4 text-blue-400" />
@@ -177,18 +177,18 @@ export default function OfflineView() {
               type="button"
               disabled={isImporting}
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-11 items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm transition-all active:scale-95 shadow-lg shadow-emerald-600/25"
+              className="flex min-h-10 sm:min-h-11 items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm transition-all active:scale-95 shadow-lg shadow-emerald-600/25"
               title="Import audio files from this phone/computer into local library"
             >
               <Upload className="w-4 h-4" />
-              <span>{isImporting ? "Importing..." : "Choose Audio Files"}</span>
+              <span>{isImporting ? "Importing..." : "Choose Audio"}</span>
             </button>
 
             {offlineSongs.length > 0 && (
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-800/80 hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
+                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-[#141922] hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-[#232b35] transition-colors active:scale-95"
                 title="Clear all offline songs from device"
               >
                 <Trash2 className="w-4 h-4" />
@@ -210,52 +210,52 @@ export default function OfflineView() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search your offline songs..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-xs"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141922] border border-[#232b35] text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 shadow-xs"
           />
         </div>
       )}
 
       {/* Song List or Empty State */}
       {offlineSongs.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 sm:p-12 text-center shadow-xs">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-            <HardDriveDownload className="w-8 h-8" />
+        <div className="rounded-3xl border border-[#232b35] bg-[#0d1015] p-6 sm:p-12 text-center shadow-xs text-[#f5f7fa]">
+          <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center justify-center mb-4">
+            <HardDriveDownload className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900">
+          <h2 className="text-lg font-bold text-white">
             No offline songs stored yet
           </h2>
-          <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-            Save any song by clicking the download icon on a track, or import MP3 files
-            directly from your mobile/computer storage to play offline anytime.
+          <p className="mt-2 text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+            Save any song by clicking the menu on a track, or import audio files
+            directly from your mobile/computer storage to play offline anytime with zero upload.
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-transform active:scale-95 shadow-md shadow-blue-500/20"
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-md shadow-blue-500/20"
             >
               <Upload className="w-4 h-4" />
-              Import MP3 from this Device
+              Pick Audio Files
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("songs")}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm transition-colors"
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-[#141922] hover:bg-[#1a212c] text-slate-300 font-medium text-xs sm:text-sm border border-[#232b35] transition-colors active:scale-95"
             >
               <Music2 className="w-4 h-4" />
-              Browse Library to Save
+              Browse Library
             </button>
           </div>
         </div>
       ) : filteredSongs.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="rounded-2xl border border-[#232b35] bg-[#0d1015] p-8 text-center text-slate-400">
+          <p className="text-sm">
             No offline songs match &ldquo;{searchQuery}&rdquo;.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
+        <div className="divide-y divide-[#1f2631] overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015] shadow-xs">
           {filteredSongs.map((song, index) => (
             <SongRow
               key={song.id}

@@ -130,12 +130,12 @@ export default function SongsView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
           {filteredAndSortedSongs.length > 0 && (
             <>
               <button
                 onClick={handlePlayAll}
-                className="flex min-h-11 items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
+                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
@@ -143,7 +143,7 @@ export default function SongsView() {
 
               <button
                 onClick={handleShufflePlay}
-                className="flex min-h-11 items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all"
+                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all active:scale-95"
               >
                 <Shuffle className="w-3.5 h-3.5 text-slate-400" />
                 <span>Shuffle</span>
@@ -152,7 +152,7 @@ export default function SongsView() {
           )}
 
           {/* Sort Selector */}
-          <div className="flex min-h-11 items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
+          <div className="flex min-h-10 sm:min-h-11 items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
             <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={sortBy}
@@ -201,44 +201,44 @@ export default function SongsView() {
             title="Import an entire folder from this device"
           >
             <FolderPlus className="w-3.5 h-3.5 text-blue-400" />
-            <span>Import Folder</span>
+            <span>Folder</span>
           </button>
 
           <button
             type="button"
             onClick={() => localInputRef.current?.click()}
-            className="flex min-h-11 items-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-xs font-semibold text-emerald-400 rounded-full transition-all shadow-xs active:scale-95"
+            className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-xs font-semibold text-emerald-400 rounded-full transition-all shadow-xs active:scale-95"
             title="Play song from this device without uploading to server"
           >
             <HardDriveDownload className="w-3.5 h-3.5" />
-            <span>Play Local</span>
+            <span>Local</span>
           </button>
 
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs active:scale-95"
+            className="flex min-h-10 sm:min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Upload</span>
           </button>
 
-          {/* Delete All Button */}
+          {/* Delete All Button - subtle trash button on mobile */}
           {songs.length > 0 && (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
-              className="flex min-h-11 items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-500/25 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-full transition-all shadow-xs disabled:opacity-50"
+              className="flex min-h-10 sm:min-h-11 items-center justify-center p-2.5 sm:px-3 bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 border border-rose-500/25 text-xs font-semibold text-rose-400 hover:text-rose-300 rounded-full transition-all shadow-xs disabled:opacity-50"
               title="Delete all songs from library"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete All</span>
+              <span className="hidden sm:inline">Delete All</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Filter Chips: All / Local Storage / Cloud Library */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {/* Filter Chips: All / Local Storage / Cloud Library with smooth horizontal scroll */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         <button
           type="button"
           onClick={() => { triggerHaptic("light"); setFilterType("all"); }}

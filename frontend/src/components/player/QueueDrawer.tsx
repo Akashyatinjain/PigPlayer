@@ -65,7 +65,7 @@ export default function QueueDrawer() {
                   triggerHaptic("warning");
                   clearQueue();
                 }}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                 title="Clear queue"
               >
                 <Trash2 className="w-4 h-4" />
@@ -75,7 +75,7 @@ export default function QueueDrawer() {
               type="button"
               aria-label="Close queue"
               onClick={handleClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#161c26] transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-[#161c26] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>

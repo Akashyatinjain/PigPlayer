@@ -94,31 +94,28 @@ export default function HomeView() {
           className="hidden"
         />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Quick Play Local Songs Button */}
           <button
             type="button"
             onClick={() => deviceFileInputRef.current?.click()}
             disabled={isImportingLocal}
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3.5 text-sm font-medium text-emerald-400 transition-all hover:bg-emerald-900/40 hover:text-emerald-300 shadow-sm active:scale-95 disabled:opacity-50"
+            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold text-emerald-400 transition-all hover:bg-emerald-900/40 hover:text-emerald-300 shadow-sm active:scale-95 disabled:opacity-50"
             title="Import and play songs directly from your phone/computer without uploading"
           >
             <HardDriveDownload className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {isImportingLocal ? "Loading..." : "Play Local Audio"}
-            </span>
-            <span className="sm:hidden">
-              {isImportingLocal ? "..." : "Local"}
+            <span>
+              {isImportingLocal ? "Importing..." : "Play Local"}
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#232b35] bg-[#141922] px-3.5 text-sm font-medium text-slate-300 transition-colors hover:bg-[#1b222e] hover:text-white active:scale-95"
+            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[#232b35] bg-[#141922] px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-300 transition-colors hover:bg-[#1b222e] hover:text-white active:scale-95"
           >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add music</span>
+            <Plus className="h-4 w-4 text-blue-400" />
+            <span>Add Music</span>
           </button>
         </div>
       </div>
