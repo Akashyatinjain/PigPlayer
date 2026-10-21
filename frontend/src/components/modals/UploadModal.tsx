@@ -14,8 +14,13 @@ import {
   Sparkles,
   FileAudio,
   CheckCircle2,
+  HardDriveDownload,
+  Zap,
 } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
+import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { offlineStorageService } from "@/services/offline-storage.service";
+import { Song } from "@/types/music";
 import {
   extractAudioMetadata,
   ExtractedAudioMetadata,
@@ -41,15 +46,18 @@ interface UploadQueueItem {
 }
 
 export default function UploadModal() {
-  const { isUploadOpen, setIsUploadOpen, refreshLibrary } = useLibrary();
+  const { playSong } = usePlayerStore();
+  const { isUploadOpen, setIsUploadOpen, refreshLibrary, refreshOfflineSongs } = useLibrary();
 
   const [queue, setQueue] = useState<UploadQueueItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isAuthorizedDownload, setIsAuthorizedDownload] = useState(true);
   const [isUploadingAll, setIsUploadingAll] = useState(false);
+  const [isSavingLocally, setIsSavingLocally] = useState(false);
   const [activeUploadCount, setActiveUploadCount] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const localDirectInputRef = useRef<HTMLInputElement | null>(null);
   const cancelRequestedRef = useRef(false);
 
   if (!isUploadOpen) return null;
@@ -64,6 +72,72 @@ export default function UploadModal() {
     } else {
       triggerHaptic("light");
       closeWithHistory(() => setIsUploadOpen(false));
+    }
+  };
+
+  // Instant local playback without uploading to server
+  const handlePlayLocallyFromQueue = async () => {
+    if (queue.length === 0) return;
+    setIsSavingLocally(true);
+    triggerHaptic("medium");
+    try {
+      const importedSongs: Song[] = [];
+      for (const item of queue) {
+        const metaOverride: ExtractedAudioMetadata = {
+          title: item.customTitle.trim() || item.file.name,
+          artist: item.customArtist.trim() || "Unknown Artist",
+          album: item.customAlbum.trim() || "Device Storage",
+          duration: item.metadata?.duration || 0,
+          format: item.metadata?.format || item.file.type || "audio/mpeg",
+          fileSize: item.file.size,
+          coverBlob: item.metadata?.coverBlob,
+          hasEmbeddedArtwork: Boolean(item.metadata?.hasEmbeddedArtwork),
+        };
+        const song = await offlineStorageService.importLocalFile(item.file, metaOverride);
+        if (song) {
+          importedSongs.push(song);
+        }
+      }
+      await refreshOfflineSongs();
+      if (importedSongs.length > 0) {
+        playSong(importedSongs[0], importedSongs);
+        triggerHaptic("success");
+        handleCloseModal();
+      }
+    } catch (err) {
+      console.error("Failed to play locally:", err);
+    } finally {
+      setIsSavingLocally(false);
+    }
+  };
+
+  const handleDirectLocalFilesSelected = async (files: FileList | File[]) => {
+    const audioFiles = Array.from(files).filter((file) => {
+      return (
+        file.type.startsWith("audio/") ||
+        /\.(mp3|wav|ogg|m4a|flac|aac|wma|opus)$/i.test(file.name)
+      );
+    });
+    if (audioFiles.length === 0) return;
+
+    setIsSavingLocally(true);
+    triggerHaptic("medium");
+    try {
+      const importedSongs: Song[] = [];
+      for (const file of audioFiles) {
+        const song = await offlineStorageService.importLocalFile(file);
+        if (song) importedSongs.push(song);
+      }
+      await refreshOfflineSongs();
+      if (importedSongs.length > 0) {
+        playSong(importedSongs[0], importedSongs);
+        triggerHaptic("success");
+        handleCloseModal();
+      }
+    } catch (err) {
+      console.error("Direct local playback failed:", err);
+    } finally {
+      setIsSavingLocally(false);
     }
   };
 
@@ -314,7 +388,7 @@ export default function UploadModal() {
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 bg-[#0d1015]">
-          {/* Hidden file input */}
+          {/* Hidden file input for server upload */}
           <input
             ref={fileInputRef}
             type="file"
@@ -327,6 +401,77 @@ export default function UploadModal() {
             className="hidden"
           />
 
+          {/* Hidden file input for instant local playback */}
+          <input
+            ref={localDirectInputRef}
+            type="file"
+            multiple
+            accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+            onChange={(e) => {
+              if (e.target.files) handleDirectLocalFilesSelected(e.target.files);
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+
+          {/* Direct Option Cards (when queue is empty) */}
+          {queue.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Option 1: Direct Local Playback */}
+              <button
+                type="button"
+                onClick={() => localDirectInputRef.current?.click()}
+                disabled={isSavingLocally}
+                className="flex items-start gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-[#111916] to-[#0c1310] border border-emerald-500/30 hover:border-emerald-400 text-left transition-all group shadow-lg shadow-emerald-950/20 active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 group-hover:scale-105 transition-transform">
+                  {isSavingLocally ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <HardDriveDownload className="w-5 h-5 sm:w-6 sm:h-6" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white group-hover:text-emerald-300">
+                      Play from Device
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+                      No Upload
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium mt-1 leading-relaxed">
+                    Pick songs from your phone/computer and play immediately offline with zero waiting.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Cloud Server Upload */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-start gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-[#121822] to-[#0d121a] border border-blue-500/30 hover:border-blue-400 text-left transition-all group shadow-lg shadow-blue-950/20 active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30 group-hover:scale-105 transition-transform">
+                  <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white group-hover:text-blue-300">
+                      Cloud Upload
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
+                      Server Sync
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-medium mt-1 leading-relaxed">
+                    Upload to your library so other devices or account can access your songs anytime.
+                  </p>
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* Drag & Drop Zone */}
           {queue.length === 0 ? (
             <div
@@ -334,23 +479,23 @@ export default function UploadModal() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
                 isDragging
                   ? "border-blue-500 bg-blue-500/10 scale-[0.99]"
                   : "border-[#293444] hover:border-blue-500/70 bg-[#131820]/60 hover:bg-[#181f2a]"
               }`}
             >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/25 shadow-md">
-                  <FileAudio className="w-7 h-7" />
+              <div className="flex flex-col items-center gap-2.5">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/25 shadow-md">
+                  <FileAudio className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-bold text-white">
-                  Drop songs here or click to browse
+                  Or drag & drop audio files here
                 </p>
                 <p className="text-xs text-slate-400 font-medium">
                   MP3 · WAV · M4A · OGG · FLAC · AAC
                 </p>
-                <div className="flex max-w-full items-center gap-2 pt-1 text-[11px] text-blue-400 font-medium bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
+                <div className="flex max-w-full items-center gap-2 pt-0.5 text-[11px] text-blue-400 font-medium bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   <span>Song details and cover art are extracted automatically</span>
                 </div>
@@ -644,7 +789,7 @@ export default function UploadModal() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
             <button
               type="button"
               onClick={handleCloseModal}
@@ -667,24 +812,48 @@ export default function UploadModal() {
                 Upload More Songs
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={handleUploadAll}
-                disabled={isUploadingAll || readyCount === 0}
-                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isUploadingAll ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Uploading Songs...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload {readyCount > 0 ? `${readyCount} Songs` : "Songs"}</span>
-                  </>
-                )}
-              </button>
+              <>
+                {/* Instant Play Locally Button */}
+                <button
+                  type="button"
+                  onClick={handlePlayLocallyFromQueue}
+                  disabled={isSavingLocally || isUploadingAll || readyCount === 0}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                  title="Play directly on this device without uploading to server"
+                >
+                  {isSavingLocally ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Locally...</span>
+                    </>
+                  ) : (
+                    <>
+                      <HardDriveDownload className="w-3.5 h-3.5" />
+                      <span>Play Locally (No Upload)</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Cloud Server Upload Button */}
+                <button
+                  type="button"
+                  onClick={handleUploadAll}
+                  disabled={isUploadingAll || isSavingLocally || readyCount === 0}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploadingAll ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Uploading Songs...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload {readyCount > 0 ? `${readyCount} Songs` : "Songs"}</span>
+                    </>
+                  )}
+                </button>
+              </>
             )}
           </div>
         </div>

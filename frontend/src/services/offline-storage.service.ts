@@ -1,5 +1,6 @@
 import { Song } from "@/types/music";
 import { resolveMediaUrl } from "./song.service";
+import { extractAudioMetadata, ExtractedAudioMetadata } from "@/lib/metadata/audioMetadata";
 
 export interface OfflineTrackRecord {
   id: string;
@@ -493,31 +494,53 @@ class OfflineStorageService {
 
   /**
    * Import local audio file directly from device (phone/desktop file picker)
+   * with automatic ID3 tag, duration, and embedded artwork extraction.
    */
-  async importLocalFile(file: File): Promise<Song> {
+  async importLocalFile(file: File, extractedMeta?: ExtractedAudioMetadata | null): Promise<Song> {
     const db = await this.getDB();
     const id = `local-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
+    let meta = extractedMeta;
+    if (!meta) {
+      try {
+        meta = await extractAudioMetadata(file);
+      } catch (err) {
+        console.warn("Failed extracting metadata for local file:", err);
+      }
+    }
+
     const rawName = file.name.replace(/\.[^/.]+$/, "");
-    let title = rawName;
-    let artist = "Local Device";
+    let fallbackTitle = rawName;
+    let fallbackArtist = "Local Device";
     if (rawName.includes(" - ")) {
       const parts = rawName.split(" - ");
-      artist = parts[0].trim();
-      title = parts.slice(1).join(" - ").trim();
+      fallbackArtist = parts[0].trim();
+      fallbackTitle = parts.slice(1).join(" - ").trim();
     }
+
+    const title = meta?.title?.trim() || fallbackTitle;
+    const artist = meta?.artist?.trim() || fallbackArtist;
+    const album = meta?.album?.trim() || "Device Storage";
+    const duration = meta?.duration || 0;
+    const coverBlob = meta?.coverBlob || null;
 
     const blobUrl = URL.createObjectURL(file);
     objectUrlCache.set(id, blobUrl);
+
+    let coverUrl: string | null = null;
+    if (coverBlob) {
+      coverUrl = URL.createObjectURL(coverBlob);
+      coverObjectUrlCache.set(id, { blob: coverBlob, url: coverUrl });
+    }
 
     const song: Song = {
       id,
       title,
       artist,
-      album: "Device Storage",
-      duration: 0,
+      album,
+      duration,
       audioUrl: blobUrl,
-      coverUrl: null,
+      coverUrl,
       fileSize: file.size,
       mimeType: file.type || "audio/mpeg",
       isOfflineAvailable: true,
@@ -530,6 +553,7 @@ class OfflineStorageService {
       id,
       song,
       audioBlob: file,
+      coverBlob: coverBlob || undefined,
       downloadedAt: Date.now(),
       sizeBytes: file.size,
     };

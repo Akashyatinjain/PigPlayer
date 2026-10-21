@@ -1,20 +1,47 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Play, Shuffle, Music2, ArrowUpDown, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Play, Shuffle, Music2, ArrowUpDown, Plus, Trash2, AlertTriangle, Loader2, HardDriveDownload } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { offlineStorageService } from "@/services/offline-storage.service";
+import { triggerHaptic } from "@/lib/haptics";
 import SongRow from "@/components/music/SongRow";
 
 type SortOption = "date" | "title" | "artist" | "duration";
 
 export default function SongsView() {
-  const { songs, searchQuery, setIsUploadOpen, deleteAllSongs } = useLibrary();
+  const { songs, searchQuery, setIsUploadOpen, deleteAllSongs, refreshOfflineSongs } = useLibrary();
   const { playSong, playShuffled } = usePlayerStore();
 
   const [sortBy, setSortBy] = useState<SortOption>("date");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const localInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleLocalFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const audioFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|flac|aac|wma|opus)$/i.test(file.name)
+    );
+    if (audioFiles.length === 0) return;
+
+    triggerHaptic("medium");
+    try {
+      const imported: any[] = [];
+      for (const f of audioFiles) {
+        const s = await offlineStorageService.importLocalFile(f);
+        if (s) imported.push(s);
+      }
+      await refreshOfflineSongs();
+      if (imported.length > 0) {
+        playSong(imported[0], imported);
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Local play error:", err);
+    }
+  };
 
   // Filter and sort songs
   const filteredAndSortedSongs = useMemo(() => {
@@ -128,12 +155,35 @@ export default function SongsView() {
             </select>
           </div>
 
+          {/* Hidden local input */}
+          <input
+            ref={localInputRef}
+            type="file"
+            multiple
+            accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+            onChange={(e) => {
+              handleLocalFiles(e.target.files);
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={() => localInputRef.current?.click()}
+            className="flex min-h-11 items-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-xs font-semibold text-emerald-400 rounded-full transition-all shadow-xs active:scale-95"
+            title="Play song from this device without uploading to server"
+          >
+            <HardDriveDownload className="w-3.5 h-3.5" />
+            <span>Play Local</span>
+          </button>
+
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs"
+            className="flex min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add</span>
+            <span>Upload</span>
           </button>
 
           {/* Delete All Button */}

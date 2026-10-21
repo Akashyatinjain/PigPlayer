@@ -2,12 +2,13 @@
 
 import React from "react";
 import Image from "next/image";
-import { Search, Plus, ListMusic, Keyboard, X, WifiOff } from "lucide-react";
+import { Search, Plus, ListMusic, Keyboard, X, WifiOff, HardDriveDownload } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAuthStore } from "@/stores/auth-store";
 import { closeWithHistory } from "@/hooks/useMobileNavigation";
 import { triggerHaptic } from "@/lib/haptics";
+import { offlineStorageService } from "@/services/offline-storage.service";
 
 export default function TopBar() {
   const {
@@ -18,10 +19,36 @@ export default function TopBar() {
     setIsUploadOpen,
     setIsShortcutsOpen,
     setActiveTab,
+    refreshOfflineSongs,
   } = useLibrary();
 
-  const { queue, toggleQueueOpen, isQueueOpen } = usePlayerStore();
+  const { queue, toggleQueueOpen, isQueueOpen, playSong } = usePlayerStore();
   const { user, isAuthenticated, logout, initAuth } = useAuthStore();
+  const topBarFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleTopBarLocalFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const audioFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|flac|aac|wma|opus)$/i.test(file.name)
+    );
+    if (audioFiles.length === 0) return;
+
+    triggerHaptic("medium");
+    try {
+      const imported: any[] = [];
+      for (const f of audioFiles) {
+        const s = await offlineStorageService.importLocalFile(f);
+        if (s) imported.push(s);
+      }
+      await refreshOfflineSongs();
+      if (imported.length > 0) {
+        playSong(imported[0], imported);
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Local play error:", err);
+    }
+  };
 
   React.useEffect(() => {
     initAuth();
@@ -64,6 +91,16 @@ export default function TopBar() {
           </div>
         )}
         <div className="flex shrink-0 items-center gap-1">
+          {/* Quick local device play button on mobile */}
+          <button
+            type="button"
+            onClick={() => topBarFileInputRef.current?.click()}
+            aria-label="Play local audio"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-emerald-400 hover:bg-[#161c24] active:scale-95"
+            title="Play local song from device without uploading"
+          >
+            <HardDriveDownload className="h-5 w-5" />
+          </button>
           <button type="button" onClick={handleMobileSearchToggle} aria-label={activeTab === "songs" ? "Close search" : "Search music"} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white">
             {activeTab === "songs" ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
           </button>
@@ -76,6 +113,19 @@ export default function TopBar() {
           </button>
         </div>
       </div>
+
+      {/* Hidden local file input */}
+      <input
+        ref={topBarFileInputRef}
+        type="file"
+        multiple
+        accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+        onChange={(e) => {
+          handleTopBarLocalFiles(e.target.files);
+          e.target.value = "";
+        }}
+        className="hidden"
+      />
       {/* Search Bar */}
       <div className="relative hidden flex-1 max-w-md sm:block">
         <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -112,6 +162,17 @@ export default function TopBar() {
             <span>Offline Mode</span>
           </button>
         )}
+
+        {/* Play Local Song Button (Desktop/Tablet) */}
+        <button
+          type="button"
+          onClick={() => topBarFileInputRef.current?.click()}
+          className="flex shrink-0 items-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-400 active:scale-95 font-semibold text-xs sm:text-sm rounded-full transition-all duration-150"
+          title="Play songs directly from your device without uploading"
+        >
+          <HardDriveDownload className="w-4 h-4 stroke-[2.2]" />
+          <span className="hidden md:inline">Play Local</span>
+        </button>
 
         {/* Upload Song Button */}
         <button

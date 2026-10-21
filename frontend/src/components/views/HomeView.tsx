@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Disc3, Music2, Pause, Play, Plus } from "lucide-react";
+import { ArrowRight, Disc3, Music2, Pause, Play, Plus, HardDriveDownload } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
+import { offlineStorageService } from "@/services/offline-storage.service";
+import { triggerHaptic } from "@/lib/haptics";
 import SongRow from "@/components/music/SongRow";
 
 export default function HomeView() {
@@ -17,11 +19,41 @@ export default function HomeView() {
     setActiveTab,
     setSelectedPlaylistId,
     setIsUploadOpen,
+    refreshOfflineSongs,
   } = useLibrary();
   const { currentSong, isPlaying, playSong, togglePlayPause } = usePlayerStore();
   const featuredSong = currentSong || songs[0];
 
   const [featuredImgError, setFeaturedImgError] = useState(false);
+  const [isImportingLocal, setIsImportingLocal] = useState(false);
+  const deviceFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleDeviceFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const audioFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|flac|aac|wma|opus)$/i.test(file.name)
+    );
+    if (audioFiles.length === 0) return;
+
+    setIsImportingLocal(true);
+    triggerHaptic("medium");
+    try {
+      const imported: any[] = [];
+      for (const f of audioFiles) {
+        const s = await offlineStorageService.importLocalFile(f);
+        if (s) imported.push(s);
+      }
+      await refreshOfflineSongs();
+      if (imported.length > 0) {
+        playSong(imported[0], imported);
+        triggerHaptic("success");
+      }
+    } catch (err) {
+      console.error("Local play error:", err);
+    } finally {
+      setIsImportingLocal(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-8 sm:space-y-10 text-[#f5f7fa]">
@@ -30,14 +62,46 @@ export default function HomeView() {
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Your space, your sound</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Good evening</h1>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsUploadOpen(true)}
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#232b35] bg-[#141922] px-3.5 text-sm font-medium text-slate-300 transition-colors hover:bg-[#1b222e] hover:text-white"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add music</span>
-        </button>
+        {/* Hidden Device Audio Picker */}
+        <input
+          ref={deviceFileInputRef}
+          type="file"
+          multiple
+          accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac,.opus"
+          onChange={(e) => {
+            handleDeviceFiles(e.target.files);
+            e.target.value = "";
+          }}
+          className="hidden"
+        />
+
+        <div className="flex items-center gap-2">
+          {/* Quick Play Local Songs Button */}
+          <button
+            type="button"
+            onClick={() => deviceFileInputRef.current?.click()}
+            disabled={isImportingLocal}
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3.5 text-sm font-medium text-emerald-400 transition-all hover:bg-emerald-900/40 hover:text-emerald-300 shadow-sm active:scale-95 disabled:opacity-50"
+            title="Import and play songs directly from your phone/computer without uploading"
+          >
+            <HardDriveDownload className="h-4 w-4" />
+            <span className="hidden sm:inline">
+              {isImportingLocal ? "Loading..." : "Play Local Audio"}
+            </span>
+            <span className="sm:hidden">
+              {isImportingLocal ? "..." : "Local"}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#232b35] bg-[#141922] px-3.5 text-sm font-medium text-slate-300 transition-colors hover:bg-[#1b222e] hover:text-white active:scale-95"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add music</span>
+          </button>
+        </div>
       </div>
 
       {isLoading && (

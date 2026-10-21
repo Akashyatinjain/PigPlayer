@@ -100,7 +100,12 @@ export default function GlobalAudioPlayer() {
       void offlineStorageService.getOfflineAudioUrl(song.id).then((cachedBlobUrl) => {
         if (isCancelled || !audio) return;
         if (cachedBlobUrl && audio.src !== cachedBlobUrl) {
-          if (audio.error || (typeof navigator !== "undefined" && !navigator.onLine)) {
+          if (
+            audio.error ||
+            (typeof navigator !== "undefined" && !navigator.onLine) ||
+            song.id.startsWith("local-") ||
+            song.isOfflineAvailable
+          ) {
             const savedTime = audio.currentTime || 0;
             audio.src = cachedBlobUrl;
             audio.currentTime = savedTime;

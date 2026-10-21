@@ -46,7 +46,7 @@ interface LibraryContextType {
   refreshOfflineSongs: () => Promise<void>;
   saveSongOffline: (song: Song) => Promise<boolean>;
   removeSongOffline: (songId: string) => Promise<boolean>;
-  importLocalAudio: (file: File) => Promise<Song | null>;
+  importLocalAudio: (file: File, meta?: any) => Promise<Song | null>;
   toggleFavorite: (songId: string) => Promise<boolean>;
   deleteSong: (songId: string) => Promise<boolean>;
   deleteAllSongs: () => Promise<boolean>;
@@ -168,9 +168,13 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         }));
 
         if (enrichedSongs.length > 0) {
-          setSongs(enrichedSongs);
+          const storedOffline = await offlineStorageService.getAllOfflineSongs();
+          const localOnly = storedOffline.filter((s) => s.id.startsWith("local-"));
+          const combined = [...localOnly, ...enrichedSongs.filter((s) => !localOnly.some((lo) => lo.id === s.id))];
+
+          setSongs(combined);
           try {
-            localStorage.setItem("soundify_cached_songs", JSON.stringify(enrichedSongs));
+            localStorage.setItem("soundify_cached_songs", JSON.stringify(combined));
           } catch {}
         } else {
           // Keep explicitly saved offline tracks, but clear stale server songs.
@@ -240,11 +244,14 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const importLocalAudio = async (file: File): Promise<Song | null> => {
+  const importLocalAudio = async (
+    file: File,
+    meta?: any
+  ): Promise<Song | null> => {
     try {
-      const newSong = await offlineStorageService.importLocalFile(file);
+      const newSong = await offlineStorageService.importLocalFile(file, meta);
       await refreshOfflineSongs();
-      setSongs((prev) => [newSong, ...prev]);
+      setSongs((prev) => [newSong, ...prev.filter((s) => s.id !== newSong.id)]);
       return newSong;
     } catch (error) {
       console.error("Failed to import local file:", error);
