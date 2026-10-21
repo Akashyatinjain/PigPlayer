@@ -24,6 +24,8 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
 import { formatDuration } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/api";
+import { closeWithHistory } from "@/hooks/useMobileNavigation";
+import { triggerHaptic } from "@/lib/haptics";
 
 export default function MobileFullPlayer() {
   const {
@@ -55,6 +57,40 @@ export default function MobileFullPlayer() {
     removeSongOffline,
   } = useLibrary();
 
+  // Gesture state for swipe-down to dismiss
+  const [dragY, setDragY] = React.useState(0);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const touchStartYRef = React.useRef(0);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleClose = React.useCallback(() => {
+    triggerHaptic("light");
+    closeWithHistory(() => setExpandedPlayer(false));
+  }, [setExpandedPlayer]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if ((containerRef.current?.scrollTop || 0) <= 0) {
+      const delta = e.touches[0].clientY - touchStartYRef.current;
+      if (delta > 0) {
+        setIsDragging(true);
+        setDragY(delta);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragY > 80) {
+      handleClose();
+    }
+    setDragY(0);
+    setIsDragging(false);
+  };
+
   if (!isExpandedPlayerOpen || !currentSong) return null;
 
   const isCurrentSavedOffline = offlineSongIds.has(currentSong.id) || !!currentSong.isOfflineAvailable;
@@ -62,6 +98,7 @@ export default function MobileFullPlayer() {
 
   const handleToggleOfflineCurrent = async () => {
     if (!currentSong || isCurrentSavingOffline) return;
+    triggerHaptic("medium");
     if (isCurrentSavedOffline) {
       await removeSongOffline(currentSong.id);
     } else {
@@ -73,6 +110,7 @@ export default function MobileFullPlayer() {
 
   const handleDownload = () => {
     if (!currentSong.isAuthorizedDownload && !currentSong.isDownloadable) return;
+    triggerHaptic("light");
     const downloadUrl = `${getApiBaseUrl()}/songs/${currentSong.id}/download`;
     const link = document.createElement("a");
     link.href = downloadUrl;
@@ -83,15 +121,39 @@ export default function MobileFullPlayer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in slide-in-from-bottom-4 duration-200">
-      {currentSong.coverUrl && <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-[18%] mx-auto h-72 w-72 rounded-full opacity-[0.12] blur-[72px]" style={{ backgroundImage: `url("${currentSong.coverUrl}")`, backgroundPosition: "center", backgroundSize: "cover" }} />}
+    <div
+      ref={containerRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+        transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1), opacity 0.2s ease",
+        opacity: dragY > 0 ? Math.max(0.4, 1 - dragY / 320) : 1,
+      }}
+      className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in slide-in-from-bottom-4 duration-200"
+    >
+      {/* Mobile Top Drag Indicator */}
+      <div
+        className="w-12 h-1.5 bg-white/25 hover:bg-white/40 active:bg-white/60 rounded-full mx-auto my-2 shrink-0 cursor-grab active:cursor-grabbing transition-colors"
+        onClick={handleClose}
+      />
+
+      {currentSong.coverUrl && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-[18%] mx-auto h-72 w-72 rounded-full opacity-[0.12] blur-[72px]"
+          style={{ backgroundImage: `url("${currentSong.coverUrl}")`, backgroundPosition: "center", backgroundSize: "cover" }}
+        />
+      )}
+
       {/* Top Header */}
       <div className="relative flex items-center justify-between">
         <button
           type="button"
           aria-label="Close player"
-          onClick={() => setExpandedPlayer(false)}
-          className="flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-[#151722] transition-colors"
+          onClick={handleClose}
+          className="flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-[#151722] active:scale-90 transition-all"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
@@ -181,8 +243,11 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={currentSong.isFavorite ? "Remove from favorites" : "Add to favorites"}
-            onClick={() => toggleFavorite(currentSong.id)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-110"
+            onClick={() => {
+              triggerHaptic("success");
+              toggleFavorite(currentSong.id);
+            }}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-125"
           >
             <Heart
               className={`w-6 h-6 ${
@@ -219,7 +284,10 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={`Shuffle ${isShuffle ? "on" : "off"}`}
-            onClick={toggleShuffle}
+            onClick={() => {
+              triggerHaptic("light");
+              toggleShuffle();
+            }}
             className={`flex h-11 w-11 items-center justify-center transition-colors ${
               isShuffle ? "text-blue-500" : "text-gray-400"
             }`}
@@ -230,8 +298,11 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label="Previous song"
-            onClick={prevSong}
-            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors"
+            onClick={() => {
+              triggerHaptic("light");
+              prevSong();
+            }}
+            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
           >
             <SkipBack className="w-7 h-7 fill-current" />
           </button>
@@ -239,7 +310,10 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={isPlaying ? "Pause" : "Play"}
-            onClick={togglePlayPause}
+            onClick={() => {
+              triggerHaptic("medium");
+              togglePlayPause();
+            }}
             className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
           >
             {isPlaying ? (
@@ -252,8 +326,11 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label="Next song"
-            onClick={nextSong}
-            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors"
+            onClick={() => {
+              triggerHaptic("light");
+              nextSong();
+            }}
+            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
           >
             <SkipForward className="w-7 h-7 fill-current" />
           </button>
@@ -261,7 +338,10 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={`Repeat ${repeatMode}`}
-            onClick={cycleRepeat}
+            onClick={() => {
+              triggerHaptic("light");
+              cycleRepeat();
+            }}
             className={`flex h-11 w-11 items-center justify-center transition-colors ${
               repeatMode !== "off" ? "text-blue-500" : "text-gray-400"
             }`}

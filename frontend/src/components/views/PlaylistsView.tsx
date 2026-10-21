@@ -18,6 +18,8 @@ import SongRow from "@/components/music/SongRow";
 import { Playlist, Song } from "@/types/music";
 import { formatDuration } from "@/lib/utils";
 import { playlistService } from "@/services/playlist.service";
+import { closeWithHistory } from "@/hooks/useMobileNavigation";
+import { triggerHaptic } from "@/lib/haptics";
 
 export default function PlaylistsView() {
   const {
@@ -100,11 +102,16 @@ export default function PlaylistsView() {
 
   // 1. PLAYLIST DETAIL VIEW
   if (selectedPlaylistId) {
+    const handleBack = () => {
+      triggerHaptic("light");
+      closeWithHistory(() => setSelectedPlaylistId(null));
+    };
+
     return (
       <div className="space-y-6 pb-12">
         <button
-          onClick={() => setSelectedPlaylistId(null)}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+          onClick={handleBack}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Playlists</span>
@@ -269,7 +276,10 @@ export default function PlaylistsView() {
         {playlists.map((pl) => (
           <div
             key={pl.id}
-            onClick={() => setSelectedPlaylistId(pl.id)}
+            onClick={() => {
+              triggerHaptic("light");
+              setSelectedPlaylistId(pl.id);
+            }}
             className="group p-3.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 transition-all cursor-pointer flex flex-col gap-3 shadow-xs hover:shadow-md"
           >
             <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">

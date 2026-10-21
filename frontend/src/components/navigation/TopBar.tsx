@@ -6,6 +6,8 @@ import { Search, Plus, ListMusic, Keyboard, X, WifiOff } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useAuthStore } from "@/stores/auth-store";
+import { closeWithHistory } from "@/hooks/useMobileNavigation";
+import { triggerHaptic } from "@/lib/haptics";
 
 export default function TopBar() {
   const {
@@ -28,6 +30,15 @@ export default function TopBar() {
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     if (window.location.pathname === "/") setActiveTab("songs");
+  };
+
+  const handleMobileSearchToggle = () => {
+    triggerHaptic("light");
+    if (activeTab === "songs") {
+      closeWithHistory(() => setActiveTab("home"));
+    } else {
+      setActiveTab("songs");
+    }
   };
 
   return (
@@ -53,13 +64,13 @@ export default function TopBar() {
           </div>
         )}
         <div className="flex shrink-0 items-center gap-1">
-          <button type="button" onClick={() => setActiveTab(activeTab === "songs" ? "home" : "songs")} aria-label={activeTab === "songs" ? "Close search" : "Search music"} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white">
+          <button type="button" onClick={handleMobileSearchToggle} aria-label={activeTab === "songs" ? "Close search" : "Search music"} className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white">
             {activeTab === "songs" ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
           </button>
-          <button type="button" onClick={() => setIsUploadOpen(true)} aria-label="Add songs" className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20">
+          <button type="button" onClick={() => { triggerHaptic("light"); setIsUploadOpen(true); }} aria-label="Add songs" className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20 active:scale-95">
             <Plus className="h-5 w-5" />
           </button>
-          <button type="button" onClick={toggleQueueOpen} aria-label="Open queue" className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white">
+          <button type="button" onClick={() => { triggerHaptic("light"); toggleQueueOpen(); }} aria-label="Open queue" className="relative flex h-11 w-11 items-center justify-center rounded-xl text-slate-300 hover:bg-[#161c24] hover:text-white active:scale-95">
             <ListMusic className="h-5 w-5" />
             {queue.length > 0 && <span className="absolute right-1 top-1 h-4 min-w-4 rounded-full bg-blue-500 px-1 text-[9px] font-bold leading-4 text-white">{queue.length > 99 ? "99+" : queue.length}</span>}
           </button>

@@ -24,6 +24,8 @@ import { formatDuration, formatFileSize, getErrorMessage } from "@/lib/utils";
 import { uploadService } from "@/services/upload.service";
 import { songService } from "@/services/song.service";
 import { authService } from "@/services/auth.service";
+import { closeWithHistory } from "@/hooks/useMobileNavigation";
+import { triggerHaptic } from "@/lib/haptics";
 
 interface UploadQueueItem {
   id: string;
@@ -51,6 +53,19 @@ export default function UploadModal() {
   const cancelRequestedRef = useRef(false);
 
   if (!isUploadOpen) return null;
+
+  const handleCloseModal = () => {
+    if (isUploadingAll) {
+      if (confirm("Upload in progress. Cancel remaining uploads and close?")) {
+        cancelRequestedRef.current = true;
+        triggerHaptic("light");
+        closeWithHistory(() => setIsUploadOpen(false));
+      }
+    } else {
+      triggerHaptic("light");
+      closeWithHistory(() => setIsUploadOpen(false));
+    }
+  };
 
   // Process newly selected files and extract metadata automatically
   const handleFilesSelected = (files: FileList | File[]) => {
@@ -269,6 +284,9 @@ export default function UploadModal() {
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-150">
       <div className="mobile-safe-bottom w-full max-w-4xl bg-[#0d1015] border border-[#232a35] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top))] md:max-h-[92dvh] overflow-hidden text-[#f5f7fa]">
         
+        {/* Mobile Drag Handle */}
+        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-2 md:hidden" />
+
         {/* Header */}
         <div className="px-5 sm:px-6 py-4 border-b border-[#1f2631] flex items-center justify-between bg-[#131820] shrink-0">
           <div className="flex items-center gap-3">
@@ -286,16 +304,7 @@ export default function UploadModal() {
           </div>
 
           <button
-            onClick={() => {
-              if (isUploadingAll) {
-                if (confirm("Upload in progress. Cancel remaining uploads and close?")) {
-                  cancelRequestedRef.current = true;
-                  setIsUploadOpen(false);
-                }
-              } else {
-                setIsUploadOpen(false);
-              }
-            }}
+            onClick={handleCloseModal}
             aria-label="Close upload"
             className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-[#1c2432] transition-colors"
           >
@@ -638,12 +647,7 @@ export default function UploadModal() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
               type="button"
-              onClick={() => {
-                if (isUploadingAll) {
-                  cancelRequestedRef.current = true;
-                }
-                setIsUploadOpen(false);
-              }}
+              onClick={handleCloseModal}
               className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1c2432] rounded-xl transition-colors"
             >
               {completedCount === queue.length && completedCount > 0

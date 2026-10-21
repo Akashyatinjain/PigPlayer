@@ -71,10 +71,20 @@ function MainContent() {
   );
 }
 
+import { useMobileNavigation, MobileExitToast } from "@/hooks/useMobileNavigation";
+
+function MobileNavigator() {
+  const { exitToastVisible } = useMobileNavigation();
+  return <MobileExitToast visible={exitToastVisible} />;
+}
+
 export default function App() {
   return (
     <LibraryProvider>
       <div className="soundify-shell h-dvh flex flex-col bg-[#0b0d10] text-[#f5f7fa] overflow-hidden">
+        {/* Mobile Native Navigation Interceptor */}
+        <MobileNavigator />
+
         {/* Core Audio Engine */}
         <GlobalAudioPlayer />
 

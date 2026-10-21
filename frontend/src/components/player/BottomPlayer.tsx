@@ -26,6 +26,7 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { useLibrary } from "@/context/LibraryContext";
 import { formatDuration } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/api";
+import { triggerHaptic } from "@/lib/haptics";
 
 export default function BottomPlayer() {
   const {
@@ -81,6 +82,27 @@ export default function BottomPlayer() {
   const [isHoveringSeek, setIsHoveringSeek] = useState(false);
   const [seekHoverPercent, setSeekHoverPercent] = useState<number | null>(null);
 
+  // Horizontal swipe gestures on mobile mini-bar (swipe left for next, right for previous)
+  const miniTouchStartX = React.useRef(0);
+  const miniTouchStartY = React.useRef(0);
+  const handleMiniTouchStart = (e: React.TouchEvent) => {
+    miniTouchStartX.current = e.touches[0].clientX;
+    miniTouchStartY.current = e.touches[0].clientY;
+  };
+  const handleMiniTouchEnd = (e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - miniTouchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - miniTouchStartY.current;
+    if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        triggerHaptic("light");
+        nextSong();
+      } else {
+        triggerHaptic("light");
+        prevSong();
+      }
+    }
+  };
+
   if (!currentSong) {
     return (
       <footer className="hidden lg:flex h-20 sm:h-22 bg-[#0c0f14] border-t border-[#1f2631] px-4 md:px-8 items-center justify-between text-slate-400 select-none shadow-xs">
@@ -116,16 +138,24 @@ export default function BottomPlayer() {
 
   return (
     <>
-    <div className="lg:hidden shrink-0 relative flex h-[4.25rem] items-center gap-3 border-t border-[#1f2631] bg-[#0c0f14] px-3 shadow-lg">
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-[#18202b]">
-        <div className="h-full bg-blue-600" style={{ width: `${progressPercent}%` }} />
+    <div
+      onTouchStart={handleMiniTouchStart}
+      onTouchEnd={handleMiniTouchEnd}
+      className="lg:hidden shrink-0 relative flex h-[4.1rem] mx-2 mb-1.5 rounded-2xl items-center gap-2.5 border border-white/10 bg-[#121620]/95 backdrop-blur-xl px-3 shadow-2xl overflow-hidden select-none"
+    >
+      <div className="absolute inset-x-0 top-0 h-[2.5px] bg-white/5">
+        <div className="h-full bg-blue-500 shadow-sm shadow-blue-500/50" style={{ width: `${progressPercent}%` }} />
       </div>
       <button
-        onClick={toggleExpandedPlayer}
+        type="button"
+        onClick={() => {
+          triggerHaptic("light");
+          toggleExpandedPlayer();
+        }}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
         aria-label={`Open player for ${currentSong.title}`}
       >
-        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-[#141922] border border-[#232b35]">
+        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#141922] border border-[#232b35] shadow-sm">
           {currentSong.coverUrl && !mobileImgErr ? (
             <Image
               src={currentSong.coverUrl}
@@ -139,16 +169,56 @@ export default function BottomPlayer() {
             <span className="flex h-full items-center justify-center text-blue-400"><Music className="h-5 w-5" /></span>
           )}
         </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-white">{currentSong.title}</span>
-          <span className="block truncate text-xs text-slate-400">{currentSong.artist}</span>
+        <span className="min-w-0 flex-1 pr-1">
+          <span className="block truncate text-xs sm:text-sm font-semibold text-white leading-tight">{currentSong.title}</span>
+          <span className="block truncate text-[11px] text-slate-400 leading-tight mt-0.5">{currentSong.artist}</span>
         </span>
       </button>
-      <button onClick={togglePlayPause} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-[#161c24]" aria-label={isPlaying ? "Pause" : "Play"}>
-        {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current" />}
+
+      {/* Quick Like Button on Mobile Mini Bar */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          triggerHaptic("success");
+          toggleFavorite(currentSong.id);
+        }}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-400 hover:text-white active:scale-125 transition-transform"
+        aria-label={currentSong.isFavorite ? "Remove favorite" : "Favorite"}
+      >
+        <Heart
+          className={`w-4 h-4 ${
+            currentSong.isFavorite
+              ? "fill-rose-500 text-rose-500"
+              : "text-slate-400"
+          }`}
+        />
       </button>
-      <button onClick={nextSong} className="flex h-11 w-10 shrink-0 items-center justify-center rounded-full text-slate-300 hover:text-white hover:bg-[#161c24]" aria-label="Next song">
-        <SkipForward className="h-5 w-5 fill-current" />
+
+      {/* Play/Pause Button on Mobile Mini Bar */}
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic("medium");
+          togglePlayPause();
+        }}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 active:scale-95 transition-transform shadow-md"
+        aria-label={isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current translate-x-0.5" />}
+      </button>
+
+      {/* Next Track Button on Mobile Mini Bar */}
+      <button
+        type="button"
+        onClick={() => {
+          triggerHaptic("light");
+          nextSong();
+        }}
+        className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-slate-300 hover:text-white active:scale-90 transition-transform"
+        aria-label="Next song"
+      >
+        <SkipForward className="h-4 w-4 fill-current" />
       </button>
     </div>
     <footer className="hidden lg:flex h-20 sm:h-24 bg-[#0c0f14] border-t border-[#1f2631] px-3 sm:px-6 md:px-8 items-center justify-between gap-2 sm:gap-6 sticky bottom-0 z-40 select-none shadow-xl text-[#f5f7fa]">
