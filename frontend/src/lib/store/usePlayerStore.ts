@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import { Song, RepeatMode } from "@/types/music";
 
-function recordPlay(songId: string) {
-  void import("@/services/history.service")
-    .then(({ historyService }) => historyService.recordPlay(songId))
-    .catch((error) => console.warn("Could not record playback history:", error));
-}
 
 function shuffleIndices(count: number, startIndex: number): number[] {
   if (count <= 0) return [];
@@ -144,8 +139,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       seekTarget: 0,
       duration: song.duration || 0,
     });
-
-    recordPlay(song.id);
   },
 
   playShuffled: (songs: Song[]) => {
@@ -168,7 +161,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       seekTarget: 0,
       duration: startSong.duration || 0,
     });
-    recordPlay(startSong.id);
   },
 
   playQueueItem: (index: number) => {
@@ -189,8 +181,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       seekTarget: 0,
       duration: song.duration || 0,
     });
-
-    recordPlay(song.id);
   },
 
   togglePlayPause: () => {
@@ -233,7 +223,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           isPlaying: true,
           duration: nextSong.duration || 0,
         });
-        recordPlay(nextSong.id);
         return;
       }
 
@@ -251,7 +240,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           isPlaying: true,
           duration: nextSong.duration || 0,
         });
-        recordPlay(nextSong.id);
         return;
       }
 
@@ -270,7 +258,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         duration: nextSong.duration || 0,
       });
-      recordPlay(nextSong.id);
     } else if (repeatMode === "all") {
       const nextSong = queue[0];
       set({
@@ -281,7 +268,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         duration: nextSong.duration || 0,
       });
-      recordPlay(nextSong.id);
     } else {
       set({ isPlaying: false, currentTime: 0, seekTarget: 0 });
     }
@@ -317,7 +303,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           isPlaying: true,
           duration: prevSong.duration || 0,
         });
-        recordPlay(prevSong.id);
         return;
       }
 
@@ -335,7 +320,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           isPlaying: true,
           duration: prevSong.duration || 0,
         });
-        recordPlay(prevSong.id);
         return;
       }
 
@@ -354,7 +338,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         duration: prevSong.duration || 0,
       });
-      recordPlay(prevSong.id);
     } else if (repeatMode === "all") {
       const lastIdx = queue.length - 1;
       const lastSong = queue[lastIdx];
@@ -366,7 +349,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         isPlaying: true,
         duration: lastSong.duration || 0,
       });
-      recordPlay(lastSong.id);
     } else {
       set({ currentTime: 0, seekTarget: 0 });
     }

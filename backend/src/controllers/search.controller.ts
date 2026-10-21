@@ -16,14 +16,11 @@ export class SearchController {
         });
       }
 
-      const [songsResult, playlists] = await Promise.all([
+      const userId = (req as { user?: { id?: string } }).user?.id;
+      const [songsResult, matchedPlaylists] = await Promise.all([
         SongService.listSongs({ query: q, limit: 30 }),
-        PlaylistService.listPlaylists(),
+        PlaylistService.searchPlaylists(q, userId, 20),
       ]);
-
-      const matchedPlaylists = playlists.filter((p) =>
-        p.name.toLowerCase().includes(q.toLowerCase())
-      );
 
       res.status(200).json({
         success: true,

@@ -37,7 +37,7 @@ function resolveDatabaseUrl(): string {
   }
 
   // If a remote cloud database URL is provided (e.g. Render auto-injected postgres:// or postgresql://),
-  // Soundify is an offline-first SQLite application.
+  // PigPlayer is an offline-first SQLite application.
   // Gracefully fall back to local SQLite at defaultDatabaseUrl instead of crashing.
   if (
     raw.startsWith('postgres://') ||
@@ -46,7 +46,7 @@ function resolveDatabaseUrl(): string {
     raw.startsWith('mongodb://')
   ) {
     console.warn(
-      `[CONFIG] Non-SQLite database URL detected in DATABASE_URL (${raw.split('://')[0]}://...). Soundify runs on local SQLite; falling back to local SQLite database at ${defaultDatabaseUrl}.`
+      `[CONFIG] Non-SQLite database URL detected in DATABASE_URL (${raw.split('://')[0]}://...). PigPlayer runs on local SQLite; falling back to local SQLite database at ${defaultDatabaseUrl}.`
     );
     process.env.DATABASE_URL = defaultDatabaseUrl;
     return defaultDatabaseUrl;

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
 export class AppError extends Error {
   statusCode: number;
@@ -10,8 +10,14 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (
-  err: any,
+export interface AppErrorLike extends Partial<Error> {
+  statusCode?: number;
+  status?: number | string;
+  code?: string;
+}
+
+export const errorHandler: ErrorRequestHandler = (
+  err: AppErrorLike,
   req: Request,
   res: Response,
   _next: NextFunction

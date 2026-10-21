@@ -29,6 +29,31 @@ export class PlaylistRepository {
     return playlists.map(mapPlaylist);
   }
 
+  static async searchPlaylists(query: string, userId?: string, limit: number = 20) {
+    const userFilter = userId ? { OR: [{ userId }, { userId: null }] } : {};
+    const playlists = await prisma.playlist.findMany({
+      where: {
+        AND: [
+          userFilter,
+          {
+            name: {
+              contains: query,
+            },
+          },
+        ],
+      },
+      include: {
+        songs: {
+          include: { song: true },
+          orderBy: { position: 'asc' },
+        },
+      },
+      take: limit,
+      orderBy: { updatedAt: 'desc' },
+    });
+    return playlists.map(mapPlaylist);
+  }
+
   static async findById(id: string) {
     const playlist = await prisma.playlist.findUnique({
       where: { id },

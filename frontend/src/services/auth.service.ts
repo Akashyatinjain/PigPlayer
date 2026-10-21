@@ -77,10 +77,19 @@ export const authService = {
 
     inFlightEnsureAuth = (async () => {
       try {
-        const email = process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL || 'local@soundify.app';
-        const password = process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD || 'soundify';
-        await this.login({ email, password });
-        return true;
+        if (
+          process.env.NODE_ENV === 'development' &&
+          process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === 'true' &&
+          process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL &&
+          process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD
+        ) {
+          await this.login({
+            email: process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL,
+            password: process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD,
+          });
+          return true;
+        }
+        return false;
       } catch {
         return false;
       } finally {

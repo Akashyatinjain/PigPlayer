@@ -127,7 +127,7 @@ export default function GlobalAudioPlayer() {
     return () => {
       isCancelled = true;
     };
-  }, [currentSong?.id, currentSong?.audioUrl, handleRecoverFromCache, currentSong]);
+  }, [currentSong?.id, currentSong?.audioUrl, handleRecoverFromCache]);
 
   // Queue changes should preload independently
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function GlobalAudioPlayer() {
         audio.pause();
       }
     }
-  }, [isPlaying, currentSong]);
+  }, [isPlaying, currentSong?.id]);
 
   // Synchronize volume and mute
   useEffect(() => {

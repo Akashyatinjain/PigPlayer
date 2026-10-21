@@ -1,20 +1,48 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const configuredPort = process.env.NEXT_PUBLIC_BACKEND_PORT?.trim();
+
   if (typeof window !== 'undefined') {
-    const envUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    // Relative URL specified in env (e.g., '/api')
+    if (envUrl && envUrl.startsWith('/')) {
       const trimmed = envUrl.replace(/\/+$/, '');
       return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
     }
 
-    const { protocol, hostname } = window.location;
+    if (envUrl) {
+      try {
+        const parsed = new URL(envUrl);
+        const { hostname: currentHost } = window.location;
+
+        // If NEXT_PUBLIC_API_URL specifies localhost/127.0.0.1, but client is accessing from LAN/remote IP
+        if (
+          (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+          currentHost !== 'localhost' &&
+          currentHost !== '127.0.0.1'
+        ) {
+          const portPart = configuredPort || parsed.port ? `:${configuredPort || parsed.port}` : '';
+          const pathPart = parsed.pathname.replace(/\/+$/, '') || '/api';
+          return `${parsed.protocol}//${currentHost}${portPart}${pathPart.endsWith('/api') ? pathPart : `${pathPart}/api`}`;
+        }
+
+        const trimmed = envUrl.replace(/\/+$/, '');
+        return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+      } catch {
+        // Fall back to general resolution if parsing fails
+      }
+    }
+
+    const { protocol, hostname, port } = window.location;
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return `${protocol}//${hostname}:5000/api`;
+      const backendPort = configuredPort || (port === '3000' ? '5000' : port);
+      const portPart = backendPort ? `:${backendPort}` : '';
+      return `${protocol}//${hostname}${portPart}/api`;
     }
   }
 
-  const rawUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+  const rawUrl = (envUrl || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
   return rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 }
 
@@ -118,20 +146,29 @@ api.interceptors.response.use(
             newRefreshToken = response.data?.data?.refreshToken;
             user = response.data?.data?.user;
           } catch {
-            // refresh token expired or invalid; fall through to auto-login
+            // refresh token expired or invalid
           }
         }
 
-        if (!accessToken) {
-          const email = process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL || 'local@soundify.app';
-          const password = process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD || 'soundify';
-          const loginRes = await axios.post(`${getApiBaseUrl()}/auth/login`, {
-            email,
-            password,
-          });
-          accessToken = loginRes.data?.data?.accessToken;
-          newRefreshToken = loginRes.data?.data?.refreshToken;
-          user = loginRes.data?.data?.user;
+        // Only attempt fallback auto-login in local development if explicitly enabled and configured via env vars
+        if (
+          !accessToken &&
+          process.env.NODE_ENV === 'development' &&
+          process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === 'true' &&
+          process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL &&
+          process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD
+        ) {
+          try {
+            const loginRes = await axios.post(`${getApiBaseUrl()}/auth/login`, {
+              email: process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL,
+              password: process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD,
+            });
+            accessToken = loginRes.data?.data?.accessToken;
+            newRefreshToken = loginRes.data?.data?.refreshToken;
+            user = loginRes.data?.data?.user;
+          } catch {
+            // Dev auto-login failed
+          }
         }
 
         if (accessToken) {

@@ -22,8 +22,12 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
-      router.push("/");
+      const ok = await login(email, password);
+      if (ok) {
+        router.push("/");
+      } else {
+        setError(useAuthStore.getState().error || "Failed to sign in. Please verify your credentials.");
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to sign in. Please verify your credentials."));
     } finally {
@@ -37,8 +41,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     try {
-      await login("demo@piggyplayer.app", "password123");
-      router.push("/");
+      const ok = await login("demo@piggyplayer.app", "password123");
+      if (ok) {
+        router.push("/");
+      } else {
+        setError(useAuthStore.getState().error || "Demo login failed");
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Demo login failed"));
     } finally {

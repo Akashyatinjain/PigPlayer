@@ -45,7 +45,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-56 bg-[#0c0f14] border-r border-[#1f2631] h-full flex flex-col justify-between shrink-0 select-none text-[#f5f7fa]">
+    <aside suppressHydrationWarning className="w-56 bg-[#0c0f14] border-r border-[#1f2631] h-full flex flex-col justify-between shrink-0 select-none text-[#f5f7fa]">
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Brand Header */}
         <div className="p-6 pb-5 flex items-center gap-3">
@@ -71,6 +71,8 @@ export default function Sidebar() {
             return (
               <button
                 key={item.id}
+                type="button"
+                suppressHydrationWarning
                 onClick={() => {
                   setActiveTab(item.id);
                   if (item.id !== "playlists") {
@@ -114,6 +116,8 @@ export default function Sidebar() {
               Playlists
             </span>
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => setIsPlaylistModalOpen(true)}
               aria-label="Create playlist"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-[#161c24] transition-colors"
@@ -136,6 +140,8 @@ export default function Sidebar() {
                 return (
                   <button
                     key={playlist.id}
+                    type="button"
+                    suppressHydrationWarning
                     onClick={() => {
                       setActiveTab("playlists");
                       setSelectedPlaylistId(playlist.id);

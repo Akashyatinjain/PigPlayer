@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config, normalizeOrigin } from './config/env';
-import { errorHandler } from './middleware/error.middleware';
+import { errorHandler, AppError } from './middleware/error.middleware';
 
 import authRoutes from './routes/auth.routes';
 import songRoutes from './routes/song.routes';
@@ -140,32 +140,24 @@ const handleHealth = (_req: express.Request, res: express.Response) => {
 app.get('/health', handleHealth);
 app.get('/api/health', handleHealth);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/songs', songRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/playlists', playlistRoutes);
-app.use('/api/favorites', favoriteRoutes);
-app.use('/api/history', historyRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/backups', backupRoutes);
-app.use('/api/backup', backupRoutes);
+const apiRouter = express.Router();
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/songs', songRoutes);
+apiRouter.use('/search', searchRoutes);
+apiRouter.use('/playlists', playlistRoutes);
+apiRouter.use('/favorites', favoriteRoutes);
+apiRouter.use('/history', historyRoutes);
+apiRouter.use('/upload', uploadRoutes);
+apiRouter.use('/backups', backupRoutes);
+apiRouter.use('/backup', backupRoutes);
 
-// Compatibility aliases if client calls without /api prefix
-app.use('/auth', authRoutes);
-app.use('/songs', songRoutes);
-app.use('/search', searchRoutes);
-app.use('/playlists', playlistRoutes);
-app.use('/favorites', favoriteRoutes);
-app.use('/history', historyRoutes);
-app.use('/upload', uploadRoutes);
-app.use('/backups', backupRoutes);
-app.use('/backup', backupRoutes);
+app.use('/api', apiRouter);
+// Fallback compatibility alias for clients without /api prefix
+app.use(apiRouter);
 
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `API endpoint not found: ${req.method} ${req.originalUrl}`,
-  });
+// 404 handler for unmatched routes
+app.use((req, _res, next) => {
+  next(new AppError(`API endpoint not found: ${req.method} ${req.originalUrl}`, 404));
 });
 
 app.use(errorHandler);

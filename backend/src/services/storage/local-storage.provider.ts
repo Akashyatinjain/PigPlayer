@@ -197,4 +197,5 @@ export class LocalStorageProvider {
   }
 }
 
-export const localStorage = new LocalStorageProvider();
+export const localStorageProvider = new LocalStorageProvider();
+export const localStorage = localStorageProvider;

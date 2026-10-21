@@ -1,4 +1,4 @@
-import { localStorage, StoredFile } from './storage/local-storage.provider';
+import { localStorageProvider, StoredFile } from './storage/local-storage.provider';
 
 export interface UploadResult {
   url: string;
@@ -14,7 +14,7 @@ export interface UploadResult {
  */
 export class StorageService {
   static validateAudioBuffer(fileBuffer: Buffer, filename: string) {
-    return localStorage.validateAudioBuffer(fileBuffer, filename);
+    return localStorageProvider.validateAudioBuffer(fileBuffer, filename);
   }
 
   static async uploadAudio(
@@ -22,7 +22,7 @@ export class StorageService {
     filename: string,
     _mimeType: string
   ): Promise<UploadResult> {
-    const stored: StoredFile = await localStorage.uploadAudio(fileBuffer, filename);
+    const stored: StoredFile = await localStorageProvider.uploadAudio(fileBuffer, filename);
     return {
       url: stored.relativePath,
       relativePath: stored.relativePath,
@@ -56,7 +56,7 @@ export class StorageService {
     const path = relativePath.startsWith('/uploads/')
       ? relativePath.replace(/^\/uploads\//, '')
       : relativePath;
-    return localStorage.deleteAudio(path);
+    return localStorageProvider.deleteAudio(path);
   }
 
   static async deleteArtwork(relativePath: string): Promise<boolean> {
@@ -67,22 +67,22 @@ export class StorageService {
     const path = relativePath.startsWith('/uploads/')
       ? relativePath.replace(/^\/uploads\//, '')
       : relativePath;
-    return localStorage.deleteArtwork(path);
+    return localStorageProvider.deleteArtwork(path);
   }
 
   static getAudioAbsolutePath(relativePath: string): string {
-    return localStorage.getAudioPath(relativePath);
+    return localStorageProvider.getAudioPath(relativePath);
   }
 
   static getArtworkAbsolutePath(relativePath: string): string {
-    return localStorage.getArtworkPath(relativePath);
+    return localStorageProvider.getArtworkPath(relativePath);
   }
 
   static exists(relativePath: string): boolean {
-    return localStorage.exists(relativePath);
+    return localStorageProvider.exists(relativePath);
   }
 
   static async hashBuffer(buffer: Buffer): Promise<string> {
-    return localStorage.hashBuffer(buffer);
+    return localStorageProvider.hashBuffer(buffer);
   }
 }

@@ -39,7 +39,7 @@ export class BackupController {
   static async exportLibrary(_req: Request, res: Response, next: NextFunction) {
     try {
       const data = await BackupService.exportLibraryJson();
-      res.setHeader('Content-Disposition', 'attachment; filename="soundify-library.json"');
+      res.setHeader('Content-Disposition', 'attachment; filename="piggyplayer-library.json"');
       res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);

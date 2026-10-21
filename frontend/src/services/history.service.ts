@@ -10,7 +10,7 @@ export const historyService = {
       id: item.id || `${item.songId}-${item.playedAt}`,
       songId: item.songId || item.id || "",
       playedAt: item.playedAt || new Date(0),
-      song: normalizeSong(item),
+      song: normalizeSong((item.song as Record<string, unknown>) || item),
     }));
   },
 

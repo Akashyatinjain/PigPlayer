@@ -1,10 +1,13 @@
 import { PlaylistRepository } from '../repositories/playlist.repository';
 import { AppError } from '../middleware/error.middleware';
-import { config } from '../config/env';
 
 export class PlaylistService {
   static async listPlaylists(userId?: string) {
     return PlaylistRepository.findByUser(userId);
+  }
+
+  static async searchPlaylists(query: string, userId?: string, limit: number = 20) {
+    return PlaylistRepository.searchPlaylists(query, userId, limit);
   }
 
   static async getPlaylistById(id: string, userId?: string) {
@@ -13,9 +16,6 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
     if (playlist.userId && playlist.userId !== userId) {
-      throw new AppError('Forbidden: this playlist belongs to another user.', 403);
-    }
-    if (config.env === 'production' && playlist.userId !== userId) {
       throw new AppError('Forbidden: this playlist belongs to another user.', 403);
     }
     return playlist;
@@ -43,9 +43,6 @@ export class PlaylistService {
     if (playlist.userId && playlist.userId !== userId) {
       throw new AppError('Forbidden: only playlist owners can modify playlists', 403);
     }
-    if (config.env === 'production' && playlist.userId !== userId) {
-      throw new AppError('Forbidden: only playlist owners can modify playlists', 403);
-    }
 
     return PlaylistRepository.update(id, data);
   }
@@ -59,9 +56,6 @@ export class PlaylistService {
     if (playlist.userId && playlist.userId !== userId) {
       throw new AppError('Forbidden: only playlist owners can delete playlists', 403);
     }
-    if (config.env === 'production' && playlist.userId !== userId) {
-      throw new AppError('Forbidden: only playlist owners can delete playlists', 403);
-    }
 
     return PlaylistRepository.delete(id);
   }
@@ -73,9 +67,6 @@ export class PlaylistService {
     }
 
     if (playlist.userId && playlist.userId !== userId) {
-      throw new AppError('Forbidden: only playlist owners can add songs', 403);
-    }
-    if (config.env === 'production' && playlist.userId !== userId) {
       throw new AppError('Forbidden: only playlist owners can add songs', 403);
     }
 
@@ -102,9 +93,6 @@ export class PlaylistService {
     if (playlist.userId && playlist.userId !== userId) {
       throw new AppError('Forbidden: only playlist owners can remove songs', 403);
     }
-    if (config.env === 'production' && playlist.userId !== userId) {
-      throw new AppError('Forbidden: only playlist owners can remove songs', 403);
-    }
 
     return PlaylistRepository.removeSong(playlistId, songId);
   }
@@ -118,10 +106,8 @@ export class PlaylistService {
     if (playlist.userId && playlist.userId !== userId) {
       throw new AppError('Forbidden: only playlist owners can reorder playlists', 403);
     }
-    if (config.env === 'production' && playlist.userId !== userId) {
-      throw new AppError('Forbidden: only playlist owners can reorder playlists', 403);
-    }
 
     return PlaylistRepository.reorderSongs(playlistId, songIds);
   }
 }
+

@@ -1,4 +1,4 @@
-import { localStorage } from './storage/local-storage.provider';
+import { localStorageProvider } from './storage/local-storage.provider';
 
 const MIME_TO_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -15,7 +15,7 @@ export class ArtworkService {
     if (!picture?.data?.length) return null;
 
     const ext = MIME_TO_EXT[picture.format.toLowerCase()] || '.jpg';
-    const stored = await localStorage.saveArtwork(picture.data, ext);
+    const stored = await localStorageProvider.saveArtwork(picture.data, ext);
     return {
       relativePath: stored.relativePath,
       fileName: stored.fileName,
@@ -35,7 +35,7 @@ export class ArtworkService {
           ? '.webp'
           : '.jpg');
 
-    const stored = await localStorage.saveArtwork(buffer, ext);
+    const stored = await localStorageProvider.saveArtwork(buffer, ext);
     return {
       relativePath: stored.relativePath,
       fileName: stored.fileName,

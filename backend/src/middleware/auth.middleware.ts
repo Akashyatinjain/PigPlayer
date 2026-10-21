@@ -74,13 +74,18 @@ export const requireRole = (role: string) => {
   };
 };
 
-/** Backups can export or replace the whole library, so production access is admin-only. */
+/** Destructive and backup operations require admin in production, and at least authentication in non-production (unless guest mutations are explicitly enabled). */
 export const requireProductionAdmin = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
-  if (config.env !== 'production') return next();
+  if (config.env !== 'production') {
+    if (config.allowGuestMutations) {
+      return optionalAuth(req, res, next);
+    }
+    return authenticate(req, res, next);
+  }
   return authenticate(req, res, (error?: unknown) => {
     if (error) return next(error);
     return requireRole('admin')(req, res, next);

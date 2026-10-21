@@ -14,7 +14,7 @@ export default function MobileNav() {
   ];
 
   return (
-    <nav aria-label="Main navigation" className="mobile-nav lg:hidden shrink-0 px-3 pt-1 flex items-center justify-around z-40 mobile-safe-bottom">
+    <nav suppressHydrationWarning aria-label="Main navigation" className="mobile-nav lg:hidden shrink-0 px-3 pt-1 flex items-center justify-around z-40 mobile-safe-bottom">
       {items.map(({ id, label, icon: Icon }) => {
         const isActive = id === "library"
           ? ["library", "favorites", "playlists", "history", "offline"].includes(activeTab)
@@ -23,6 +23,7 @@ export default function MobileNav() {
           <button
             key={id}
             type="button"
+            suppressHydrationWarning
             onClick={() => {
               setActiveTab(id);
               setSelectedPlaylistId(null);

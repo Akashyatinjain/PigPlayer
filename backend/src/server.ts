@@ -26,7 +26,7 @@ async function main() {
   }
 
   const server = app.listen(config.port, '0.0.0.0', () => {
-    logger.info(`Soundify backend started on port ${config.port} (0.0.0.0)`);
+    logger.info(`PigPlayer backend started on port ${config.port} (0.0.0.0)`);
     logger.info(`Client URL: ${config.clientUrl}`);
     logger.info('Offline-first mode: mobile LAN and offline ready');
   });

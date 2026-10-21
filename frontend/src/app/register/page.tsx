@@ -23,8 +23,12 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await register(name, email, password);
-      router.push("/");
+      const ok = await register(name, email, password);
+      if (ok) {
+        router.push("/");
+      } else {
+        setError(useAuthStore.getState().error || "Failed to create account");
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to create account"));
     } finally {
