@@ -7,8 +7,12 @@ const prisma = new PrismaClient();
 
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const DEMO_AUDIO = path.join(PROJECT_ROOT, 'frontend/public/demo');
-const DATA_AUDIO = path.join(PROJECT_ROOT, 'data/audio');
-const DATA_ARTWORK = path.join(PROJECT_ROOT, 'data/artwork');
+const DATA_ROOT =
+  process.env.DATA_DIR || process.env.DATA_ROOT
+    ? path.resolve(process.env.DATA_DIR || process.env.DATA_ROOT!)
+    : path.join(PROJECT_ROOT, 'data');
+const DATA_AUDIO = path.join(DATA_ROOT, 'audio');
+const DATA_ARTWORK = path.join(DATA_ROOT, 'artwork');
 
 async function copyIfExists(src: string, dest: string) {
   if (!fs.existsSync(src)) return false;

@@ -4,13 +4,17 @@ const fs = require('fs');
 
 // Ensure data directory exists
 const projectRoot = path.resolve(__dirname, '../..');
-const dataDir = path.resolve(projectRoot, 'data');
+const dataDir = process.env.DATA_DIR || process.env.DATA_ROOT
+  ? path.resolve(process.env.DATA_DIR || process.env.DATA_ROOT)
+  : path.resolve(projectRoot, 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Ensure SQLite database URL
-const dbPath = path.resolve(dataDir, 'soundify.db');
+const dbPath = process.env.SQLITE_PATH
+  ? path.resolve(process.env.SQLITE_PATH)
+  : path.resolve(dataDir, 'soundify.db');
 const normalizedPath = dbPath.split(path.sep).join('/');
 const sqliteUrl = `file:${normalizedPath}`;
 

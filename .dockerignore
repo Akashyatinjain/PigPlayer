@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+*/node_modules
+
+# Build outputs
+.next
+*/.next
+dist
+*/dist
+out
+build
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing & coverage
+coverage
+*/coverage
+.nyc_output
+
+# Environment files
+.env
+.env*.local
+backend/.env
+frontend/.env.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+*.swp
+.idea
+.vscode
+.agent
+.agents
+.claude
+.windsurf
+
+# SQLite database & runtime data files (preserve existing directory structure, exclude database files)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.json
+data/temp/*
+!data/temp/.gitkeep
