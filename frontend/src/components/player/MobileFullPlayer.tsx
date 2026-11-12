@@ -60,8 +60,14 @@ export default function MobileFullPlayer() {
   // Gesture state for swipe-down to dismiss
   const [dragY, setDragY] = React.useState(0);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [failedImgId, setFailedImgId] = React.useState<string | null>(null);
+  const [scrubState, setScrubState] = React.useState<{ songId: string; value: number } | null>(null);
   const touchStartYRef = React.useRef(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const imgErr = currentSong ? failedImgId === currentSong.id : false;
+  const isScrubbing = currentSong ? scrubState?.songId === currentSong.id : false;
+  const scrubValue = scrubState?.value || 0;
 
   const handleClose = React.useCallback(() => {
     triggerHaptic("light");
@@ -106,7 +112,8 @@ export default function MobileFullPlayer() {
     }
   };
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const displayTime = isScrubbing ? scrubValue : currentTime;
+  const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   const handleDownload = () => {
     if (!currentSong.isAuthorizedDownload && !currentSong.isDownloadable) return;
@@ -212,14 +219,15 @@ export default function MobileFullPlayer() {
 
       {/* Album Artwork & Vinyl effect - Responsive sizing to guarantee controls fit on screen */}
       <div className="relative my-auto py-2 sm:py-4 flex items-center justify-center">
-        <div className="relative aspect-square w-48 max-w-[15rem] sm:max-w-[18rem] max-h-[30vh] sm:max-h-[36vh] overflow-hidden rounded-2xl bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
-          {currentSong.coverUrl ? (
+        <div className="relative aspect-square w-48 max-w-[14rem] sm:max-w-[18rem] max-h-[28vh] sm:max-h-[36vh] overflow-hidden rounded-2xl bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
+          {currentSong.coverUrl && !imgErr ? (
             <Image
               src={currentSong.coverUrl}
               alt={currentSong.title}
               fill
               unoptimized
               className="object-cover"
+              onError={() => setFailedImgId(currentSong.id)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">
@@ -230,11 +238,10 @@ export default function MobileFullPlayer() {
       </div>
 
       {/* Track Details & Favorite */}
-      {/* Track Details & Favorite */}
-      <div className="space-y-3.5 sm:space-y-5 pb-2">
+      <div className="space-y-3 sm:space-y-4 pb-2">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg sm:text-2xl font-bold text-white truncate leading-tight">
+            <h2 className="text-base sm:text-2xl font-bold text-white truncate leading-tight">
               {currentSong.title}
             </h2>
             <p className="text-xs sm:text-base text-gray-400 truncate mt-0.5">
@@ -266,16 +273,25 @@ export default function MobileFullPlayer() {
             type="range"
             min={0}
             max={duration || 0}
-            step={1}
-            value={Math.min(currentTime, duration || 0)}
-            onChange={(e) => seek(Number(e.target.value))}
+            step={0.1}
+            value={Math.min(displayTime, duration || 0)}
+            onPointerDown={() => {
+              if (currentSong) setScrubState({ songId: currentSong.id, value: currentTime });
+            }}
+            onChange={(e) => {
+              if (currentSong) setScrubState({ songId: currentSong.id, value: Number(e.target.value) });
+            }}
+            onPointerUp={(e) => {
+              setScrubState(null);
+              seek(Number((e.target as HTMLInputElement).value));
+            }}
             aria-label="Seek through song"
             className="player-seek w-full accent-blue-600"
             style={{ "--seek-progress": `${progressPercent}%` } as React.CSSProperties}
           />
 
           <div className="flex justify-between text-[11px] sm:text-xs font-mono text-gray-400">
-            <span>{formatDuration(currentTime)}</span>
+            <span>{formatDuration(displayTime)}</span>
             <span>{formatDuration(duration)}</span>
           </div>
         </div>

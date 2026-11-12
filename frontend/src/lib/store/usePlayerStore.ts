@@ -279,7 +279,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     // Per spec: If playback time > 3 seconds, restart current track from beginning
     if (currentTime > 3) {
-      set({ currentTime: 0, seekTarget: 0, isPlaying: true });
+      set((state) => ({ currentTime: 0, seekTarget: 0, isPlaying: state.isPlaying }));
       return;
     }
 

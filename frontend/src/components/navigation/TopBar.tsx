@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { closeWithHistory } from "@/hooks/useMobileNavigation";
 import { triggerHaptic } from "@/lib/haptics";
 import { offlineStorageService } from "@/services/offline-storage.service";
+import { Song } from "@/types/music";
 
 export default function TopBar() {
   const {
@@ -35,7 +36,7 @@ export default function TopBar() {
 
     triggerHaptic("medium");
     try {
-      const imported: any[] = [];
+      const imported: Song[] = [];
       for (const f of audioFiles) {
         const s = await offlineStorageService.importLocalFile(f);
         if (s) imported.push(s);

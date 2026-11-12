@@ -8,6 +8,7 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
 import { triggerHaptic } from "@/lib/haptics";
 import SongRow from "@/components/music/SongRow";
+import { Song } from "@/types/music";
 
 export default function HomeView() {
   const {
@@ -27,10 +28,18 @@ export default function HomeView() {
 
   const localTracks = offlineSongs.filter((s) => s.id.startsWith("local-") || s.isOfflineAvailable);
 
-  const [featuredImgError, setFeaturedImgError] = useState(false);
+  const [failedFeaturedImgId, setFailedFeaturedImgId] = useState<string | null>(null);
+  const featuredImgError = featuredSong ? failedFeaturedImgId === featuredSong.id : false;
   const [isImportingLocal, setIsImportingLocal] = useState(false);
   const deviceFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const folderInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const greeting = React.useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    return "Good evening";
+  }, []);
 
   const handleDeviceFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -42,7 +51,7 @@ export default function HomeView() {
     setIsImportingLocal(true);
     triggerHaptic("medium");
     try {
-      const imported: any[] = [];
+      const imported: Song[] = [];
       for (const f of audioFiles) {
         const s = await offlineStorageService.importLocalFile(f);
         if (s) imported.push(s);
@@ -64,7 +73,7 @@ export default function HomeView() {
       <div className="flex items-end justify-between gap-4 pt-1">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Your space, your sound</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Good evening</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{greeting}</h1>
         </div>
         {/* Hidden Device Audio Picker */}
         <input
@@ -144,7 +153,9 @@ export default function HomeView() {
                   fill
                   unoptimized
                   className="object-cover"
-                  onError={() => setFeaturedImgError(true)}
+                  onError={() => {
+                    if (featuredSong) setFailedFeaturedImgId(featuredSong.id);
+                  }}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-blue-400">

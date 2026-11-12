@@ -12,6 +12,7 @@ export default function GlobalAudioPlayer() {
   const hasRecordedHistoryRef = useRef(false);
   const accumulatedPlayTimeRef = useRef(0);
   const lastPlayTimeRef = useRef(0);
+  const playPromiseRef = useRef<Promise<void> | null>(null);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
   const queue = usePlayerStore((s) => s.queue);
@@ -132,7 +133,7 @@ export default function GlobalAudioPlayer() {
     return () => {
       isCancelled = true;
     };
-  }, [currentSong?.id, currentSong?.audioUrl, handleRecoverFromCache]);
+  }, [currentSong, handleRecoverFromCache]);
 
   // Queue changes should preload independently
   useEffect(() => {
@@ -147,16 +148,37 @@ export default function GlobalAudioPlayer() {
 
     if (isPlaying) {
       if (audio.paused) {
-        audio.play().catch((err) => {
-          console.warn("[Soundify] Play interrupted or blocked:", err);
-        });
+        const promise = audio.play();
+        playPromiseRef.current = promise;
+        promise
+          .catch((err) => {
+            if (err.name !== "AbortError") {
+              console.warn("[Soundify] Play blocked or failed:", err);
+            }
+            if (isPlayingRef.current) {
+              usePlayerStore.setState({ isPlaying: false });
+            }
+          })
+          .finally(() => {
+            if (playPromiseRef.current === promise) {
+              playPromiseRef.current = null;
+            }
+          });
       }
     } else {
-      if (!audio.paused) {
+      if (playPromiseRef.current) {
+        playPromiseRef.current
+          .then(() => {
+            if (!isPlayingRef.current && audio && !audio.paused) {
+              audio.pause();
+            }
+          })
+          .catch(() => {});
+      } else if (!audio.paused) {
         audio.pause();
       }
     }
-  }, [isPlaying, currentSong?.id]);
+  }, [isPlaying, currentSong]);
 
   // Synchronize volume and mute
   useEffect(() => {
@@ -345,6 +367,16 @@ export default function GlobalAudioPlayer() {
       ref={audioRef}
       id="soundify-audio-element"
       preload="auto"
+      onPlay={() => {
+        if (!usePlayerStore.getState().isPlaying) {
+          usePlayerStore.setState({ isPlaying: true });
+        }
+      }}
+      onPause={() => {
+        if (usePlayerStore.getState().isPlaying) {
+          usePlayerStore.setState({ isPlaying: false });
+        }
+      }}
       onTimeUpdate={() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -402,6 +434,9 @@ export default function GlobalAudioPlayer() {
         void handleRecoverFromCache();
       }}
       onError={() => {
+        if (isPlayingRef.current) {
+          usePlayerStore.setState({ isPlaying: false });
+        }
         void handleRecoverFromCache();
       }}
     />

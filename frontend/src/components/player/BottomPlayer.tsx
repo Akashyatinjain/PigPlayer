@@ -59,8 +59,14 @@ export default function BottomPlayer() {
     removeSongOffline,
   } = useLibrary();
 
-  const [desktopImgErr, setDesktopImgErr] = useState(false);
-  const [mobileImgErr, setMobileImgErr] = useState(false);
+  const [failedDesktopImgId, setFailedDesktopImgId] = useState<string | null>(null);
+  const [failedMobileImgId, setFailedMobileImgId] = useState<string | null>(null);
+  const [scrubState, setScrubState] = useState<{ songId: string; value: number } | null>(null);
+
+  const desktopImgErr = currentSong ? failedDesktopImgId === currentSong.id : false;
+  const mobileImgErr = currentSong ? failedMobileImgId === currentSong.id : false;
+  const isScrubbing = currentSong ? scrubState?.songId === currentSong.id : false;
+  const scrubValue = scrubState?.value || 0;
 
   const isCurrentSavedOffline = currentSong
     ? offlineSongIds.has(currentSong.id) || !!currentSong.isOfflineAvailable
@@ -122,7 +128,8 @@ export default function BottomPlayer() {
     );
   }
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const displayTime = isScrubbing ? scrubValue : currentTime;
+  const progressPercent = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -163,7 +170,7 @@ export default function BottomPlayer() {
               fill
               unoptimized
               className="object-cover"
-              onError={() => setMobileImgErr(true)}
+              onError={() => setFailedMobileImgId(currentSong.id)}
             />
           ) : (
             <span className="flex h-full items-center justify-center text-blue-400"><Music className="h-5 w-5" /></span>
@@ -239,7 +246,7 @@ export default function BottomPlayer() {
               fill
               unoptimized
               className="object-cover transition-transform duration-300 group-hover:scale-105"
-              onError={() => setDesktopImgErr(true)}
+              onError={() => setFailedDesktopImgId(currentSong.id)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-blue-400">
@@ -354,7 +361,7 @@ export default function BottomPlayer() {
         {/* Scrubber Time Bar */}
         <div className="w-full flex items-center gap-2 sm:gap-3 text-[11px] font-mono text-slate-400">
           <span className="w-10 text-right tabular-nums">
-            {formatDuration(currentTime)}
+            {formatDuration(displayTime)}
           </span>
 
           <div
@@ -378,8 +385,17 @@ export default function BottomPlayer() {
               min={0}
               max={duration || 0}
               step={0.1}
-              value={currentTime}
-              onChange={(e) => seek(parseFloat(e.target.value))}
+              value={displayTime}
+              onPointerDown={() => {
+                if (currentSong) setScrubState({ songId: currentSong.id, value: currentTime });
+              }}
+              onChange={(e) => {
+                if (currentSong) setScrubState({ songId: currentSong.id, value: parseFloat(e.target.value) });
+              }}
+              onPointerUp={(e) => {
+                setScrubState(null);
+                seek(parseFloat((e.target as HTMLInputElement).value));
+              }}
               className="player-seek w-full"
               style={
                 {

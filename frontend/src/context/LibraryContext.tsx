@@ -9,6 +9,7 @@ import { historyService } from "@/services/history.service";
 import { offlineStorageService } from "@/services/offline-storage.service";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { authService } from "@/services/auth.service";
+import { ExtractedAudioMetadata } from "@/lib/metadata/audioMetadata";
 
 export type LibraryTab = "home" | "songs" | "library" | "favorites" | "playlists" | "history" | "settings" | "offline";
 
@@ -46,7 +47,7 @@ interface LibraryContextType {
   refreshOfflineSongs: () => Promise<void>;
   saveSongOffline: (song: Song) => Promise<boolean>;
   removeSongOffline: (songId: string) => Promise<boolean>;
-  importLocalAudio: (file: File, meta?: any) => Promise<Song | null>;
+  importLocalAudio: (file: File, meta?: ExtractedAudioMetadata | null) => Promise<Song | null>;
   toggleFavorite: (songId: string) => Promise<boolean>;
   deleteSong: (songId: string) => Promise<boolean>;
   deleteAllSongs: () => Promise<boolean>;
@@ -246,7 +247,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
   const importLocalAudio = async (
     file: File,
-    meta?: any
+    meta?: ExtractedAudioMetadata | null
   ): Promise<Song | null> => {
     try {
       const newSong = await offlineStorageService.importLocalFile(file, meta);

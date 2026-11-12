@@ -7,6 +7,7 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore";
 import { offlineStorageService } from "@/services/offline-storage.service";
 import { triggerHaptic } from "@/lib/haptics";
 import SongRow from "@/components/music/SongRow";
+import { Song } from "@/types/music";
 
 type SortOption = "date" | "title" | "artist" | "duration";
 
@@ -30,7 +31,7 @@ export default function SongsView() {
 
     triggerHaptic("medium");
     try {
-      const imported: any[] = [];
+      const imported: Song[] = [];
       for (const f of audioFiles) {
         const s = await offlineStorageService.importLocalFile(f);
         if (s) imported.push(s);
@@ -92,7 +93,7 @@ export default function SongsView() {
     });
 
     return result;
-  }, [songs, searchQuery, sortBy]);
+  }, [songs, searchQuery, sortBy, filterType]);
 
   const handlePlayAll = () => {
     if (filteredAndSortedSongs.length > 0) {

@@ -48,7 +48,12 @@ export default function PlaylistModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
+    >
       <div className="mobile-safe-bottom max-h-[90dvh] w-full max-w-md overflow-y-auto bg-[#10141d] border border-[#232b38] text-[#f5f7fa] rounded-t-3xl md:rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 md:zoom-in-95 duration-200">
         {/* Mobile Top Drag Indicator */}
         <div

@@ -26,7 +26,12 @@ export default function ShortcutsModal() {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
+    >
       <div className="mobile-safe-bottom w-full max-w-sm bg-[#10141d] border border-[#232b38] rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 md:zoom-in-95 duration-200 text-[#f5f7fa]">
         {/* Mobile Drag Handle */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-2 md:hidden" />

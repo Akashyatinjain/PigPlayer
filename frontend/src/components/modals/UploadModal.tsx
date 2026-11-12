@@ -15,7 +15,6 @@ import {
   FileAudio,
   CheckCircle2,
   HardDriveDownload,
-  Zap,
 } from "lucide-react";
 import { useLibrary } from "@/context/LibraryContext";
 import { usePlayerStore } from "@/lib/store/usePlayerStore";
@@ -355,7 +354,12 @@ export default function UploadModal() {
   const totalSize = queue.reduce((acc, i) => acc + i.file.size, 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-150">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleCloseModal();
+      }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-150"
+    >
       <div className="mobile-safe-bottom w-full max-w-4xl bg-[#0d1015] border border-[#232a35] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top))] md:max-h-[92dvh] overflow-hidden text-[#f5f7fa]">
         
         {/* Mobile Drag Handle */}
