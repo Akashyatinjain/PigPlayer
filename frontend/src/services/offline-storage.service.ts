@@ -473,6 +473,10 @@ class OfflineStorageService {
                 URL.revokeObjectURL(cachedCover.url);
                 coverObjectUrlCache.delete(rec.id);
               }
+              // If stored coverUrl was a temporary blob URL from a past browser session, clear it
+              if (coverUrl && coverUrl.startsWith("blob:")) {
+                coverUrl = null;
+              }
             }
 
             return {

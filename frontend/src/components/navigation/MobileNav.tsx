@@ -15,7 +15,7 @@ export default function MobileNav() {
   ];
 
   return (
-    <nav suppressHydrationWarning aria-label="Main navigation" className="mobile-nav glass-nav lg:hidden shrink-0 px-3 pt-1 flex items-center justify-around z-40 mobile-safe-bottom">
+    <nav suppressHydrationWarning aria-label="Main navigation" className="mobile-nav glass-nav lg:hidden shrink-0 px-3 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0.75rem))] flex items-center justify-around z-40 border-t border-white/[0.06] bg-[#07090D]/95 shadow-2xl">
       {items.map(({ id, label, icon: Icon }) => {
         const isActive = id === "library"
           ? ["library", "favorites", "playlists", "history", "offline"].includes(activeTab)

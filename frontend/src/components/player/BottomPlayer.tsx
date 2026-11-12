@@ -211,10 +211,10 @@ export default function BottomPlayer() {
             triggerHaptic("medium");
             togglePlayPause();
           }}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 active:scale-95 transition-transform shadow-md"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF4D80] hover:bg-[#FF6694] active:scale-95 text-white transition-transform shadow-lg shadow-[#FF4D80]/25"
           aria-label={isPlaying ? "Pause" : "Play"}
         >
-          {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current translate-x-0.5" />}
+          {isPlaying ? <Pause className="h-4 w-4 fill-current text-white" /> : <Play className="h-4 w-4 fill-current text-white translate-x-0.5" />}
         </button>
 
         {/* Next Track Button on Mobile Mini Bar */}

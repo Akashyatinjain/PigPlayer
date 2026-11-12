@@ -274,38 +274,56 @@ export default function PlaylistsView() {
 
         {/* Existing Playlists */}
         {playlists.map((pl) => (
-          <div
+          <PlaylistCardItem
             key={pl.id}
-            onClick={() => {
+            playlist={pl}
+            onSelect={() => {
               triggerHaptic("light");
               setSelectedPlaylistId(pl.id);
             }}
-            className="group p-3 sm:p-3.5 rounded-2xl bg-[#0E121A] hover:bg-[#131822] border border-white/[0.08] hover:border-[#FF4D80]/40 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 shadow-xs hover:shadow-md active:scale-[0.98]"
-          >
-            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/[0.06] flex items-center justify-center border border-white/[0.08]">
-              {pl.coverUrl ? (
-                <Image
-                  src={pl.coverUrl}
-                  alt={pl.name}
-                  fill
-                  unoptimized
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
-              ) : (
-                <Library className="w-10 h-10 text-[#64748B] group-hover:text-[#FF4D80] transition-colors" />
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <h3 className="text-xs font-bold text-white truncate group-hover:text-[#FF4D80] transition-colors">
-                {pl.name}
-              </h3>
-              <p className="text-[11px] text-[#94A3B8] truncate">
-                {pl._count?.songs ?? 0} tracks
-              </p>
-            </div>
-          </div>
+          />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function PlaylistCardItem({
+  playlist,
+  onSelect,
+}: {
+  playlist: import("@/types/music").Playlist;
+  onSelect: () => void;
+}) {
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <div
+      onClick={onSelect}
+      className="group p-3 sm:p-3.5 rounded-2xl bg-[#0E121A] hover:bg-[#131822] border border-white/[0.08] hover:border-[#FF4D80]/40 transition-all cursor-pointer flex flex-col gap-2.5 sm:gap-3 shadow-xs hover:shadow-md active:scale-[0.98]"
+    >
+      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-white/[0.06] flex items-center justify-center border border-white/[0.08]">
+        {playlist.coverUrl && !imgErr ? (
+          <Image
+            src={playlist.coverUrl}
+            alt={playlist.name}
+            fill
+            unoptimized
+            className="object-cover group-hover:scale-105 transition-transform"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <Library className="w-10 h-10 text-[#64748B] group-hover:text-[#FF4D80] transition-colors" />
+        )}
+      </div>
+
+      <div className="min-w-0">
+        <h3 className="text-xs font-bold text-white truncate group-hover:text-[#FF4D80] transition-colors">
+          {playlist.name}
+        </h3>
+        <p className="text-[11px] text-[#94A3B8] truncate">
+          {playlist._count?.songs ?? 0} tracks
+        </p>
       </div>
     </div>
   );

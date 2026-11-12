@@ -91,24 +91,14 @@ export default function LibraryView() {
         playlists.length ? (
           <div className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A]">
             {playlists.map((playlist) => (
-              <button
+              <LibraryPlaylistRow
                 key={playlist.id}
-                type="button"
-                onClick={() => {
+                playlist={playlist}
+                onSelect={() => {
                   setSelectedPlaylistId(playlist.id);
                   setActiveTab("playlists");
                 }}
-                className="flex min-h-[4.5rem] w-full items-center gap-3 px-3 text-left transition-colors hover:bg-white/[0.04]"
-              >
-                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[0.06] text-[#64748B]">
-                  {playlist.coverUrl ? <Image src={playlist.coverUrl} alt="" fill unoptimized className="object-cover" /> : <ListMusic className="h-5 w-5" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-white">{playlist.name}</span>
-                  <span className="block text-xs text-[#94A3B8]">{playlist._count?.songs ?? 0} songs</span>
-                </span>
-                <Library className="h-4 w-4 text-[#64748B]" />
-              </button>
+              />
             ))}
           </div>
         ) : (
@@ -141,5 +131,43 @@ function EmptyCollection({ icon, title, description }: { icon: React.ReactNode; 
       <h2 className="mt-4 text-base font-semibold text-white">{title}</h2>
       <p className="mx-auto mt-1 max-w-xs text-sm text-[#94A3B8]">{description}</p>
     </div>
+  );
+}
+
+function LibraryPlaylistRow({
+  playlist,
+  onSelect,
+}: {
+  playlist: import("@/types/music").Playlist;
+  onSelect: () => void;
+}) {
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex min-h-[4.5rem] w-full items-center gap-3 px-3 text-left transition-colors hover:bg-white/[0.04]"
+    >
+      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[0.06] text-[#64748B]">
+        {playlist.coverUrl && !imgErr ? (
+          <Image
+            src={playlist.coverUrl}
+            alt=""
+            fill
+            unoptimized
+            className="object-cover"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <ListMusic className="h-5 w-5" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-white">{playlist.name}</span>
+        <span className="block text-xs text-[#94A3B8]">{playlist._count?.songs ?? 0} songs</span>
+      </span>
+      <Library className="h-4 w-4 text-[#64748B]" />
+    </button>
   );
 }

@@ -196,29 +196,31 @@ export default function HomeView() {
 
       {/* 📁 Device Local Storage Section (Directly visible on Home) */}
       <section className="space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
               <HardDriveDownload className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold tracking-tight text-white">Device Local Storage</h2>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white whitespace-nowrap">
+                  Device Local Storage
+                </h2>
+                <span className="whitespace-nowrap px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/30">
                   No Upload
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">
+              <p className="text-xs text-[#94A3B8] font-medium truncate">
                 {localTracks.length > 0 ? `${localTracks.length} tracks stored locally on this device` : "Play audio directly from your device storage"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => folderInputRef.current?.click()}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-[#94A3B8] hover:text-white transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-[#94A3B8] hover:text-white transition-colors whitespace-nowrap"
               title="Import an entire folder of music from your device"
             >
               <FolderPlus className="w-3.5 h-3.5 text-[#FF4D80]" />
@@ -228,7 +230,7 @@ export default function HomeView() {
             <button
               type="button"
               onClick={() => deviceFileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-xs font-semibold text-emerald-300 transition-colors"
+              className="whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-xs font-semibold text-emerald-300 transition-colors shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{localTracks.length > 0 ? "Add More" : "Pick Songs"}</span>
@@ -240,37 +242,12 @@ export default function HomeView() {
         {localTracks.length > 0 ? (
           <div className="horizontal-rail">
             {localTracks.map((song) => (
-              <button
+              <DeviceTrackCard
                 key={song.id}
-                type="button"
-                onClick={() => playSong(song, localTracks)}
-                className="group w-36 shrink-0 snap-start text-left sm:w-44"
-              >
-                <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-emerald-500/20 group-hover:border-emerald-400/50 transition-colors shadow-sm">
-                  {song.coverUrl ? (
-                    <Image
-                      src={song.coverUrl}
-                      alt=""
-                      fill
-                      unoptimized
-                      className="object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    <span className="flex h-full items-center justify-center text-emerald-400/60 bg-emerald-950/20">
-                      <Music2 className="h-8 w-8" />
-                    </span>
-                  )}
-                  <span className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
-                  </span>
-                </span>
-                <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
-                  {song.title}
-                </span>
-                <span className="mt-0.5 block truncate text-xs text-[#94A3B8]">
-                  {song.artist}
-                </span>
-              </button>
+                song={song}
+                localTracks={localTracks}
+                playSong={playSong}
+              />
             ))}
           </div>
         ) : (
@@ -321,13 +298,14 @@ export default function HomeView() {
           </div>
           <div className="horizontal-rail">
             {playlists.map((playlist) => (
-              <button key={playlist.id} type="button" onClick={() => { setSelectedPlaylistId(playlist.id); setActiveTab("playlists"); }} className="group w-36 shrink-0 snap-start text-left sm:w-44">
-                <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-white/[0.08]">
-                  {playlist.coverUrl ? <Image src={playlist.coverUrl} alt="" fill unoptimized className="object-cover transition-transform duration-200 group-hover:scale-[1.03]" /> : <span className="flex h-full items-center justify-center text-[#64748B]"><Disc3 className="h-8 w-8" /></span>}
-                </span>
-                <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-[#FF4D80] transition-colors">{playlist.name}</span>
-                <span className="mt-0.5 block text-xs text-[#94A3B8]">{playlist._count?.songs ?? 0} songs</span>
-              </button>
+              <HomePlaylistCard
+                key={playlist.id}
+                playlist={playlist}
+                onSelect={() => {
+                  setSelectedPlaylistId(playlist.id);
+                  setActiveTab("playlists");
+                }}
+              />
             ))}
           </div>
         </section>
@@ -405,6 +383,93 @@ function RailCard({
       </span>
       <span className="mt-2 block truncate text-sm font-semibold text-white group-hover:text-[#FF4D80] transition-colors">{song.title}</span>
       <span className="mt-0.5 block truncate text-xs text-[#94A3B8]">{song.artist}</span>
+    </button>
+  );
+}
+
+function DeviceTrackCard({
+  song,
+  localTracks,
+  playSong,
+}: {
+  song: import("@/types/music").Song;
+  localTracks: import("@/types/music").Song[];
+  playSong: (song: import("@/types/music").Song, queue?: import("@/types/music").Song[]) => void;
+}) {
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => playSong(song, localTracks)}
+      className="group w-36 shrink-0 snap-start text-left sm:w-44"
+    >
+      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-emerald-500/20 group-hover:border-emerald-400/50 transition-colors shadow-sm">
+        {song.coverUrl && !imgErr ? (
+          <Image
+            src={song.coverUrl}
+            alt=""
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <span className="flex h-full items-center justify-center text-emerald-400/60 bg-emerald-950/20">
+            <Music2 className="h-8 w-8" />
+          </span>
+        )}
+        <span className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-emerald-500 text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+          <Play className="w-4 h-4 fill-current ml-0.5" />
+        </span>
+      </span>
+      <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
+        {song.title}
+      </span>
+      <span className="mt-0.5 block truncate text-xs text-[#94A3B8]">
+        {song.artist}
+      </span>
+    </button>
+  );
+}
+
+function HomePlaylistCard({
+  playlist,
+  onSelect,
+}: {
+  playlist: import("@/types/music").Playlist;
+  onSelect: () => void;
+}) {
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="group w-36 shrink-0 snap-start text-left sm:w-44"
+    >
+      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-white/[0.08]">
+        {playlist.coverUrl && !imgErr ? (
+          <Image
+            src={playlist.coverUrl}
+            alt=""
+            fill
+            unoptimized
+            className="object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <span className="flex h-full items-center justify-center text-[#64748B]">
+            <Disc3 className="h-8 w-8" />
+          </span>
+        )}
+      </span>
+      <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-[#FF4D80] transition-colors">
+        {playlist.name}
+      </span>
+      <span className="mt-0.5 block text-xs text-[#94A3B8]">
+        {playlist._count?.songs ?? 0} songs
+      </span>
     </button>
   );
 }
