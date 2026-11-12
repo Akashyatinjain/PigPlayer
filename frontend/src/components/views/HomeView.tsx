@@ -169,7 +169,14 @@ export default function HomeView() {
               <p className="mt-1 truncate text-sm text-[#94A3B8]">{featuredSong.artist}</p>
               <button
                 type="button"
-                onClick={() => currentSong?.id === featuredSong.id ? togglePlayPause() : playSong(featuredSong, songs)}
+                onClick={() => {
+                  if (currentSong?.id === featuredSong.id) {
+                    togglePlayPause();
+                  } else {
+                    const fallbackQueue = songs.length > 0 ? songs : (localTracks.length > 0 ? localTracks : [featuredSong]);
+                    playSong(featuredSong, fallbackQueue);
+                  }
+                }}
                 className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#FF4D80] px-5 text-sm font-semibold text-white transition-all hover:bg-[#FF6694] shadow-lg shadow-[#FF4D80]/25 active:scale-[0.98]"
               >
                 {currentSong?.id === featuredSong.id && isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}

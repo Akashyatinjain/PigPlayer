@@ -150,8 +150,8 @@ export default function BottomPlayer() {
       onTouchEnd={handleMiniTouchEnd}
       className="lg:hidden shrink-0 relative flex h-[4.1rem] mx-2 mb-1.5 rounded-2xl items-center gap-2.5 border border-white/[0.1] bg-[#0E121A]/95 glass-player px-3 shadow-2xl overflow-hidden select-none"
     >
-      <div className="absolute inset-x-0 top-0 h-[2.5px] bg-white/5">
-        <div className="h-full bg-[#3B82F6] shadow-sm shadow-[#3B82F6]/50" style={{ width: `${progressPercent}%` }} />
+      <div className="absolute inset-x-0 top-0 h-[2.5px] bg-white/[0.08]">
+        <div className="h-full bg-[#FF4D80] shadow-sm shadow-[#FF4D80]/60 transition-all duration-150" style={{ width: `${progressPercent}%` }} />
       </div>
       <button
         type="button"
@@ -177,7 +177,14 @@ export default function BottomPlayer() {
           )}
         </span>
         <span className="min-w-0 flex-1 pr-1">
-          <span className="block truncate text-xs sm:text-sm font-semibold text-white leading-tight">{currentSong.title}</span>
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate text-xs sm:text-sm font-semibold text-white leading-tight">{currentSong.title}</span>
+            {isPlaying && (
+              <span className="playing-bars text-[#FF4D80] shrink-0 scale-75 origin-left inline-flex" title="Playing">
+                <i /><i /><i />
+              </span>
+            )}
+          </span>
           <span className="block truncate text-[11px] text-[#94A3B8] leading-tight mt-0.5">{currentSong.artist}</span>
         </span>
       </button>

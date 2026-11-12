@@ -301,15 +301,19 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={`Shuffle ${isShuffle ? "on" : "off"}`}
+            aria-pressed={isShuffle}
             onClick={() => {
               triggerHaptic("light");
               toggleShuffle();
             }}
-            className={`flex h-10 w-10 items-center justify-center transition-colors ${
-              isShuffle ? "text-[#FF4D80]" : "text-[#94A3B8]"
+            className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+              isShuffle ? "text-[#FF4D80] font-bold" : "text-[#94A3B8] hover:text-white"
             }`}
           >
             <Shuffle className="w-5 h-5" />
+            {isShuffle && (
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#FF4D80] shadow-sm shadow-[#FF4D80]" />
+            )}
           </button>
 
           <button
@@ -334,9 +338,9 @@ export default function MobileFullPlayer() {
             className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FF4D80] hover:bg-[#FF6694] text-white flex items-center justify-center shadow-xl shadow-[#FF4D80]/30 active:scale-95 transition-all"
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
+              <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current text-white" />
             ) : (
-              <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current translate-x-0.5" />
+              <Play className="w-6 h-6 sm:w-7 sm:h-7 fill-current text-white translate-x-0.5" />
             )}
           </button>
 
@@ -355,18 +359,22 @@ export default function MobileFullPlayer() {
           <button
             type="button"
             aria-label={`Repeat ${repeatMode}`}
+            aria-pressed={repeatMode !== "off"}
             onClick={() => {
               triggerHaptic("light");
               cycleRepeat();
             }}
-            className={`flex h-10 w-10 items-center justify-center transition-colors ${
-              repeatMode !== "off" ? "text-[#FF4D80]" : "text-[#94A3B8]"
+            className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
+              repeatMode !== "off" ? "text-[#FF4D80] font-bold" : "text-[#94A3B8] hover:text-white"
             }`}
           >
             {repeatMode === "one" ? (
               <Repeat1 className="w-5 h-5" />
             ) : (
               <Repeat className="w-5 h-5" />
+            )}
+            {repeatMode !== "off" && (
+              <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#FF4D80] shadow-sm shadow-[#FF4D80]" />
             )}
           </button>
         </div>

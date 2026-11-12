@@ -23,12 +23,8 @@ export default function GlobalAudioPlayer() {
   const repeatMode = usePlayerStore((s) => s.repeatMode);
   const seekTarget = usePlayerStore((s) => s.seekTarget);
 
-  const nextSong = usePlayerStore((s) => s.nextSong);
-  const prevSong = usePlayerStore((s) => s.prevSong);
-  const togglePlayPause = usePlayerStore((s) => s.togglePlayPause);
   const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
   const setDuration = usePlayerStore((s) => s.setDuration);
-  const seek = usePlayerStore((s) => s.seek);
   const clearSeekTarget = usePlayerStore((s) => s.clearSeekTarget);
 
   const currentSongRef = useRef(currentSong);
@@ -84,8 +80,12 @@ export default function GlobalAudioPlayer() {
       accumulatedPlayTimeRef.current = 0;
       lastPlayTimeRef.current = 0;
 
-      // If same song is already loaded, avoid resetting buffer and time
+      // If same song is already loaded, avoid resetting buffer and time unless restarting
       if (loadedSongIdRef.current === song.id && audio.src) {
+        if (audio.ended || (isPlayingRef.current && audio.paused)) {
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        }
         return;
       }
 
@@ -244,69 +244,75 @@ export default function GlobalAudioPlayer() {
       // Synchronize notification bar play/pause state
       navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
 
-      // Native action handlers
-      navigator.mediaSession.setActionHandler("play", () => togglePlayPause());
-      navigator.mediaSession.setActionHandler("pause", () => togglePlayPause());
-      navigator.mediaSession.setActionHandler("previoustrack", () => prevSong());
-      navigator.mediaSession.setActionHandler("nexttrack", () => nextSong());
-      navigator.mediaSession.setActionHandler("seekto", (details) => {
-        if (details.seekTime !== undefined) {
-          seek(details.seekTime);
-        }
-      });
-      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-        const offset = details.seekOffset || 10;
-        const audio = audioRef.current;
-        if (audio) seek(Math.max(audio.currentTime - offset, 0));
-      });
-      navigator.mediaSession.setActionHandler("seekforward", (details) => {
-        const offset = details.seekOffset || 10;
-        const audio = audioRef.current;
-        if (audio) seek(Math.min(audio.currentTime + offset, audio.duration || 0));
-      });
-      navigator.mediaSession.setActionHandler("stop", () => {
-        const audio = audioRef.current;
-        if (audio) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
-      });
+      // Native action handlers for Android Notification Drawer & iOS Lock Screen
+      try {
+        navigator.mediaSession.setActionHandler("play", async () => {
+          const audio = audioRef.current;
+          if (audio && audio.paused) {
+            try { await audio.play(); } catch {}
+          }
+          usePlayerStore.getState().resume();
+        });
 
-      // Status Bar Notification
-      if ("Notification" in window) {
-        const showNotif = () => {
-          try {
-            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-              navigator.serviceWorker.ready.then((reg) => {
-                reg.showNotification(currentSong.title, {
-                  body: `${currentSong.artist}${currentSong.album ? ` • ${currentSong.album}` : ""}`,
-                  icon: artworkUrl,
-                  badge: defaultLogo,
-                  tag: "soundify-now-playing",
-                  silent: true,
-                }).catch(() => {});
-              }).catch(() => {});
-            } else {
-              new Notification(currentSong.title, {
-                body: `${currentSong.artist}${currentSong.album ? ` • ${currentSong.album}` : ""}`,
-                icon: artworkUrl,
-                tag: "soundify-now-playing",
-                silent: true,
-              });
-            }
-          } catch {}
-        };
+        navigator.mediaSession.setActionHandler("pause", () => {
+          const audio = audioRef.current;
+          if (audio && !audio.paused) {
+            audio.pause();
+          }
+          usePlayerStore.getState().pause();
+        });
 
-        if (Notification.permission === "granted") {
-          showNotif();
-        } else if (Notification.permission === "default") {
-          Notification.requestPermission().then((p) => {
-            if (p === "granted") showNotif();
-          }).catch(() => {});
-        }
+        navigator.mediaSession.setActionHandler("previoustrack", () => {
+          usePlayerStore.getState().prevSong();
+        });
+
+        navigator.mediaSession.setActionHandler("nexttrack", () => {
+          usePlayerStore.getState().nextSong();
+        });
+
+        navigator.mediaSession.setActionHandler("seekto", (details) => {
+          if (details.seekTime !== undefined) {
+            const audio = audioRef.current;
+            if (audio) audio.currentTime = details.seekTime;
+            usePlayerStore.getState().seek(details.seekTime);
+          }
+        });
+
+        navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+          const offset = details.seekOffset || 10;
+          const audio = audioRef.current;
+          if (audio) {
+            const newTime = Math.max(0, audio.currentTime - offset);
+            audio.currentTime = newTime;
+            usePlayerStore.getState().seek(newTime);
+          }
+        });
+
+        navigator.mediaSession.setActionHandler("seekforward", (details) => {
+          const offset = details.seekOffset || 10;
+          const audio = audioRef.current;
+          if (audio) {
+            const newTime = Math.min(audio.duration || 0, audio.currentTime + offset);
+            audio.currentTime = newTime;
+            usePlayerStore.getState().seek(newTime);
+          }
+        });
+
+        navigator.mediaSession.setActionHandler("stop", () => {
+          const audio = audioRef.current;
+          if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+          }
+          usePlayerStore.getState().pause();
+        });
+      } catch (err) {
+        console.warn("[piGGyPlayer] mediaSession action registration:", err);
       }
+    } else {
+      navigator.mediaSession.playbackState = "none";
     }
-  }, [currentSong, isPlaying, togglePlayPause, prevSong, nextSong, seek]);
+  }, [currentSong, isPlaying]);
 
   // Global Keyboard Shortcuts (uses getState to prevent listener rebuild churn)
   useEffect(() => {
@@ -368,13 +374,52 @@ export default function GlobalAudioPlayer() {
       id="soundify-audio-element"
       preload="auto"
       onPlay={() => {
+        if (typeof window !== "undefined" && "mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "playing";
+        }
         if (!usePlayerStore.getState().isPlaying) {
           usePlayerStore.setState({ isPlaying: true });
         }
       }}
       onPause={() => {
+        if (typeof window !== "undefined" && "mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "paused";
+        }
         if (usePlayerStore.getState().isPlaying) {
           usePlayerStore.setState({ isPlaying: false });
+        }
+      }}
+      onLoadedMetadata={() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const dur = audio.duration;
+        if (Number.isFinite(dur) && dur > 0) {
+          setDuration(dur);
+          if (typeof window !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: dur,
+                playbackRate: audio.playbackRate || 1,
+                position: audio.currentTime || 0,
+              });
+            } catch {}
+          }
+        }
+      }}
+      onSeeked={() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        if (typeof window !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+          const dur = audio.duration;
+          if (Number.isFinite(dur) && dur > 0) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: dur,
+                playbackRate: audio.playbackRate || 1,
+                position: Math.min(audio.currentTime, dur),
+              });
+            } catch {}
+          }
         }
       }}
       onTimeUpdate={() => {
@@ -383,9 +428,9 @@ export default function GlobalAudioPlayer() {
         setCurrentTime(audio.currentTime);
 
         // Synchronize notification seekbar position
-        if ("mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+        if (typeof window !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
           const dur = audio.duration;
-          if (!isNaN(dur) && dur > 0) {
+          if (Number.isFinite(dur) && dur > 0) {
             try {
               navigator.mediaSession.setPositionState({
                 duration: dur,
@@ -408,10 +453,20 @@ export default function GlobalAudioPlayer() {
         }
       }}
       onDurationChange={() => {
-        if (!audioRef.current) return;
-        const dur = audioRef.current.duration;
-        if (!isNaN(dur) && dur > 0) {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const dur = audio.duration;
+        if (Number.isFinite(dur) && dur > 0) {
           setDuration(dur);
+          if (typeof window !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
+            try {
+              navigator.mediaSession.setPositionState({
+                duration: dur,
+                playbackRate: audio.playbackRate || 1,
+                position: Math.min(audio.currentTime, dur),
+              });
+            } catch {}
+          }
         }
       }}
       onEnded={() => {
@@ -419,7 +474,8 @@ export default function GlobalAudioPlayer() {
           recordPlayHistory(currentSongRef.current.id);
         }
 
-        if (repeatMode === "one") {
+        const state = usePlayerStore.getState();
+        if (state.repeatMode === "one" || (state.repeatMode === "all" && state.queue.length <= 1)) {
           const audio = audioRef.current;
           if (audio) {
             audio.currentTime = 0;
@@ -427,7 +483,7 @@ export default function GlobalAudioPlayer() {
             audio.play().catch(() => {});
           }
         } else {
-          nextSong();
+          state.nextSong();
         }
       }}
       onStalled={() => {
