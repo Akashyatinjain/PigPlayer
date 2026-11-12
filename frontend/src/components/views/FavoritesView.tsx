@@ -25,21 +25,21 @@ export default function FavoritesView() {
   };
 
   return (
-    <div className="space-y-6 pb-12 text-[#f5f7fa]">
+    <div className="space-y-6 pb-12 text-[#F8FAFC]">
       {/* Banner */}
-      <div className="p-5 sm:p-8 rounded-2xl bg-[#0d1015] border border-[#232b35] flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 shadow-md">
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 shrink-0 shadow-md">
+      <div className="p-5 sm:p-8 rounded-2xl bg-[#0E121A] border border-white/[0.08] flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 shadow-xl">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#FF4D80]/10 border border-[#FF4D80]/20 flex items-center justify-center text-[#FF4D80] shrink-0 shadow-md">
           <Heart className="w-10 h-10 fill-current" />
         </div>
 
         <div className="text-center sm:text-left flex-1 space-y-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-rose-400">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#FF4D80]">
             Your collection
           </p>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
             Liked Songs
           </h1>
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-xs text-[#94A3B8] font-medium">
             {favorites.length} {favorites.length === 1 ? "track" : "tracks"} •{" "}
             {formatDuration(totalDuration)} total listening time
           </p>
@@ -48,14 +48,14 @@ export default function FavoritesView() {
             <div className="pt-2.5 flex items-center justify-center sm:justify-start gap-2.5">
               <button
                 onClick={handlePlayAll}
-                className="flex min-h-10 sm:min-h-11 items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-500/25 active:scale-95"
+                className="flex min-h-10 sm:min-h-11 items-center gap-2 px-5 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-white text-xs font-bold rounded-full transition-all shadow-lg shadow-[#FF4D80]/25 active:scale-95"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
               </button>
               <button
                 onClick={handleShufflePlay}
-                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-4 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all shadow-xs active:scale-95"
+                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-4 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-semibold text-[#94A3B8] hover:text-white rounded-full transition-all shadow-xs active:scale-95"
               >
                 <Shuffle className="w-3.5 h-3.5" />
                 <span>Shuffle</span>
@@ -67,21 +67,21 @@ export default function FavoritesView() {
 
       {/* Tracks List */}
       {favorites.length === 0 ? (
-        <div className="text-center py-14 space-y-3 bg-[#0d1015] rounded-2xl border border-[#232b35] p-6 sm:p-8 shadow-xs">
-          <Heart className="w-10 h-10 text-slate-500 mx-auto stroke-[1.5]" />
+        <div className="text-center py-14 space-y-3 bg-[#0E121A] rounded-2xl border border-white/[0.08] p-6 sm:p-8 shadow-xs">
+          <Heart className="w-10 h-10 text-[#64748B] mx-auto stroke-[1.5]" />
           <h2 className="text-base font-bold text-white">No favorites yet</h2>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
             Click the heart icon on any track in your library to keep your favorite songs right here.
           </p>
           <button
             onClick={() => setActiveTab("songs")}
-            className="min-h-10 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-full transition-all shadow-xs active:scale-95"
+            className="min-h-10 px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-xs font-semibold text-white rounded-full transition-all shadow-md shadow-[#FF4D80]/25 active:scale-95"
           >
             Explore Library
           </button>
         </div>
       ) : (
-        <div className="bg-[#0d1015] p-2 rounded-2xl border border-[#232b35] shadow-xs space-y-1">
+        <div className="bg-[#0E121A] p-2 rounded-2xl border border-white/[0.08] shadow-xs space-y-1">
           {favorites.map((song, idx) => (
             <SongRow
               key={song.id}

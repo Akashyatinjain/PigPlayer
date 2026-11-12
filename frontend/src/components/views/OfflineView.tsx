@@ -114,11 +114,11 @@ export default function OfflineView() {
       />
 
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-slate-900 via-blue-950 to-slate-900 border border-slate-800 p-6 sm:p-8 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#07090D] via-[#0E121A] to-[#07090D] border border-white/[0.08] p-6 sm:p-8 text-white shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-blue-500/20 text-blue-300 border border-blue-400/30 backdrop-blur-sm">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 backdrop-blur-sm">
                 <HardDriveDownload className="w-3.5 h-3.5" />
                 Device Storage
               </span>
@@ -137,12 +137,12 @@ export default function OfflineView() {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Device Local Storage
             </h1>
-            <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
+            <p className="text-sm text-[#94A3B8] max-w-xl leading-relaxed">
               Songs saved directly into your device&apos;s browser memory (IndexedDB).
               Play, search, and enjoy them anytime with zero internet connection.
             </p>
 
-            <div className="flex items-center gap-4 pt-1 text-xs text-slate-400 font-mono">
+            <div className="flex items-center gap-4 pt-1 text-xs text-[#64748B] font-mono">
               <span>{offlineSongs.length} tracks saved</span>
               <span>•</span>
               <span>{formatBytes(storageInfo.usedBytes)} used</span>
@@ -155,7 +155,7 @@ export default function OfflineView() {
               <button
                 type="button"
                 onClick={handlePlayAll}
-                className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-lg shadow-blue-600/30"
+                className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-[#FF4D80] hover:bg-[#FF6694] text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-lg shadow-[#FF4D80]/25"
               >
                 <Play className="w-4 h-4 fill-current" />
                 Play Offline
@@ -166,10 +166,10 @@ export default function OfflineView() {
               type="button"
               disabled={isImporting}
               onClick={() => folderInputRef.current?.click()}
-              className="hidden sm:flex min-h-10 sm:min-h-11 items-center gap-2 px-3.5 py-2 rounded-xl bg-[#141922] hover:bg-[#1a212c] text-slate-200 border border-[#232b35] font-medium text-xs sm:text-sm transition-colors active:scale-95"
+              className="hidden sm:flex min-h-10 sm:min-h-11 items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[#94A3B8] hover:text-white border border-white/[0.08] font-medium text-xs sm:text-sm transition-colors active:scale-95"
               title="Import an entire folder from this device"
             >
-              <FolderPlus className="w-4 h-4 text-blue-400" />
+              <FolderPlus className="w-4 h-4 text-[#FF4D80]" />
               <span>Import Folder</span>
             </button>
 
@@ -188,7 +188,7 @@ export default function OfflineView() {
               <button
                 type="button"
                 onClick={handleClearAll}
-                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-[#141922] hover:bg-rose-900/40 text-slate-400 hover:text-rose-300 border border-[#232b35] transition-colors active:scale-95"
+                className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-white/[0.06] hover:bg-rose-900/40 text-[#94A3B8] hover:text-rose-300 border border-white/[0.08] transition-colors active:scale-95"
                 title="Clear all offline songs from device"
               >
                 <Trash2 className="w-4 h-4" />
@@ -198,33 +198,33 @@ export default function OfflineView() {
         </div>
 
         {/* Decorative background glow */}
-        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
       </div>
 
       {/* Search Bar */}
       {offlineSongs.length > 0 && (
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search your offline songs..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#141922] border border-[#232b35] text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 shadow-xs"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-sm text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#FF4D80] shadow-xs"
           />
         </div>
       )}
 
       {/* Song List or Empty State */}
       {offlineSongs.length === 0 ? (
-        <div className="rounded-3xl border border-[#232b35] bg-[#0d1015] p-6 sm:p-12 text-center shadow-xs text-[#f5f7fa]">
+        <div className="rounded-3xl border border-white/[0.08] bg-[#0E121A] p-6 sm:p-12 text-center shadow-xs text-[#F8FAFC]">
           <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center justify-center mb-4">
             <HardDriveDownload className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
           <h2 className="text-lg font-bold text-white">
             No offline songs stored yet
           </h2>
-          <p className="mt-2 text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+          <p className="mt-2 text-xs sm:text-sm text-[#94A3B8] max-w-md mx-auto leading-relaxed">
             Save any song by clicking the menu on a track, or import audio files
             directly from your mobile/computer storage to play offline anytime with zero upload.
           </p>
@@ -233,7 +233,7 @@ export default function OfflineView() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-md shadow-blue-500/20"
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-[#FF4D80] hover:bg-[#FF6694] text-white font-semibold text-xs sm:text-sm transition-transform active:scale-95 shadow-md shadow-[#FF4D80]/20"
             >
               <Upload className="w-4 h-4" />
               Pick Audio Files
@@ -241,7 +241,7 @@ export default function OfflineView() {
             <button
               type="button"
               onClick={() => setActiveTab("songs")}
-              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-[#141922] hover:bg-[#1a212c] text-slate-300 font-medium text-xs sm:text-sm border border-[#232b35] transition-colors active:scale-95"
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-[#94A3B8] hover:text-white font-medium text-xs sm:text-sm border border-white/[0.08] transition-colors active:scale-95"
             >
               <Music2 className="w-4 h-4" />
               Browse Library
@@ -249,13 +249,13 @@ export default function OfflineView() {
           </div>
         </div>
       ) : filteredSongs.length === 0 ? (
-        <div className="rounded-2xl border border-[#232b35] bg-[#0d1015] p-8 text-center text-slate-400">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#0E121A] p-8 text-center text-[#94A3B8]">
           <p className="text-sm">
             No offline songs match &ldquo;{searchQuery}&rdquo;.
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-[#1f2631] overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015] shadow-xs">
+        <div className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A] shadow-xs">
           {filteredSongs.map((song, index) => (
             <SongRow
               key={song.id}

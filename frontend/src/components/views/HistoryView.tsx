@@ -12,32 +12,32 @@ export default function HistoryView() {
   const { currentSong, isPlaying, playSong, togglePlayPause } = usePlayerStore();
 
   return (
-    <div className="space-y-6 pb-12 text-[#f5f7fa]">
-      <div className="border-b border-[#232b35] pb-5">
+    <div className="space-y-6 pb-12 text-[#F8FAFC]">
+      <div className="border-b border-white/[0.06] pb-5">
         <h1 className="text-2xl font-extrabold text-white tracking-tight">
           Listening History
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5 font-medium">
+        <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">
           Timeline of tracks you have enjoyed recently
         </p>
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center py-14 space-y-3 bg-[#0d1015] rounded-2xl border border-[#232b35] p-6 sm:p-8 shadow-xs">
-          <History className="w-10 h-10 text-slate-500 mx-auto stroke-[1.5]" />
+        <div className="text-center py-14 space-y-3 bg-[#0E121A] rounded-2xl border border-white/[0.08] p-6 sm:p-8 shadow-xs">
+          <History className="w-10 h-10 text-[#64748B] mx-auto stroke-[1.5]" />
           <h2 className="text-base font-bold text-white">No history yet</h2>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
             As you listen to songs, your history will automatically record here.
           </p>
           <button
             onClick={() => setActiveTab("songs")}
-            className="min-h-10 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-full transition-all shadow-xs active:scale-95"
+            className="min-h-10 px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-xs font-semibold text-white rounded-full transition-all shadow-md shadow-[#FF4D80]/25 active:scale-95"
           >
             Start Listening
           </button>
         </div>
       ) : (
-        <div className="bg-[#0d1015] p-2 rounded-2xl border border-[#232b35] shadow-xs space-y-1">
+        <div className="bg-[#0E121A] p-2 rounded-2xl border border-white/[0.08] shadow-xs space-y-1">
           {history.map((item, idx) => {
             const isCurrent = currentSong?.id === item.song.id;
             return (
@@ -52,13 +52,13 @@ export default function HistoryView() {
                 }}
                 className={`group flex items-center justify-between px-3 sm:px-4 py-2.5 rounded-xl cursor-pointer transition-all ${
                   isCurrent
-                    ? "bg-blue-600/15 border border-blue-500/35 text-white shadow-xs"
-                    : "hover:bg-[#161c24] border border-transparent text-slate-300"
+                    ? "bg-[#FF4D80]/15 border border-[#FF4D80]/30 text-white shadow-xs"
+                    : "hover:bg-white/[0.04] border border-transparent text-[#94A3B8]"
                 }`}
               >
                 <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                   {/* Thumbnail / Play Button */}
-                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#141922] border border-[#232b35] shrink-0">
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/[0.06] border border-white/[0.08] shrink-0">
                     {item.song.coverUrl ? (
                       <Image
                         src={item.song.coverUrl}
@@ -68,7 +68,7 @@ export default function HistoryView() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-blue-400">
+                      <div className="w-full h-full flex items-center justify-center text-[#FF4D80]">
                         <Music2 className="w-4 h-4" />
                       </div>
                     )}
@@ -84,18 +84,18 @@ export default function HistoryView() {
                   <div className="min-w-0 flex-1 pr-2">
                     <p
                       className={`text-xs sm:text-sm font-semibold truncate ${
-                        isCurrent ? "text-blue-400 font-bold" : "text-white"
+                        isCurrent ? "text-[#FF4D80] font-bold" : "text-white"
                       }`}
                     >
                       {item.song.title}
                     </p>
-                    <p className="text-[11px] sm:text-xs text-slate-400 truncate">
+                    <p className="text-[11px] sm:text-xs text-[#94A3B8] truncate">
                       {item.song.artist}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono text-slate-400 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono text-[#94A3B8] shrink-0">
                   <span className="hidden sm:inline text-[11px]">
                     {formatTimeAgo(item.playedAt)}
                   </span>

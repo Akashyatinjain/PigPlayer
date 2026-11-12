@@ -138,7 +138,7 @@ export default function MobileFullPlayer() {
         transition: isDragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1), opacity 0.2s ease",
         opacity: dragY > 0 ? Math.max(0.4, 1 - dragY / 320) : 1,
       }}
-      className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07080b] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in slide-in-from-bottom-4 duration-200"
+      className="fixed inset-0 z-50 min-h-0 overflow-y-auto bg-[#07090D] flex flex-col justify-between px-5 sm:px-8 pb-6 sm:pb-8 mobile-safe-top mobile-safe-bottom animate-in fade-in slide-in-from-bottom-4 duration-200 text-[#F8FAFC]"
     >
       {/* Mobile Top Drag Indicator */}
       <div
@@ -149,7 +149,7 @@ export default function MobileFullPlayer() {
       {currentSong.coverUrl && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-[18%] mx-auto h-72 w-72 rounded-full opacity-[0.12] blur-[72px]"
+          className="pointer-events-none absolute inset-x-0 top-[18%] mx-auto h-72 w-72 rounded-full opacity-[0.14] blur-[72px]"
           style={{ backgroundImage: `url("${currentSong.coverUrl}")`, backgroundPosition: "center", backgroundSize: "cover" }}
         />
       )}
@@ -160,16 +160,16 @@ export default function MobileFullPlayer() {
           type="button"
           aria-label="Close player"
           onClick={handleClose}
-          className="flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-[#151722] active:scale-90 transition-all"
+          className="flex h-11 w-11 -ml-2 items-center justify-center rounded-full text-[#94A3B8] hover:text-white hover:bg-white/[0.06] active:scale-90 transition-all"
         >
           <ChevronDown className="w-6 h-6" />
         </button>
 
         <div className="text-center">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
             Now Playing
           </p>
-          <p className="text-xs text-gray-400 truncate max-w-[200px]">
+          <p className="text-xs text-[#94A3B8] truncate max-w-[200px]">
             {currentSong.album || "piGGyPlayer Library"}
           </p>
         </div>
@@ -184,7 +184,7 @@ export default function MobileFullPlayer() {
             className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
               isCurrentSavedOffline
                 ? "text-emerald-400 bg-emerald-500/10"
-                : "text-gray-400 hover:text-white"
+                : "text-[#94A3B8] hover:text-white"
             }`}
             title={
               isCurrentSavingOffline
@@ -195,7 +195,7 @@ export default function MobileFullPlayer() {
             }
           >
             {isCurrentSavingOffline ? (
-              <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#FF4D80]" />
             ) : isCurrentSavedOffline ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             ) : (
@@ -208,7 +208,7 @@ export default function MobileFullPlayer() {
               type="button"
               aria-label="Download song"
               onClick={handleDownload}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-[#94A3B8] hover:text-white transition-colors"
               title="Download audio file"
             >
               <Download className="w-4 h-4" />
@@ -217,9 +217,9 @@ export default function MobileFullPlayer() {
         </div>
       </div>
 
-      {/* Album Artwork & Vinyl effect - Responsive sizing to guarantee controls fit on screen */}
+      {/* Album Artwork & Vinyl effect */}
       <div className="relative my-auto py-2 sm:py-4 flex items-center justify-center">
-        <div className="relative aspect-square w-48 max-w-[14rem] sm:max-w-[18rem] max-h-[28vh] sm:max-h-[36vh] overflow-hidden rounded-2xl bg-[#12141c] border border-[#232738] shadow-2xl shadow-black/80">
+        <div className="relative aspect-square w-48 max-w-[14rem] sm:max-w-[18rem] max-h-[28vh] sm:max-h-[36vh] overflow-hidden rounded-3xl bg-white/[0.06] border border-white/[0.1] shadow-2xl shadow-black/80">
           {currentSong.coverUrl && !imgErr ? (
             <Image
               src={currentSong.coverUrl}
@@ -230,7 +230,7 @@ export default function MobileFullPlayer() {
               onError={() => setFailedImgId(currentSong.id)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">
+            <div className="w-full h-full flex items-center justify-center text-[#FF4D80]">
               <Music className="w-12 h-12" />
             </div>
           )}
@@ -244,7 +244,7 @@ export default function MobileFullPlayer() {
             <h2 className="text-base sm:text-2xl font-bold text-white truncate leading-tight">
               {currentSong.title}
             </h2>
-            <p className="text-xs sm:text-base text-gray-400 truncate mt-0.5">
+            <p className="text-xs sm:text-base text-[#94A3B8] truncate mt-0.5">
               {currentSong.artist}
             </p>
           </div>
@@ -255,13 +255,13 @@ export default function MobileFullPlayer() {
               triggerHaptic("success");
               toggleFavorite(currentSong.id);
             }}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors active:scale-125"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#94A3B8] hover:text-white transition-colors active:scale-125"
           >
             <Heart
               className={`w-5 h-5 sm:w-6 sm:h-6 ${
                 currentSong.isFavorite
-                  ? "fill-[#f43f5e] text-[#f43f5e]"
-                  : "text-gray-400"
+                  ? "fill-[#FF4D80] text-[#FF4D80]"
+                  : "text-[#94A3B8]"
               }`}
             />
           </button>
@@ -286,11 +286,11 @@ export default function MobileFullPlayer() {
               seek(Number((e.target as HTMLInputElement).value));
             }}
             aria-label="Seek through song"
-            className="player-seek w-full accent-blue-600"
+            className="player-seek w-full accent-[#3B82F6]"
             style={{ "--seek-progress": `${progressPercent}%` } as React.CSSProperties}
           />
 
-          <div className="flex justify-between text-[11px] sm:text-xs font-mono text-gray-400">
+          <div className="flex justify-between text-[11px] sm:text-xs font-mono text-[#94A3B8]">
             <span>{formatDuration(displayTime)}</span>
             <span>{formatDuration(duration)}</span>
           </div>
@@ -306,7 +306,7 @@ export default function MobileFullPlayer() {
               toggleShuffle();
             }}
             className={`flex h-10 w-10 items-center justify-center transition-colors ${
-              isShuffle ? "text-blue-500" : "text-gray-400"
+              isShuffle ? "text-[#FF4D80]" : "text-[#94A3B8]"
             }`}
           >
             <Shuffle className="w-5 h-5" />
@@ -319,7 +319,7 @@ export default function MobileFullPlayer() {
               triggerHaptic("light");
               prevSong();
             }}
-            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
+            className="flex h-11 w-11 items-center justify-center text-[#94A3B8] hover:text-white transition-colors active:scale-90"
           >
             <SkipBack className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
           </button>
@@ -331,7 +331,7 @@ export default function MobileFullPlayer() {
               triggerHaptic("medium");
               togglePlayPause();
             }}
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-all"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#FF4D80] hover:bg-[#FF6694] text-white flex items-center justify-center shadow-xl shadow-[#FF4D80]/30 active:scale-95 transition-all"
           >
             {isPlaying ? (
               <Pause className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
@@ -347,7 +347,7 @@ export default function MobileFullPlayer() {
               triggerHaptic("light");
               nextSong();
             }}
-            className="flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors active:scale-90"
+            className="flex h-11 w-11 items-center justify-center text-[#94A3B8] hover:text-white transition-colors active:scale-90"
           >
             <SkipForward className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
           </button>
@@ -360,7 +360,7 @@ export default function MobileFullPlayer() {
               cycleRepeat();
             }}
             className={`flex h-10 w-10 items-center justify-center transition-colors ${
-              repeatMode !== "off" ? "text-blue-500" : "text-gray-400"
+              repeatMode !== "off" ? "text-[#FF4D80]" : "text-[#94A3B8]"
             }`}
           >
             {repeatMode === "one" ? (
@@ -373,8 +373,8 @@ export default function MobileFullPlayer() {
 
         {/* Volume - compact on mobile */}
         <div className="flex items-center gap-2 pt-1 px-1 sm:px-4 opacity-90">
-          <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 hover:text-white">
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} className="flex h-8 w-8 shrink-0 items-center justify-center text-[#94A3B8] hover:text-white">
+            {isMuted ? <VolumeX className="w-4 h-4 text-[#F43F5E]" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <input
             type="range"
@@ -383,7 +383,7 @@ export default function MobileFullPlayer() {
             step={0.01}
             value={isMuted ? 0 : volume}
             onChange={(e) => setVolume(parseFloat(e.target.value))}
-            className="h-8 w-full accent-blue-600"
+            className="h-8 w-full accent-[#3B82F6]"
           />
         </div>
       </div>

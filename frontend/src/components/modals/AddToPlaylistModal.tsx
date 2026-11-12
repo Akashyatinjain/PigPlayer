@@ -65,16 +65,16 @@ export default function AddToPlaylistModal() {
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
       }}
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-150"
     >
-      <div className="mobile-safe-bottom w-full max-w-sm bg-[#10141d] border border-[#232b38] rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 md:zoom-in-95 duration-200 text-[#f5f7fa]">
+      <div className="mobile-safe-bottom w-full max-w-sm bg-[#0E121A]/95 border border-white/[0.08] rounded-t-3xl md:rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 md:zoom-in-95 duration-200 text-[#F8FAFC]">
         {/* Mobile Drag Handle */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-2 md:hidden" />
 
-        <div className="px-5 py-3.5 border-b border-[#1c232e] flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-extrabold text-white">Add to Playlist</h2>
-            <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
+            <h2 className="text-sm font-bold text-white">Add to Playlist</h2>
+            <p className="text-[11px] text-[#94A3B8] truncate max-w-[240px]">
               {songForPlaylist.title} • {songForPlaylist.artist}
             </p>
           </div>
@@ -82,7 +82,7 @@ export default function AddToPlaylistModal() {
             type="button"
             aria-label="Close add to playlist"
             onClick={handleClose}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-[#181f2a] transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -92,7 +92,7 @@ export default function AddToPlaylistModal() {
           {/* List of Playlists */}
           <div className="max-h-60 overflow-y-auto space-y-1">
             {playlists.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-4">
+              <p className="text-xs text-[#64748B] text-center py-4">
                 No playlists created yet.
               </p>
             ) : (
@@ -107,18 +107,18 @@ export default function AddToPlaylistModal() {
                     disabled={isLoading || isAdded}
                     className={`w-full min-h-12 flex items-center justify-between p-3 rounded-xl text-left text-sm transition-all ${
                       isAdded
-                        ? "bg-blue-600/15 text-blue-400 border border-blue-500/30"
-                        : "hover:bg-[#181f2a] text-slate-200 border border-transparent"
+                        ? "bg-[#FF4D80]/15 text-[#FF4D80] border border-[#FF4D80]/30"
+                        : "hover:bg-white/[0.06] text-[#F8FAFC] border border-transparent"
                     }`}
                   >
-                    <span className="font-semibold truncate">{pl.name}</span>
+                    <span className="font-medium truncate">{pl.name}</span>
                     <span className="shrink-0 ml-2">
                       {isLoading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#94A3B8]" />
                       ) : isAdded ? (
-                        <Check className="w-4 h-4 text-blue-400" />
+                        <Check className="w-4 h-4 text-[#FF4D80]" />
                       ) : (
-                        <Plus className="w-4 h-4 text-slate-400 group-hover:text-blue-400" />
+                        <Plus className="w-4 h-4 text-[#64748B] group-hover:text-[#FF4D80]" />
                       )}
                     </span>
                   </button>
@@ -128,7 +128,7 @@ export default function AddToPlaylistModal() {
           </div>
 
           {/* Quick Create Playlist */}
-          <div className="pt-2 border-t border-[#1c232e]">
+          <div className="pt-2 border-t border-white/[0.06]">
             {isCreatingNew ? (
               <form onSubmit={handleCreateAndAdd} className="space-y-2">
                 <input
@@ -137,19 +137,19 @@ export default function AddToPlaylistModal() {
                   value={newPlaylistName}
                   onChange={(e) => setNewPlaylistName(e.target.value)}
                   placeholder="New playlist name..."
-                  className="w-full bg-[#181f2a] border border-[#232b38] focus:border-blue-500 text-xs text-white placeholder-slate-500 px-3 py-2.5 rounded-xl outline-none"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] focus:border-[#FF4D80] text-xs text-white placeholder-[#64748B] px-3.5 py-2.5 rounded-xl outline-none"
                 />
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setIsCreatingNew(false)}
-                    className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                    className="px-3 py-1.5 text-xs text-[#94A3B8] hover:text-white"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-blue-500 transition-colors"
+                    className="px-4 py-1.5 bg-[#FF4D80] text-white text-xs font-semibold rounded-xl shadow-lg shadow-[#FF4D80]/20 hover:bg-[#FF6694] transition-colors"
                   >
                     Create & Add
                   </button>
@@ -161,7 +161,7 @@ export default function AddToPlaylistModal() {
                   triggerHaptic("light");
                   setIsCreatingNew(true);
                 }}
-                className="w-full py-2.5 text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center justify-center gap-1.5 rounded-xl hover:bg-blue-600/10 transition-colors"
+                className="w-full py-2.5 text-xs font-semibold text-[#FF4D80] hover:text-[#FF6694] flex items-center justify-center gap-1.5 rounded-xl hover:bg-[#FF4D80]/10 transition-colors"
               >
                 <FolderPlus className="w-4 h-4" />
                 <span>Create New Playlist</span>

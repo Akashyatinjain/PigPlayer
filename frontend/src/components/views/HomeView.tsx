@@ -69,7 +69,7 @@ export default function HomeView() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-8 sm:space-y-10 text-[#f5f7fa]">
+    <div className="mx-auto max-w-6xl space-y-8 pb-8 sm:space-y-10 text-white">
       <div className="flex items-end justify-between gap-4 pt-1">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Your space, your sound</p>
@@ -121,9 +121,9 @@ export default function HomeView() {
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[#232b35] bg-[#141922] px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-300 transition-colors hover:bg-[#1b222e] hover:text-white active:scale-95"
+            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium text-[#94A3B8] transition-colors hover:bg-white/[0.1] hover:text-white active:scale-95"
           >
-            <Plus className="h-4 w-4 text-blue-400" />
+            <Plus className="h-4 w-4 text-[#FF4D80]" />
             <span>Add Music</span>
           </button>
         </div>
@@ -131,21 +131,21 @@ export default function HomeView() {
 
       {isLoading && (
         <div aria-label="Loading your music" className="space-y-3">
-          <div className="h-44 animate-pulse rounded-2xl border border-[#232b35] bg-[#12161d] sm:h-52" />
-          <div className="h-6 w-40 animate-pulse rounded bg-[#12161d]" />
+          <div className="h-44 animate-pulse rounded-2xl border border-white/[0.08] bg-white/[0.04] sm:h-52" />
+          <div className="h-6 w-40 animate-pulse rounded bg-white/[0.04]" />
           <div className="grid grid-cols-3 gap-3">
-            <div className="aspect-square animate-pulse rounded-xl bg-[#12161d]" />
-            <div className="aspect-square animate-pulse rounded-xl bg-[#12161d]" />
-            <div className="aspect-square animate-pulse rounded-xl bg-[#12161d]" />
+            <div className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
+            <div className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
+            <div className="aspect-square animate-pulse rounded-xl bg-white/[0.04]" />
           </div>
         </div>
       )}
 
       {!isLoading && featuredSong ? (
-        <section className="relative isolate overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015] p-4 sm:p-6 shadow-md">
-          <div className="absolute inset-0 -z-10 opacity-[0.08] blur-3xl" style={{ backgroundImage: featuredSong.coverUrl && !featuredImgError ? `url("${featuredSong.coverUrl}")` : undefined, backgroundPosition: "center", backgroundSize: "cover" }} />
+        <section className="relative isolate overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A] p-4 sm:p-6 shadow-xl">
+          <div className="absolute inset-0 -z-10 opacity-[0.14] blur-3xl" style={{ backgroundImage: featuredSong.coverUrl && !featuredImgError ? `url("${featuredSong.coverUrl}")` : undefined, backgroundPosition: "center", backgroundSize: "cover" }} />
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#161c24] border border-[#232b35] sm:h-32 sm:w-32">
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] border border-white/[0.08] sm:h-32 sm:w-32 shadow-md">
               {featuredSong.coverUrl && !featuredImgError ? (
                 <Image
                   src={featuredSong.coverUrl}
@@ -158,19 +158,19 @@ export default function HomeView() {
                   }}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-blue-400">
+                <div className="flex h-full items-center justify-center text-[#FF4D80]">
                   <Music2 className="h-8 w-8" />
                 </div>
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-400"><Disc3 className="h-3.5 w-3.5" />{currentSong ? "Now playing" : "Picked for you"}</p>
+              <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#FF4D80]"><Disc3 className="h-3.5 w-3.5" />{currentSong ? "Now playing" : "Picked for you"}</p>
               <h2 className="mt-2 line-clamp-2 text-lg font-bold tracking-tight text-white sm:text-2xl">{featuredSong.title}</h2>
-              <p className="mt-1 truncate text-sm text-slate-400">{featuredSong.artist}</p>
+              <p className="mt-1 truncate text-sm text-[#94A3B8]">{featuredSong.artist}</p>
               <button
                 type="button"
                 onClick={() => currentSong?.id === featuredSong.id ? togglePlayPause() : playSong(featuredSong, songs)}
-                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white transition-all hover:bg-blue-500 shadow-md shadow-blue-600/30 active:scale-[0.98]"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#FF4D80] px-5 text-sm font-semibold text-white transition-all hover:bg-[#FF6694] shadow-lg shadow-[#FF4D80]/25 active:scale-[0.98]"
               >
                 {currentSong?.id === featuredSong.id && isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
                 {currentSong?.id === featuredSong.id && isPlaying ? "Pause" : "Play now"}
@@ -179,14 +179,14 @@ export default function HomeView() {
           </div>
         </section>
       ) : !isLoading ? (
-        <section className="rounded-2xl border border-[#232b35] bg-[#0d1015] px-6 py-10 text-center sm:py-14">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#141922] text-blue-400"><Music2 className="h-7 w-7" /></span>
+        <section className="rounded-2xl border border-white/[0.08] bg-[#0E121A] px-6 py-10 text-center sm:py-14">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06] text-[#FF4D80]"><Music2 className="h-7 w-7" /></span>
           <h2 className="mt-4 text-lg font-bold text-white">Your library is quiet</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-400">Bring your music in and make this space yours.</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-[#94A3B8]">Bring your music in and make this space yours.</p>
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-500 shadow-md shadow-blue-600/30"
+            className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#FF4D80] px-5 text-sm font-semibold text-white hover:bg-[#FF6694] shadow-lg shadow-[#FF4D80]/25"
           >
             <Plus className="h-4 w-4" />
             Add songs
@@ -218,10 +218,10 @@ export default function HomeView() {
             <button
               type="button"
               onClick={() => folderInputRef.current?.click()}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#232b35] bg-[#141922] hover:bg-[#1c2432] text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-[#94A3B8] hover:text-white transition-colors"
               title="Import an entire folder of music from your device"
             >
-              <FolderPlus className="w-3.5 h-3.5 text-blue-400" />
+              <FolderPlus className="w-3.5 h-3.5 text-[#FF4D80]" />
               <span>Import Folder</span>
             </button>
 
@@ -246,7 +246,7 @@ export default function HomeView() {
                 onClick={() => playSong(song, localTracks)}
                 className="group w-36 shrink-0 snap-start text-left sm:w-44"
               >
-                <span className="relative block aspect-square overflow-hidden rounded-xl bg-[#141922] border border-emerald-500/20 group-hover:border-emerald-400/50 transition-colors shadow-sm">
+                <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-emerald-500/20 group-hover:border-emerald-400/50 transition-colors shadow-sm">
                   {song.coverUrl ? (
                     <Image
                       src={song.coverUrl}
@@ -267,7 +267,7 @@ export default function HomeView() {
                 <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-emerald-300 transition-colors">
                   {song.title}
                 </span>
-                <span className="mt-0.5 block truncate text-xs text-slate-400">
+                <span className="mt-0.5 block truncate text-xs text-[#94A3B8]">
                   {song.artist}
                 </span>
               </button>
@@ -281,7 +281,7 @@ export default function HomeView() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white">No local files loaded yet</h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#94A3B8]">
                   Select audio files or a folder from your device to play immediately offline with zero upload.
                 </p>
               </div>
@@ -290,7 +290,7 @@ export default function HomeView() {
               <button
                 type="button"
                 onClick={() => folderInputRef.current?.click()}
-                className="px-3.5 py-2 rounded-xl border border-[#232b35] bg-[#141922] hover:bg-[#1a212b] text-xs font-semibold text-slate-200 transition-colors"
+                className="px-3.5 py-2 rounded-xl border border-white/[0.08] bg-white/[0.06] hover:bg-white/[0.1] text-xs font-semibold text-[#94A3B8] hover:text-white transition-colors"
               >
                 Select Folder
               </button>
@@ -317,16 +317,16 @@ export default function HomeView() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold tracking-tight text-white">Made by you</h2>
-            <button type="button" onClick={() => { setSelectedPlaylistId(null); setActiveTab("playlists"); }} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-400 hover:text-blue-400">Playlists <ArrowRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => { setSelectedPlaylistId(null); setActiveTab("playlists"); }} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-[#94A3B8] hover:text-[#FF4D80]">Playlists <ArrowRight className="h-4 w-4" /></button>
           </div>
           <div className="horizontal-rail">
             {playlists.map((playlist) => (
               <button key={playlist.id} type="button" onClick={() => { setSelectedPlaylistId(playlist.id); setActiveTab("playlists"); }} className="group w-36 shrink-0 snap-start text-left sm:w-44">
-                <span className="relative block aspect-square overflow-hidden rounded-xl bg-[#141922] border border-[#232b35]">
-                  {playlist.coverUrl ? <Image src={playlist.coverUrl} alt="" fill unoptimized className="object-cover transition-transform duration-200 group-hover:scale-[1.03]" /> : <span className="flex h-full items-center justify-center text-slate-500"><Disc3 className="h-8 w-8" /></span>}
+                <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-white/[0.08]">
+                  {playlist.coverUrl ? <Image src={playlist.coverUrl} alt="" fill unoptimized className="object-cover transition-transform duration-200 group-hover:scale-[1.03]" /> : <span className="flex h-full items-center justify-center text-[#64748B]"><Disc3 className="h-8 w-8" /></span>}
                 </span>
-                <span className="mt-2 block truncate text-sm font-medium text-white">{playlist.name}</span>
-                <span className="mt-0.5 block text-xs text-slate-400">{playlist._count?.songs ?? 0} songs</span>
+                <span className="mt-2 block truncate text-sm font-medium text-white group-hover:text-[#FF4D80] transition-colors">{playlist.name}</span>
+                <span className="mt-0.5 block text-xs text-[#94A3B8]">{playlist._count?.songs ?? 0} songs</span>
               </button>
             ))}
           </div>
@@ -337,9 +337,9 @@ export default function HomeView() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold tracking-tight text-white">All songs</h2>
-            <button type="button" onClick={() => setActiveTab("songs")} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-400 hover:text-blue-400">Browse all <ArrowRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => setActiveTab("songs")} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-[#94A3B8] hover:text-[#FF4D80]">Browse all <ArrowRight className="h-4 w-4" /></button>
           </div>
-          <div className="divide-y divide-[#1f2631] overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015]">
+          <div className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A]">
             {songs.slice(0, 5).map((song, index) => <SongRow key={song.id} song={song} index={index} allSongs={songs} />)}
           </div>
         </section>
@@ -360,7 +360,7 @@ function SongRail({ title, action, onAction, songs, allSongs, playSong }: {
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold tracking-tight text-white">{title}</h2>
-        <button type="button" onClick={onAction} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-slate-400 hover:text-blue-400">{action}<ArrowRight className="h-4 w-4" /></button>
+        <button type="button" onClick={onAction} className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-[#94A3B8] hover:text-[#FF4D80]">{action}<ArrowRight className="h-4 w-4" /></button>
       </div>
       <div className="horizontal-rail">
         {songs.map((song, index) => (
@@ -384,7 +384,7 @@ function RailCard({
 
   return (
     <button type="button" onClick={() => playSong(song, allSongs)} className="group w-36 shrink-0 snap-start text-left sm:w-44">
-      <span className="relative block aspect-square overflow-hidden rounded-xl bg-[#141922] border border-[#232b35]">
+      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-white/[0.06] border border-white/[0.08]">
         {song.coverUrl && !imgErr ? (
           <Image
             src={song.coverUrl}
@@ -395,13 +395,16 @@ function RailCard({
             onError={() => setImgErr(true)}
           />
         ) : (
-          <span className="flex h-full items-center justify-center bg-linear-to-br from-[#121c2a] to-[#182333] text-blue-400">
+          <span className="flex h-full items-center justify-center bg-linear-to-br from-[#121c2a] to-[#182333] text-[#FF4D80]">
             <Music2 className="h-8 w-8" />
           </span>
         )}
+        <span className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-[#FF4D80] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+          <Play className="w-4 h-4 fill-current ml-0.5" />
+        </span>
       </span>
-      <span className="mt-2 block truncate text-sm font-semibold text-white">{song.title}</span>
-      <span className="mt-0.5 block truncate text-xs text-slate-400">{song.artist}</span>
+      <span className="mt-2 block truncate text-sm font-semibold text-white group-hover:text-[#FF4D80] transition-colors">{song.title}</span>
+      <span className="mt-0.5 block truncate text-xs text-[#94A3B8]">{song.artist}</span>
     </button>
   );
 }

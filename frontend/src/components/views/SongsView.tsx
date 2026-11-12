@@ -117,14 +117,14 @@ export default function SongsView() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 text-[#F8FAFC]">
       {/* Top Header & Action Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#232b35] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">
             All Songs
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5 font-medium">
+          <p className="text-xs text-[#94A3B8] mt-0.5 font-medium">
             {filteredAndSortedSongs.length}{" "}
             {filteredAndSortedSongs.length === 1 ? "track" : "tracks"}
             {searchQuery && ` matching "${searchQuery}"`}
@@ -136,7 +136,7 @@ export default function SongsView() {
             <>
               <button
                 onClick={handlePlayAll}
-                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-md shadow-blue-600/30"
+                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] active:scale-95 text-white text-xs font-bold rounded-full transition-all shadow-lg shadow-[#FF4D80]/25"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Play All</span>
@@ -144,26 +144,26 @@ export default function SongsView() {
 
               <button
                 onClick={handleShufflePlay}
-                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-3.5 py-2 bg-[#141922] hover:bg-[#1a212c] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all active:scale-95"
+                className="flex min-h-10 sm:min-h-11 items-center gap-1.5 px-3.5 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-semibold text-[#94A3B8] hover:text-white rounded-full transition-all active:scale-95"
               >
-                <Shuffle className="w-3.5 h-3.5 text-slate-400" />
+                <Shuffle className="w-3.5 h-3.5 text-[#94A3B8]" />
                 <span>Shuffle</span>
               </button>
             </>
           )}
 
           {/* Sort Selector */}
-          <div className="flex min-h-10 sm:min-h-11 items-center gap-1.5 bg-[#141922] border border-[#232b35] px-3 py-1.5 rounded-full text-xs text-slate-300 shadow-xs">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+          <div className="flex min-h-10 sm:min-h-11 items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] px-3 py-1.5 rounded-full text-xs text-[#94A3B8] shadow-xs">
+            <ArrowUpDown className="w-3.5 h-3.5 text-[#94A3B8]" />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-transparent outline-none cursor-pointer text-xs font-medium text-slate-300"
+              className="bg-transparent outline-none cursor-pointer text-xs font-medium text-[#94A3B8]"
             >
-              <option value="date" className="bg-[#141922] text-white">Date Added</option>
-              <option value="title" className="bg-[#141922] text-white">Title</option>
-              <option value="artist" className="bg-[#141922] text-white">Artist</option>
-              <option value="duration" className="bg-[#141922] text-white">Duration</option>
+              <option value="date" className="bg-[#0E121A] text-white">Date Added</option>
+              <option value="title" className="bg-[#0E121A] text-white">Title</option>
+              <option value="artist" className="bg-[#0E121A] text-white">Artist</option>
+              <option value="duration" className="bg-[#0E121A] text-white">Duration</option>
             </select>
           </div>
 
@@ -198,10 +198,10 @@ export default function SongsView() {
           <button
             type="button"
             onClick={() => folderInputRef.current?.click()}
-            className="hidden md:flex min-h-11 items-center gap-1.5 px-3 py-2 bg-[#141922] hover:bg-[#1c2432] border border-[#232b35] text-xs font-semibold text-slate-300 rounded-full transition-all shadow-xs"
+            className="hidden md:flex min-h-11 items-center gap-1.5 px-3 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-xs font-semibold text-[#94A3B8] hover:text-white rounded-full transition-all shadow-xs"
             title="Import an entire folder from this device"
           >
-            <FolderPlus className="w-3.5 h-3.5 text-blue-400" />
+            <FolderPlus className="w-3.5 h-3.5 text-[#FF4D80]" />
             <span>Folder</span>
           </button>
 
@@ -217,7 +217,7 @@ export default function SongsView() {
 
           <button
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-10 sm:min-h-11 items-center gap-1 px-3 py-2 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-xs font-semibold text-blue-400 rounded-full transition-all shadow-xs active:scale-95"
+            className="flex min-h-10 sm:min-h-11 items-center gap-1 px-3 py-2 bg-[#FF4D80]/15 hover:bg-[#FF4D80]/25 border border-[#FF4D80]/30 text-xs font-semibold text-[#FF4D80] rounded-full transition-all shadow-xs active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Upload</span>
@@ -245,8 +245,8 @@ export default function SongsView() {
           onClick={() => { triggerHaptic("light"); setFilterType("all"); }}
           className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
             filterType === "all"
-              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-              : "bg-[#141922] text-slate-400 hover:text-white border border-[#232b35]"
+              ? "bg-[#FF4D80] text-white shadow-md shadow-[#FF4D80]/25"
+              : "bg-white/[0.06] text-[#94A3B8] hover:text-white border border-white/[0.08]"
           }`}
         >
           All Songs ({songs.length})
@@ -257,7 +257,7 @@ export default function SongsView() {
           onClick={() => { triggerHaptic("light"); setFilterType("local"); }}
           className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
             filterType === "local"
-              ? "bg-emerald-600 text-white shadow-sm shadow-emerald-500/20"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25"
               : "bg-emerald-950/20 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30"
           }`}
         >
@@ -270,8 +270,8 @@ export default function SongsView() {
           onClick={() => { triggerHaptic("light"); setFilterType("cloud"); }}
           className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
             filterType === "cloud"
-              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-              : "bg-[#141922] text-slate-400 hover:text-white border border-[#232b35]"
+              ? "bg-[#FF4D80] text-white shadow-md shadow-[#FF4D80]/25"
+              : "bg-white/[0.06] text-[#94A3B8] hover:text-white border border-white/[0.08]"
           }`}
         >
           Cloud Library ({cloudSongsCount})
@@ -280,19 +280,19 @@ export default function SongsView() {
 
       {/* Song Table */}
       {filteredAndSortedSongs.length === 0 ? (
-        <div className="text-center py-16 space-y-3 bg-[#0d1015] rounded-2xl border border-[#232b35] p-8 shadow-xs">
-          <Music2 className="w-10 h-10 text-slate-500 mx-auto stroke-[1.5]" />
+        <div className="text-center py-16 space-y-3 bg-[#0E121A] rounded-2xl border border-white/[0.08] p-8 shadow-xs">
+          <Music2 className="w-10 h-10 text-[#64748B] mx-auto stroke-[1.5]" />
           <h2 className="text-base font-bold text-white">No songs found</h2>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <p className="text-xs text-[#94A3B8] max-w-xs mx-auto">
             {searchQuery
               ? `No tracks match your query "${searchQuery}". Try searching by another artist, title, or album.`
               : "You haven't added any songs yet. Click Upload to get started."}
           </p>
         </div>
       ) : (
-        <div className="bg-[#0d1015] p-2 rounded-2xl border border-[#232b35] shadow-xs space-y-1">
+        <div className="bg-[#0E121A] p-2 rounded-2xl border border-white/[0.08] shadow-xs space-y-1">
           {/* Table Header */}
-          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#1f2631]">
+          <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-[#64748B] border-b border-white/[0.06]">
             <div className="flex items-center gap-4 flex-1">
               <span className="w-5 text-center">#</span>
               <span>Title & Artist</span>
@@ -317,27 +317,27 @@ export default function SongsView() {
       {/* Delete All Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#0f131a] border border-[#232b35] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-[#0E121A] border border-white/[0.08] rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-400">
               <div className="p-2.5 rounded-full bg-rose-500/10 border border-rose-500/20 shrink-0">
                 <AlertTriangle className="w-6 h-6 text-rose-400" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">Delete All Songs?</h3>
-                <p className="text-xs text-slate-400">This action cannot be undone</p>
+                <p className="text-xs text-[#94A3B8]">This action cannot be undone</p>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#94A3B8] leading-relaxed">
               Are you sure you want to permanently delete all <span className="font-bold text-white">{songs.length}</span> songs? All local audio files, artwork, and offline caches will be removed from your device and library.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1e2531]">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.06]">
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-[#161c26] hover:bg-[#1e2533] border border-[#2a3442] rounded-full transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-full transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

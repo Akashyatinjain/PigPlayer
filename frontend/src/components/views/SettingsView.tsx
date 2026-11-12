@@ -83,28 +83,28 @@ export default function SettingsView() {
   };
 
   return (
-    <div className="space-y-8 pb-10 max-w-3xl text-[#f5f7fa]">
+    <div className="space-y-8 pb-10 max-w-3xl text-[#F8FAFC]">
       <div>
         <h1 className="text-2xl font-extrabold text-white tracking-tight">Profile & settings</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-[#94A3B8] mt-1">
           Local library, backups, and storage — everything stays on this device.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-[#232b35] bg-[#0d1015] p-4">
+      <section className="rounded-2xl border border-white/[0.08] bg-[#0E121A] p-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#141922] border border-[#232b35] text-sm font-bold text-blue-400">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] border border-white/[0.08] text-sm font-bold text-[#FF4D80]">
             {isAuthenticated && user ? user.name.charAt(0).toUpperCase() : "G"}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-white">{isAuthenticated && user ? user.name : "Listening as guest"}</p>
-            <p className="truncate text-xs text-slate-400">{isAuthenticated && user ? user.email : "Your library stays on this device"}</p>
+            <p className="truncate text-xs text-[#94A3B8]">{isAuthenticated && user ? user.email : "Your library stays on this device"}</p>
           </div>
           {isAuthenticated && (
             <button
               type="button"
               onClick={() => logout()}
-              className="flex min-h-10 sm:min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-400 hover:bg-[#161c24] hover:text-white transition-colors"
+              className="flex min-h-10 sm:min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-[#94A3B8] hover:bg-white/[0.06] hover:text-white transition-colors"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sign out</span>
@@ -113,7 +113,7 @@ export default function SettingsView() {
           {!isAuthenticated && (
             <Link
               href="/login"
-              className="flex min-h-10 sm:min-h-11 items-center rounded-xl px-3.5 text-xs sm:text-sm font-bold text-blue-400 hover:bg-blue-600/10 border border-blue-500/30 transition-colors"
+              className="flex min-h-10 sm:min-h-11 items-center rounded-xl px-3.5 text-xs sm:text-sm font-bold text-[#FF4D80] hover:bg-[#FF4D80]/10 border border-[#FF4D80]/30 transition-colors"
             >
               Sign in
             </Link>
@@ -122,19 +122,19 @@ export default function SettingsView() {
       </section>
 
       {message && (
-        <div className="rounded-xl border border-blue-500/30 bg-blue-950/30 px-4 py-3 text-xs sm:text-sm text-blue-300">
+        <div className="rounded-xl border border-[#FF4D80]/30 bg-[#FF4D80]/10 px-4 py-3 text-xs sm:text-sm text-[#FF4D80]">
           {message}
         </div>
       )}
 
       {/* Storage location */}
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Storage Location</h2>
-        <div className="rounded-xl border border-[#232b35] bg-[#0d1015] p-4 flex items-start gap-3">
-          <HardDrive className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Storage Location</h2>
+        <div className="rounded-xl border border-white/[0.08] bg-[#0E121A] p-4 flex items-start gap-3">
+          <HardDrive className="w-5 h-5 text-[#FF4D80] mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">Local data directory</p>
-            <p className="text-xs text-slate-400 font-mono mt-1 break-all">
+            <p className="text-xs text-[#94A3B8] font-mono mt-1 break-all">
               ./data/piggyplayer.db · ./data/audio · ./data/artwork · ./data/backups
             </p>
           </div>
@@ -143,7 +143,7 @@ export default function SettingsView() {
 
       {/* Stats */}
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Library Statistics</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Library Statistics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
           {[
             { label: "Songs", value: stats?.totalSongs ?? "—", icon: Music2 },
@@ -160,11 +160,11 @@ export default function SettingsView() {
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-[#232b35] bg-[#0d1015] p-3 sm:p-3.5 flex flex-col gap-1 shadow-xs"
+              className="rounded-xl border border-white/[0.08] bg-[#0E121A] p-3 sm:p-3.5 flex flex-col gap-1 shadow-xs"
             >
-              <item.icon className="w-4 h-4 text-blue-400" />
+              <item.icon className="w-4 h-4 text-[#FF4D80]" />
               <p className="text-base sm:text-lg font-bold text-white mt-1">{item.value}</p>
-              <p className="text-[11px] text-slate-400 font-medium">{item.label}</p>
+              <p className="text-[11px] text-[#94A3B8] font-medium">{item.label}</p>
             </div>
           ))}
         </div>
@@ -172,8 +172,8 @@ export default function SettingsView() {
 
       {/* Backup / Export */}
       <section className="space-y-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Backup & Portability</h2>
-        <div className="rounded-xl border border-[#232b35] bg-[#0d1015] divide-y divide-[#1f2631] overflow-hidden">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[#64748B]">Backup & Portability</h2>
+        <div className="rounded-xl border border-white/[0.08] bg-[#0E121A] divide-y divide-white/[0.06] overflow-hidden">
           <ActionRow
             icon={Archive}
             title="Create backup"
@@ -301,7 +301,7 @@ export default function SettingsView() {
                       }
                     });
                   }}
-                  className="flex min-h-10 sm:min-h-11 shrink-0 items-center rounded-xl px-3 text-xs font-semibold text-blue-400 transition-colors hover:bg-blue-600/10 border border-blue-500/30"
+                  className="flex min-h-10 sm:min-h-11 shrink-0 items-center rounded-xl px-3 text-xs font-semibold text-[#FF4D80] transition-colors hover:bg-[#FF4D80]/10 border border-[#FF4D80]/30"
                 >
                   Restore
                 </button>
@@ -334,14 +334,14 @@ function ActionRow({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#141922] transition-colors disabled:opacity-50 active:scale-[0.99]"
+      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.04] transition-colors disabled:opacity-50 active:scale-[0.99]"
     >
-      <Icon className={`w-5 h-5 shrink-0 ${danger ? "text-rose-400" : "text-blue-400"}`} />
+      <Icon className={`w-5 h-5 shrink-0 ${danger ? "text-rose-400" : "text-[#FF4D80]"}`} />
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-bold ${danger ? "text-rose-400" : "text-white"}`}>
           {busy ? "Working…" : title}
         </p>
-        <p className="text-xs text-slate-400">{desc}</p>
+        <p className="text-xs text-[#94A3B8]">{desc}</p>
       </div>
     </button>
   );

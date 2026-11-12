@@ -37,7 +37,7 @@ export default function QueueDrawer() {
       />
       <aside
         aria-label="Play queue"
-        className="mobile-safe-bottom fixed inset-x-0 bottom-0 top-auto max-h-[85dvh] w-full rounded-t-3xl bg-[#0e121a] border border-[#222b37] text-[#f5f7fa] z-50 flex flex-col shadow-2xl animate-in slide-in-from-bottom-4 duration-200 md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-full md:w-84 md:rounded-none md:border-l md:border-t-0 md:animate-in md:slide-in-from-right"
+        className="mobile-safe-bottom fixed inset-x-0 bottom-0 top-auto max-h-[85dvh] w-full rounded-t-3xl bg-[#0E121A] border border-white/[0.08] text-[#F8FAFC] z-50 flex flex-col shadow-2xl animate-in slide-in-from-bottom-4 duration-200 md:inset-y-0 md:left-auto md:right-0 md:top-0 md:max-h-full md:w-84 md:rounded-none md:border-l md:border-t-0 md:animate-in md:slide-in-from-right"
       >
         {/* Mobile Top Drag Indicator */}
         <div
@@ -46,12 +46,12 @@ export default function QueueDrawer() {
         />
 
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-[#1f2635] flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-white/[0.06] flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-white tracking-wide uppercase">
               Up Next
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#94A3B8]">
               {queue.length} {queue.length === 1 ? "track" : "tracks"} in queue
             </p>
           </div>
@@ -65,7 +65,7 @@ export default function QueueDrawer() {
                   triggerHaptic("warning");
                   clearQueue();
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-[#94A3B8] hover:text-[#F43F5E] hover:bg-[#F43F5E]/10 transition-colors"
                 title="Clear queue"
               >
                 <Trash2 className="w-4 h-4" />
@@ -75,7 +75,7 @@ export default function QueueDrawer() {
               type="button"
               aria-label="Close queue"
               onClick={handleClose}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-[#161c26] transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -85,10 +85,10 @@ export default function QueueDrawer() {
         {/* Queue Tracks List */}
         <div className="flex-1 overflow-y-auto p-3 space-y-1">
           {queue.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-              <Music className="w-8 h-8 mb-2 stroke-[1.5] text-blue-400" />
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-[#94A3B8]">
+              <Music className="w-8 h-8 mb-2 stroke-[1.5] text-[#FF4D80]" />
               <p className="text-sm font-semibold text-white">Queue is empty</p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[#64748B] mt-1">
                 Click play on any song or add tracks from your library
               </p>
             </div>
@@ -100,8 +100,8 @@ export default function QueueDrawer() {
                   key={`${song.id}-${idx}`}
                   className={`group flex items-center justify-between p-2 rounded-xl transition-all ${
                     isCurrent
-                      ? "bg-blue-600/15 border border-blue-500/30 text-white shadow-xs"
-                      : "hover:bg-[#161c28] text-slate-300"
+                      ? "bg-[#FF4D80]/15 border border-[#FF4D80]/30 text-white shadow-xs"
+                      : "hover:bg-white/[0.04] text-[#94A3B8]"
                   }`}
                 >
                   <div
@@ -112,7 +112,7 @@ export default function QueueDrawer() {
                     className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                   >
                     {/* Thumbnail / Indicator */}
-                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#141922] shrink-0 border border-[#232b35]">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/[0.06] shrink-0 border border-white/[0.08]">
                       {song.coverUrl ? (
                         <Image
                           src={song.coverUrl}
@@ -122,12 +122,12 @@ export default function QueueDrawer() {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-blue-400">
+                        <div className="w-full h-full flex items-center justify-center text-[#FF4D80]">
                           <Music className="w-4 h-4" />
                         </div>
                       )}
                       {isCurrent && isPlaying && (
-                        <div className="absolute inset-0 bg-blue-600/70 flex items-center justify-center text-white">
+                        <div className="absolute inset-0 bg-[#FF4D80]/70 flex items-center justify-center text-white">
                           <Volume2 className="w-4 h-4 animate-pulse" />
                         </div>
                       )}
@@ -136,19 +136,19 @@ export default function QueueDrawer() {
                     <div className="min-w-0 flex-1">
                       <p
                         className={`text-xs font-semibold truncate ${
-                          isCurrent ? "text-blue-400 font-bold" : "text-white"
+                          isCurrent ? "text-[#FF4D80] font-bold" : "text-white"
                         }`}
                       >
                         {song.title}
                       </p>
-                      <p className="text-[11px] text-slate-400 truncate">
+                      <p className="text-[11px] text-[#94A3B8] truncate">
                         {song.artist}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 pl-2">
-                    <span className="text-[10px] font-mono text-slate-400">
+                    <span className="text-[10px] font-mono text-[#64748B]">
                       {formatDuration(song.duration)}
                     </span>
                     <button
@@ -159,7 +159,7 @@ export default function QueueDrawer() {
                         removeFromQueue(idx);
                       }}
                       aria-label={`Remove ${song.title} from queue`}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-[#64748B] hover:text-[#F43F5E] hover:bg-[#F43F5E]/10 transition-colors"
                       title="Remove from queue"
                     >
                       <X className="w-3.5 h-3.5" />

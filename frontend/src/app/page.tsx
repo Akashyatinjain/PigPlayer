@@ -81,7 +81,7 @@ function MobileNavigator() {
 export default function App() {
   return (
     <LibraryProvider>
-      <div className="soundify-shell h-dvh flex flex-col bg-[#0b0d10] text-[#f5f7fa] overflow-hidden">
+      <div className="soundify-shell h-dvh flex flex-col bg-piggy-abyss text-piggy-text overflow-hidden">
         {/* Mobile Native Navigation Interceptor */}
         <MobileNavigator />
 

@@ -360,22 +360,22 @@ export default function UploadModal() {
       }}
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6 animate-in fade-in duration-150"
     >
-      <div className="mobile-safe-bottom w-full max-w-4xl bg-[#0d1015] border border-[#232a35] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top))] md:max-h-[92dvh] overflow-hidden text-[#f5f7fa]">
+      <div className="mobile-safe-bottom w-full max-w-4xl bg-[#0E121A]/95 border border-white/[0.08] rounded-t-3xl md:rounded-3xl shadow-2xl backdrop-blur-xl flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top))] md:max-h-[92dvh] overflow-hidden text-[#F8FAFC]">
         
         {/* Mobile Drag Handle */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-2 md:hidden" />
 
         {/* Header */}
-        <div className="px-5 sm:px-6 py-4 border-b border-[#1f2631] flex items-center justify-between bg-[#131820] shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#07090D]/40 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-[#FF4D80] text-white flex items-center justify-center shadow-lg shadow-[#FF4D80]/25">
               <Upload className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Add Songs to piGGyPlayer
+                Add Songs to pi<span className="text-[#FF4D80]">GG</span>yPlayer
               </h2>
-              <p className="text-xs text-slate-400 font-normal">
+              <p className="text-xs text-[#94A3B8] font-normal">
                 Upload multiple audio files at once with automatic metadata extraction
               </p>
             </div>
@@ -384,14 +384,14 @@ export default function UploadModal() {
           <button
             onClick={handleCloseModal}
             aria-label="Close upload"
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-[#1c2432] transition-colors"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-[#94A3B8] hover:text-white hover:bg-white/[0.06] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 bg-[#0d1015]">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 bg-[#07090D]/30">
           {/* Hidden file input for server upload */}
           <input
             ref={fileInputRef}
@@ -454,21 +454,21 @@ export default function UploadModal() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-start gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-[#121822] to-[#0d121a] border border-blue-500/30 hover:border-blue-400 text-left transition-all group shadow-lg shadow-blue-950/20 active:scale-[0.98]"
+                className="flex items-start gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#1E1B4B]/30 via-[#0E121A] to-[#07090D] border border-white/[0.08] hover:border-[#FF4D80]/40 text-left transition-all group shadow-lg active:scale-[0.98]"
               >
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30 group-hover:scale-105 transition-transform">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#FF4D80]/15 text-[#FF4D80] flex items-center justify-center shrink-0 border border-[#FF4D80]/25 group-hover:scale-105 transition-transform">
                   <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white group-hover:text-blue-300">
+                    <span className="text-sm font-bold text-white group-hover:text-[#FF4D80]">
                       Cloud Upload
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold uppercase tracking-wider border border-blue-500/30">
+                    <span className="px-2 py-0.5 rounded-full bg-[#FF4D80]/15 text-[#FF4D80] text-[10px] font-bold uppercase tracking-wider border border-[#FF4D80]/25">
                       Server Sync
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 font-medium mt-1 leading-relaxed">
+                  <p className="text-xs text-[#94A3B8] font-medium mt-1 leading-relaxed">
                     Upload to your library so other devices or account can access your songs anytime.
                   </p>
                 </div>
@@ -485,21 +485,21 @@ export default function UploadModal() {
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
                 isDragging
-                  ? "border-blue-500 bg-blue-500/10 scale-[0.99]"
-                  : "border-[#293444] hover:border-blue-500/70 bg-[#131820]/60 hover:bg-[#181f2a]"
+                  ? "border-[#FF4D80] bg-[#FF4D80]/10 scale-[0.99]"
+                  : "border-white/[0.12] hover:border-[#FF4D80]/60 bg-white/[0.02] hover:bg-white/[0.04]"
               }`}
             >
               <div className="flex flex-col items-center gap-2.5">
-                <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/25 shadow-md">
+                <div className="w-12 h-12 rounded-2xl bg-[#FF4D80]/15 text-[#FF4D80] flex items-center justify-center border border-[#FF4D80]/25 shadow-md">
                   <FileAudio className="w-6 h-6" />
                 </div>
                 <p className="text-sm font-bold text-white">
                   Or drag & drop audio files here
                 </p>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-[#94A3B8] font-medium">
                   MP3 · WAV · M4A · OGG · FLAC · AAC
                 </p>
-                <div className="flex max-w-full items-center gap-2 pt-0.5 text-[11px] text-blue-400 font-medium bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
+                <div className="flex max-w-full items-center gap-2 pt-0.5 text-[11px] text-[#FF4D80] font-medium bg-[#FF4D80]/10 px-3 py-1.5 rounded-xl border border-[#FF4D80]/20">
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   <span>Song details and cover art are extracted automatically</span>
                 </div>
@@ -514,17 +514,17 @@ export default function UploadModal() {
               onClick={() => fileInputRef.current?.click()}
               className={`border border-dashed rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer transition-all ${
                 isDragging
-                  ? "border-blue-500 bg-blue-500/15"
-                  : "border-[#293444] bg-[#131820]/60 hover:bg-[#181f2a] hover:border-blue-500/60"
+                  ? "border-[#FF4D80] bg-[#FF4D80]/15"
+                  : "border-white/[0.1] bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#FF4D80]/50"
               }`}
             >
               <div className="flex items-center gap-3 text-xs">
-                <FileAudio className="w-4 h-4 text-blue-400 shrink-0" />
-                <span className="text-slate-300 font-medium">
+                <FileAudio className="w-4 h-4 text-[#FF4D80] shrink-0" />
+                <span className="text-[#94A3B8] font-medium">
                   Drop more audio files here or click to add
                 </span>
               </div>
-              <span className="text-[11px] font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">
+              <span className="text-[11px] font-semibold text-[#FF4D80] bg-[#FF4D80]/10 px-2.5 py-1 rounded-lg border border-[#FF4D80]/20">
                 + Add Files
               </span>
             </div>
@@ -547,14 +547,14 @@ export default function UploadModal() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Download authorization switch */}
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer bg-[#181f2a] hover:bg-[#1f2835] border border-[#293444] px-3 py-1.5 rounded-xl transition-colors">
+                  <label className="flex items-center gap-2 text-xs text-[#94A3B8] cursor-pointer bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3 py-1.5 rounded-xl transition-colors">
                     <input
                       type="checkbox"
                       checked={isAuthorizedDownload}
                       onChange={(e) => setIsAuthorizedDownload(e.target.checked)}
-                      className="w-3.5 h-3.5 accent-blue-600 rounded cursor-pointer"
+                      className="w-3.5 h-3.5 accent-[#FF4D80] rounded cursor-pointer"
                     />
-                    <span className="font-medium text-slate-300">
+                    <span className="font-medium text-[#94A3B8]">
                       Allow download
                     </span>
                   </label>
@@ -563,7 +563,7 @@ export default function UploadModal() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingAll}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-400 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 rounded-xl transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#FF4D80] bg-[#FF4D80]/15 hover:bg-[#FF4D80]/25 border border-[#FF4D80]/30 rounded-xl transition-all disabled:opacity-50"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add More</span>
@@ -573,7 +573,7 @@ export default function UploadModal() {
                   <button
                     onClick={handleClearAll}
                     disabled={isUploadingAll}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#94A3B8] hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Clear</span>
@@ -582,7 +582,7 @@ export default function UploadModal() {
               </div>
 
               {/* Table / Queue List */}
-              <div className="border border-[#232a35] rounded-2xl overflow-hidden divide-y divide-[#1e2531] bg-[#131820] max-h-[50vh] overflow-y-auto shadow-lg">
+              <div className="border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.04] bg-[#0E121A]/80 max-h-[50vh] overflow-y-auto shadow-lg">
                 {queue.map((item) => {
                   const meta = item.metadata;
                   const coverUrl = meta?.coverBlobUrl;
@@ -596,14 +596,14 @@ export default function UploadModal() {
                           : item.status === "error"
                           ? "bg-rose-950/20 border-l-2 border-rose-500"
                           : item.status === "uploading"
-                          ? "bg-blue-950/25 border-l-2 border-blue-500"
-                          : "hover:bg-[#181f2a]"
+                          ? "bg-[#FF4D80]/10 border-l-2 border-[#FF4D80]"
+                          : "hover:bg-white/[0.04]"
                       }`}
                     >
                       {/* Left: Thumbnail & Input Fields */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Cover Art Preview */}
-                        <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 shrink-0 shadow-sm">
+                        <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.08] shrink-0 shadow-sm">
                           {coverUrl ? (
                             <Image
                               src={coverUrl}
@@ -613,13 +613,13 @@ export default function UploadModal() {
                               className="object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500">
-                              <Music className="w-5 h-5 text-blue-400" />
+                            <div className="w-full h-full flex items-center justify-center text-[#64748B]">
+                              <Music className="w-5 h-5 text-[#FF4D80]" />
                             </div>
                           )}
                           {meta?.hasEmbeddedArtwork && (
                             <div
-                              className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 ring-1 ring-black"
+                              className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#FF4D80] ring-1 ring-black"
                               title="Embedded artwork extracted from file"
                             />
                           )}
@@ -643,7 +643,7 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Title"
-                              className="w-full text-xs font-bold text-white bg-transparent border-b border-transparent hover:border-slate-700 focus:border-blue-500 focus:bg-[#1c2432] outline-none px-1.5 py-1 rounded truncate transition-colors"
+                              className="w-full text-xs font-bold text-white bg-transparent border-b border-transparent hover:border-white/[0.12] focus:border-[#FF4D80] focus:bg-white/[0.06] outline-none px-1.5 py-1 rounded truncate transition-colors"
                             />
                           </div>
 
@@ -663,7 +663,7 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Artist"
-                              className="w-full text-xs text-slate-300 bg-transparent border-b border-transparent hover:border-slate-700 focus:border-blue-500 focus:bg-[#1c2432] outline-none px-1.5 py-1 rounded truncate transition-colors"
+                              className="w-full text-xs text-[#94A3B8] bg-transparent border-b border-transparent hover:border-white/[0.12] focus:border-[#FF4D80] focus:bg-white/[0.06] outline-none px-1.5 py-1 rounded truncate transition-colors"
                             />
                           </div>
 
@@ -683,7 +683,7 @@ export default function UploadModal() {
                                 );
                               }}
                               placeholder="Album"
-                              className="w-full text-xs text-slate-400 bg-transparent border-b border-transparent hover:border-slate-700 focus:border-blue-500 focus:bg-[#1c2432] outline-none px-1.5 py-1 rounded truncate transition-colors"
+                              className="w-full text-xs text-[#64748B] bg-transparent border-b border-transparent hover:border-white/[0.12] focus:border-[#FF4D80] focus:bg-white/[0.06] outline-none px-1.5 py-1 rounded truncate transition-colors"
                             />
                           </div>
                         </div>
@@ -693,10 +693,10 @@ export default function UploadModal() {
                       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         {/* Format & Duration */}
                         <div className="text-right hidden sm:block">
-                          <p className="text-[11px] font-mono font-medium text-slate-300">
+                          <p className="text-[11px] font-mono font-medium text-[#94A3B8]">
                             {formatDuration(meta?.duration || 0)}
                           </p>
-                          <p className="text-[10px] text-slate-500 uppercase font-mono">
+                          <p className="text-[10px] text-[#64748B] uppercase font-mono">
                             {meta?.format || "AUDIO"} • {formatFileSize(item.file.size)}
                           </p>
                         </div>
@@ -704,28 +704,28 @@ export default function UploadModal() {
                         {/* Status Badges */}
                         <div className="w-24 text-right">
                           {item.status === "extracting" && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-blue-400 font-semibold animate-pulse">
+                            <span className="inline-flex items-center gap-1 text-[11px] text-[#FF4D80] font-semibold animate-pulse">
                               <Loader2 className="w-3 h-3 animate-spin" />
                               <span>Parsing</span>
                             </span>
                           )}
 
                           {item.status === "ready" && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1c2432] text-slate-300 border border-[#283342] text-[10px] font-bold">
-                              <Check className="w-3 h-3 text-slate-400" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/[0.06] text-[#94A3B8] border border-white/[0.08] text-[10px] font-bold">
+                              <Check className="w-3 h-3 text-[#94A3B8]" />
                               <span>Ready</span>
                             </span>
                           )}
 
                           {item.status === "uploading" && (
                             <div className="w-20">
-                              <div className="h-1.5 w-full bg-[#1f2837] rounded-full overflow-hidden">
+                              <div className="h-1.5 w-full bg-white/[0.08] rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-blue-500 rounded-full transition-all duration-200"
+                                  className="h-full bg-[#FF4D80] rounded-full transition-all duration-200"
                                   style={{ width: `${item.progress}%` }}
                                 />
                               </div>
-                              <span className="text-[10px] text-blue-400 font-mono">
+                              <span className="text-[10px] text-[#FF4D80] font-mono">
                                 Uploading
                               </span>
                             </div>
@@ -754,7 +754,7 @@ export default function UploadModal() {
                         {item.status !== "uploading" && (
                           <button
                             onClick={() => handleRemoveItem(item.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                            className="p-1.5 rounded-lg text-[#64748B] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                             title="Remove from batch"
                           >
                             <X className="w-4 h-4" />
@@ -770,10 +770,10 @@ export default function UploadModal() {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-[#1f2631] bg-[#131820] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-xs text-slate-400">
+        <div className="px-6 py-4 border-t border-white/[0.06] bg-[#07090D]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-[#94A3B8]">
             {isUploadingAll ? (
-              <span className="inline-flex items-center gap-2 text-blue-400 font-semibold">
+              <span className="inline-flex items-center gap-2 text-[#FF4D80] font-semibold">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>
                   Uploading {activeUploadCount} active • {completedCount} of {queue.length} completed
@@ -785,7 +785,7 @@ export default function UploadModal() {
                 All {completedCount} songs uploaded successfully!
               </span>
             ) : (
-              <span className="text-slate-400">
+              <span className="text-[#94A3B8]">
                 {readyCount > 0
                   ? `${readyCount} ${readyCount === 1 ? "song" : "songs"} ready to upload`
                   : "Select songs to begin"}
@@ -797,7 +797,7 @@ export default function UploadModal() {
             <button
               type="button"
               onClick={handleCloseModal}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-[#1c2432] rounded-xl transition-colors shrink-0"
+              className="px-3.5 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors shrink-0"
             >
               {completedCount === queue.length && completedCount > 0
                 ? "Close"
@@ -811,7 +811,7 @@ export default function UploadModal() {
                   setQueue([]);
                   fileInputRef.current?.click();
                 }}
-                className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 active:scale-95"
+                className="flex-1 sm:flex-initial px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 active:scale-95"
               >
                 Upload More
               </button>
@@ -822,7 +822,7 @@ export default function UploadModal() {
                   type="button"
                   onClick={handlePlayLocallyFromQueue}
                   disabled={isSavingLocally || isUploadingAll || readyCount === 0}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
                   title="Play directly on this device without uploading to server"
                 >
                   {isSavingLocally ? (
@@ -844,7 +844,7 @@ export default function UploadModal() {
                   type="button"
                   onClick={handleUploadAll}
                   disabled={isUploadingAll || isSavingLocally || readyCount === 0}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 bg-[#FF4D80] hover:bg-[#FF6694] active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploadingAll ? (
                     <>

@@ -37,68 +37,68 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="soundify-shell min-h-[100dvh] w-full flex items-center justify-center bg-[#0b0d10] p-4 text-[#f5f7fa]">
-      <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-[#07090D] p-4 text-[#F8FAFC]">
+      <div className="w-full max-w-md bg-[#0E121A]/90 border border-white/[0.08] rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden mb-3 shadow-md shadow-pink-500/20">
+          <div className="w-14 h-14 rounded-2xl overflow-hidden mb-3 shadow-lg shadow-[#FF4D80]/25 border border-[#FF4D80]/30">
             <Image src="/piggy-logo.jpg" alt="piGGyPlayer" width={56} height={56} className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Create your account
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[#94A3B8] mt-1">
             Start listening and uploading your personal music library
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium">
+          <div className="mb-6 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-medium">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
               Full Name
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Alex Mercer"
-                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-white/[0.06] border border-white/[0.08] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#FF4D80] transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-white/[0.06] border border-white/[0.08] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#FF4D80] transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
@@ -106,7 +106,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 8 characters"
-                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-600 focus:bg-white transition-colors"
+                className="w-full min-h-11 pl-10 pr-4 py-2.5 text-base sm:text-sm bg-white/[0.06] border border-white/[0.08] rounded-xl text-white placeholder-[#64748B] focus:outline-none focus:border-[#FF4D80] transition-colors"
               />
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full mt-2 py-3 px-4 bg-[#FF4D80] hover:bg-[#FF6694] active:scale-[0.99] text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-[#FF4D80]/20 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -127,17 +127,17 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-slate-100 text-center">
-          <p className="text-xs text-slate-500">
+        <div className="mt-6 pt-6 border-t border-white/[0.06] text-center">
+          <p className="text-xs text-[#94A3B8]">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-blue-600 hover:underline"
+              className="font-semibold text-[#FF4D80] hover:text-[#FF6694] hover:underline"
             >
               Sign in
             </Link>{" "}
             or{" "}
-            <Link href="/" className="text-slate-600 hover:underline">
+            <Link href="/" className="text-[#64748B] hover:text-[#94A3B8] hover:underline">
               browse as guest
             </Link>
           </p>

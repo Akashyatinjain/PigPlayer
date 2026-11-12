@@ -108,8 +108,8 @@ export default function SongRow({
       onDoubleClick={handlePlay}
       className={`group flex items-center justify-between gap-1 px-2 sm:px-4 py-2.5 rounded-xl cursor-pointer transition-colors ${
         isCurrent
-          ? "bg-blue-600/15 border border-blue-500/35 text-white shadow-xs"
-          : "hover:bg-[#161c24] border border-transparent"
+          ? "bg-[#FF4D80]/10 border border-[#FF4D80]/25 text-white shadow-xs"
+          : "hover:bg-white/[0.04] border border-transparent"
       }`}
     >
       {/* LEFT: Index / Play Icon & Track Metadata */}
@@ -119,7 +119,7 @@ export default function SongRow({
           {isCurrent ? (
             <button
               onClick={handlePlay}
-              className="text-blue-400 hover:scale-110 transition-transform"
+              className="text-[#FF4D80] hover:scale-110 transition-transform"
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4 fill-current" />
@@ -129,12 +129,12 @@ export default function SongRow({
             </button>
           ) : (
             <>
-              <span className="text-xs font-mono text-slate-400 group-hover:hidden">
+              <span className="text-xs font-mono text-[#64748B] group-hover:hidden">
                 {index + 1}
               </span>
               <button
                 onClick={handlePlay}
-                className="hidden group-hover:block text-slate-300 hover:text-blue-400 transition-colors"
+                className="hidden group-hover:block text-[#94A3B8] hover:text-[#FF4D80] transition-colors"
               >
                 <Play className="w-4 h-4 fill-current" />
               </button>
@@ -143,7 +143,7 @@ export default function SongRow({
         </div>
 
         {/* Thumbnail with graceful fallback on 404 */}
-        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-[#161c24] border border-[#232b35] shrink-0">
+        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/[0.06] border border-white/[0.08] shrink-0">
           {song.coverUrl && !imageError ? (
             <Image
               src={song.coverUrl}
@@ -154,7 +154,7 @@ export default function SongRow({
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#121c2a] to-[#182333] text-blue-400">
+            <div className="w-full h-full flex items-center justify-center bg-linear-to-br from-[#121c2a] to-[#182333] text-[#FF4D80]">
               <Music className="w-4 h-4" />
             </div>
           )}
@@ -164,13 +164,13 @@ export default function SongRow({
         <div className="min-w-0 flex-1 pr-2">
           <p
             className={`text-xs sm:text-sm font-semibold truncate ${
-              isCurrent ? "text-blue-400 font-bold" : "text-white"
+              isCurrent ? "text-[#FF4D80] font-bold" : "text-white"
             }`}
           >
             {song.title}
           </p>
           <div className="flex min-w-0 items-center gap-2">
-            <p className="text-[11px] sm:text-xs text-slate-400 truncate">{song.artist}</p>
+            <p className="text-[11px] sm:text-xs text-[#94A3B8] truncate">{song.artist}</p>
             {isSavedOffline && (
               <span className="shrink-0 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.2">
                 Offline
@@ -187,7 +187,7 @@ export default function SongRow({
 
       {/* CENTER: Album Name (Desktop only) */}
       {showAlbum && (
-        <div className="hidden md:block w-48 text-xs text-slate-400 truncate px-2">
+        <div className="hidden md:block w-48 text-xs text-[#94A3B8] truncate px-2">
           {song.album || "—"}
         </div>
       )}
@@ -201,14 +201,14 @@ export default function SongRow({
             toggleFavorite(song.id);
           }}
           aria-label={song.isFavorite ? `Remove ${song.title} from favorites` : `Add ${song.title} to favorites`}
-          className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full transition-colors hover:text-rose-400 shrink-0"
+          className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full transition-colors hover:text-[#FF4D80] shrink-0"
           title={song.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         >
           <Heart
             className={`w-4 h-4 ${
               song.isFavorite
-                ? "fill-rose-500 text-rose-500"
-                : "text-slate-400 md:opacity-0 md:group-hover:opacity-100"
+                ? "fill-[#FF4D80] text-[#FF4D80]"
+                : "text-[#64748B] md:opacity-0 md:group-hover:opacity-100"
             }`}
           />
         </button>
@@ -221,7 +221,7 @@ export default function SongRow({
           className={`hidden sm:flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors shrink-0 ${
             isSavedOffline
               ? "text-emerald-400 hover:text-rose-400 md:opacity-100"
-              : "text-slate-400 hover:text-blue-400 md:opacity-0 md:group-hover:opacity-100"
+              : "text-[#94A3B8] hover:text-[#FF4D80] md:opacity-0 md:group-hover:opacity-100"
           }`}
           title={
             isSavingOffline
@@ -232,7 +232,7 @@ export default function SongRow({
           }
         >
           {isSavingOffline ? (
-            <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+            <Loader2 className="w-4 h-4 animate-spin text-[#FF4D80]" />
           ) : isSavedOffline ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           ) : (
@@ -244,7 +244,7 @@ export default function SongRow({
         <button
           onClick={handleAddToPlaylist}
           aria-label={`Add ${song.title} to a playlist`}
-          className="hidden sm:flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-400 hover:text-blue-400 transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
+          className="hidden sm:flex min-h-11 min-w-11 items-center justify-center rounded-full text-[#94A3B8] hover:text-[#FF4D80] transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
           title="Add to playlist"
         >
           <Plus className="w-4 h-4" />
@@ -254,7 +254,7 @@ export default function SongRow({
         {song.isAuthorizedDownload && (
           <button
             onClick={handleDownload}
-            className="hidden md:flex p-1.5 rounded-full text-slate-400 hover:text-slate-200 transition-colors md:opacity-0 md:group-hover:opacity-100 shrink-0"
+            className="hidden md:flex p-1.5 rounded-full text-[#94A3B8] hover:text-white transition-colors md:opacity-0 md:group-hover:opacity-100 shrink-0"
             title="Download audio file to computer"
           >
             <Download className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function SongRow({
               onRemoveFromPlaylist();
             }}
             aria-label="Remove song from playlist"
-            className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-400 transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
+            className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-[#94A3B8] hover:text-[#F43F5E] transition-colors shrink-0 md:opacity-0 md:group-hover:opacity-100"
             title="Remove from playlist"
           >
             <Trash2 className="w-4 h-4" />
@@ -282,7 +282,7 @@ export default function SongRow({
                 setShowMenu(!showMenu);
               }}
               aria-label={`More actions for ${song.title}`}
-              className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-slate-400 hover:text-white transition-colors"
+              className="min-h-10 min-w-10 sm:min-h-11 sm:min-w-11 flex items-center justify-center rounded-full text-[#94A3B8] hover:text-white transition-colors"
               title="More options"
             >
               <MoreVertical className="w-4 h-4" />
@@ -291,20 +291,20 @@ export default function SongRow({
             {showMenu && (
               <>
                 <button type="button" aria-label="Close song actions" onClick={() => setShowMenu(false)} className="fixed inset-0 z-40 bg-black/60 md:hidden" />
-                <div onClick={(e) => e.stopPropagation()} className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border border-[#232b35] bg-[#12161d] px-4 pb-4 pt-3 shadow-2xl mobile-safe-bottom md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-10 md:w-56 md:rounded-xl md:px-1 md:py-1 md:shadow-xl">
-                  <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-slate-700 md:hidden" />
-                  <p className="truncate px-3 pb-2 text-xs font-semibold text-slate-400 md:hidden">{song.title}</p>
+                <div onClick={(e) => e.stopPropagation()} className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border border-white/[0.1] bg-[#0E121A] px-4 pb-4 pt-3 shadow-2xl mobile-safe-bottom md:absolute md:inset-x-auto md:bottom-auto md:right-0 md:top-10 md:w-56 md:rounded-xl md:px-1 md:py-1 md:shadow-xl">
+                  <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-white/20 md:hidden" />
+                  <p className="truncate px-3 pb-2 text-xs font-semibold text-[#94A3B8] md:hidden">{song.title}</p>
                   <MenuAction icon={<Play className="h-4 w-4" />} label="Play next" onClick={() => { playNextInQueue(song); setShowMenu(false); }} />
                   <MenuAction icon={<ListPlus className="h-4 w-4" />} label="Add to queue" onClick={() => { addToQueue(song); setShowMenu(false); setQueueOpen(true); }} />
                   <MenuAction icon={<Plus className="h-4 w-4" />} label="Add to playlist" onClick={(e) => { handleAddToPlaylist(e); setShowMenu(false); }} />
                   <MenuAction
                     icon={
                       isSavingOffline ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                        <Loader2 className="h-4 w-4 animate-spin text-[#FF4D80]" />
                       ) : isSavedOffline ? (
                         <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                       ) : (
-                        <ArrowDownToLine className="h-4 w-4 text-blue-400" />
+                        <ArrowDownToLine className="h-4 w-4 text-[#FF4D80]" />
                       )
                     }
                     label={
@@ -322,7 +322,7 @@ export default function SongRow({
                   {song.isAuthorizedDownload && (
                     <MenuAction icon={<Download className="h-4 w-4" />} label="Download audio file" onClick={(e) => { handleDownload(e); setShowMenu(false); }} />
                   )}
-                  <div className="my-1 border-t border-[#1f2631] md:hidden" />
+                  <div className="my-1 border-t border-white/[0.06] md:hidden" />
                   <MenuAction destructive icon={<Trash2 className="h-4 w-4" />} label="Delete song" onClick={() => { if (window.confirm(`Delete “${song.title}”?`)) deleteSong(song.id); setShowMenu(false); }} />
                 </div>
               </>
@@ -331,7 +331,7 @@ export default function SongRow({
         )}
 
         {/* Track Duration */}
-        <span className="hidden w-10 text-right text-[10px] font-mono text-slate-400 tabular-nums sm:inline sm:w-12 sm:text-xs">
+        <span className="hidden w-10 text-right text-[10px] font-mono text-[#94A3B8] tabular-nums sm:inline sm:w-12 sm:text-xs">
           {formatDuration(song.duration)}
         </span>
       </div>

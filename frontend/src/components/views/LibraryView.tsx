@@ -38,24 +38,24 @@ export default function LibraryView() {
     : songs;
 
   return (
-    <div className="space-y-5 pb-8 text-[#f5f7fa]">
+    <div className="space-y-5 pb-8 text-[#F8FAFC]">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Your collection</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#64748B]">Your collection</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Library</h1>
         </div>
         <button
           type="button"
           onClick={() => setIsPlaylistModalOpen(true)}
-          className="flex min-h-11 items-center gap-2 rounded-xl border border-[#232b35] bg-[#141922] px-3.5 text-sm font-medium text-slate-300 transition-colors hover:bg-[#1c232f] hover:text-white"
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3.5 text-sm font-medium text-[#94A3B8] transition-colors hover:bg-white/[0.1] hover:text-white"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 text-[#FF4D80]" />
           <span className="hidden sm:inline">New playlist</span>
           <span className="sm:hidden">Create</span>
         </button>
       </div>
 
-      <div role="tablist" aria-label="Library sections" className="flex w-full gap-1 overflow-x-auto border-b border-[#232b35]">
+      <div role="tablist" aria-label="Library sections" className="flex w-full gap-1 overflow-x-auto border-b border-white/[0.06]">
         {sections.map((item) => (
           <button
             key={item.id}
@@ -63,7 +63,7 @@ export default function LibraryView() {
             role="tab"
             aria-selected={section === item.id}
             onClick={() => setSection(item.id)}
-            className={`min-h-11 shrink-0 border-b-2 px-3.5 text-sm transition-colors ${section === item.id ? "border-blue-500 font-semibold text-white" : "border-transparent text-slate-400 hover:text-white"}`}
+            className={`min-h-11 shrink-0 border-b-2 px-3.5 text-sm transition-colors ${section === item.id ? "border-[#FF4D80] font-semibold text-white" : "border-transparent text-[#94A3B8] hover:text-white"}`}
           >
             {item.label}
           </button>
@@ -72,9 +72,9 @@ export default function LibraryView() {
 
       {isLoading ? (
         <div aria-label="Loading your library" className="space-y-3">
-          <div className="h-20 animate-pulse rounded-2xl bg-[#12161d]" />
-          <div className="h-20 animate-pulse rounded-2xl bg-[#12161d]" />
-          <div className="h-20 animate-pulse rounded-2xl bg-[#12161d]" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white/[0.04]" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white/[0.04]" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white/[0.04]" />
         </div>
       ) : <>
       {section === "all" && (
@@ -89,7 +89,7 @@ export default function LibraryView() {
       {section === "offline" && <OfflineView />}
       {section === "playlists" && (
         playlists.length ? (
-          <div className="divide-y divide-[#1f2631] overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015]">
+          <div className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A]">
             {playlists.map((playlist) => (
               <button
                 key={playlist.id}
@@ -98,16 +98,16 @@ export default function LibraryView() {
                   setSelectedPlaylistId(playlist.id);
                   setActiveTab("playlists");
                 }}
-                className="flex min-h-[4.5rem] w-full items-center gap-3 px-3 text-left transition-colors hover:bg-[#141922]"
+                className="flex min-h-[4.5rem] w-full items-center gap-3 px-3 text-left transition-colors hover:bg-white/[0.04]"
               >
-                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#141922] text-slate-400">
+                <span className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/[0.06] text-[#64748B]">
                   {playlist.coverUrl ? <Image src={playlist.coverUrl} alt="" fill unoptimized className="object-cover" /> : <ListMusic className="h-5 w-5" />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-white">{playlist.name}</span>
-                  <span className="block text-xs text-slate-400">{playlist._count?.songs ?? 0} songs</span>
+                  <span className="block text-xs text-[#94A3B8]">{playlist._count?.songs ?? 0} songs</span>
                 </span>
-                <Library className="h-4 w-4 text-slate-400" />
+                <Library className="h-4 w-4 text-[#64748B]" />
               </button>
             ))}
           </div>
@@ -116,7 +116,7 @@ export default function LibraryView() {
         )
       )}
       {section === "playlists" && playlists.length === 0 && (
-        <button type="button" onClick={() => setIsPlaylistModalOpen(true)} className="-mt-2 min-h-11 rounded-xl px-3 text-sm font-semibold text-blue-400 hover:bg-blue-600/10">
+        <button type="button" onClick={() => setIsPlaylistModalOpen(true)} className="-mt-2 min-h-11 rounded-xl px-3 text-sm font-semibold text-[#FF4D80] hover:bg-[#FF4D80]/10">
           Create playlist
         </button>
       )}
@@ -128,7 +128,7 @@ export default function LibraryView() {
 function SongCollection({ songs, emptyTitle, emptyText }: { songs: import("@/types/music").Song[]; emptyTitle: string; emptyText: string }) {
   if (songs.length === 0) return <EmptyCollection icon={<Music2 className="h-6 w-6" />} title={emptyTitle} description={emptyText} />;
   return (
-    <div className="divide-y divide-[#1f2631] overflow-hidden rounded-2xl border border-[#232b35] bg-[#0d1015]">
+    <div className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0E121A]">
       {songs.map((song, index) => <SongRow key={`${song.id}-${index}`} song={song} index={index} allSongs={songs} />)}
     </div>
   );
@@ -136,10 +136,10 @@ function SongCollection({ songs, emptyTitle, emptyText }: { songs: import("@/typ
 
 function EmptyCollection({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="rounded-2xl border border-[#232b35] bg-[#0d1015] px-6 py-12 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#141922] text-blue-400">{icon}</span>
+    <div className="rounded-2xl border border-white/[0.08] bg-[#0E121A] px-6 py-12 text-center">
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06] text-[#FF4D80]">{icon}</span>
       <h2 className="mt-4 text-base font-semibold text-white">{title}</h2>
-      <p className="mx-auto mt-1 max-w-xs text-sm text-slate-400">{description}</p>
+      <p className="mx-auto mt-1 max-w-xs text-sm text-[#94A3B8]">{description}</p>
     </div>
   );
 }

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0d10",
+  themeColor: "#07090D",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -46,7 +46,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="h-full bg-[#0b0d10] text-[#f5f7fa] flex flex-col overflow-hidden selection:bg-blue-600/30 selection:text-white"
+        className="h-full bg-piggy-abyss text-piggy-text flex flex-col overflow-hidden selection:bg-piggy-rose/20 selection:text-white"
       >
         <PwaRegister />
         {children}
