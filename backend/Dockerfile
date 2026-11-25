@@ -43,5 +43,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD curl -fsS "http://127.0.0.1:${PORT}/api/ready" || exit 1
 
-CMD ["sh", "-c", "node scripts/migrate.js && exec node dist/server.js"]
+CMD ["node", "dist/server.js"]
 

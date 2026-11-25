@@ -43,7 +43,7 @@ Production requires both signing keys. Deploying this update signs users out of 
 
 `npm run db:migrate` applies the versioned SQL in `prisma/migrations` to the database configured for the server. `npm run prisma:push` is a compatibility alias for this command. The runner applies pending migrations in a single transaction and checks the contents of previously applied migrations. This release adds the session table and indexes and can adopt the existing library schema. Back up the SQLite database and media before upgrading a deployed instance.
 
-`npm run build` generates the client and compiles TypeScript. Run `npm start` on the deployment host to synchronize the schema and start the API. The server opens its listener after database startup succeeds. `/health` and `/api/health` are liveness checks. `/ready` and `/api/ready` check that the database schema is available.
+`npm run build` generates the client and compiles TypeScript. Run `npm start` on the deployment host. The server applies migrations before opening its listener, including when launched directly with Node or nodemon. `/health` and `/api/health` are liveness checks. `/ready` and `/api/ready` check that the database schema is available.
 
 ## API
 

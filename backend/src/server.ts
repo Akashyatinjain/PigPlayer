@@ -1,4 +1,5 @@
 import { once } from 'node:events';
+import { migrateDatabase } from '../scripts/migrate';
 import { logger } from './utils/logger';
 import { config } from './config/env';
 import { prisma } from './config/database';
@@ -7,6 +8,7 @@ import app from './app';
 
 async function main() {
   try {
+    migrateDatabase();
     await prisma.$connect();
     await bootstrapLocalApp();
     const server = app.listen(config.port, '0.0.0.0');

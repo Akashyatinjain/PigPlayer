@@ -5,10 +5,6 @@ echo "=================================================="
 echo " Starting PigPlayer (Soundify) in Docker"
 echo "=================================================="
 
-# Synchronize SQLite database schema
-echo "[Entrypoint] Synchronizing SQLite database schema..."
-node /app/backend/scripts/migrate.js
-
 # Graceful termination handler
 cleanup() {
   echo "[Entrypoint] Received termination signal. Shutting down services..."

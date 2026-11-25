@@ -4,10 +4,10 @@
   "description": "Soundify Music Player — Offline-first Express + SQLite API",
   "main": "server.js",
   "scripts": {
-    "predev": "npm run prisma:generate && npm run db:migrate",
+    "predev": "npm run prisma:generate",
     "dev": "node --watch -r ts-node/register/transpile-only src/server.ts",
     "build": "prisma generate && tsc",
-    "start": "npm run db:migrate && node dist/server.js",
+    "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "db:migrate": "node scripts/migrate.js",
     "prisma:push": "npm run db:migrate",
