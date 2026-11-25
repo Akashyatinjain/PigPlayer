@@ -30,6 +30,8 @@ jobs:
 
       - name: Install backend dependencies
         run: npm ci
+        env:
+          NODE_ENV: production
 
       - name: Build backend
         run: npm run build

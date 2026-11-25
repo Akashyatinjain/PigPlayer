@@ -23,6 +23,17 @@ npm audit
 
 Jest provisions a fresh temporary SQLite database and media directory. The tests leave the application database and library alone. Use `npm run prisma:seed` to populate a development library with the bundled demo media after synchronizing its schema.
 
+## Render Node service
+
+| Setting | Value |
+|---|---|
+| Root Directory | `backend` |
+| Build Command | `npm ci --include=dev && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/api/ready` |
+
+The backend npm configuration includes the TypeScript declarations, compiler, and Prisma CLI during source installs. For a Render service configured at the repository root, use `npm run build:backend` and `npm start`. Set the production environment variables below in the service settings.
+
 ## Production environment
 
 | Variable | Purpose |
