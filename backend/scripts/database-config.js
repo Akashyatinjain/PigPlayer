@@ -11,10 +11,23 @@ const projectRoot = fs.existsSync(path.join(parent, 'frontend')) ||
 const configuredDataRoot = process.env.DATA_DIR?.trim() || process.env.DATA_ROOT?.trim();
 const dataRoot = path.resolve(configuredDataRoot || path.join(projectRoot, 'data'));
 const defaultPath = path.join(dataRoot, 'soundify.db');
-const databaseProvider = process.env.DATABASE_PROVIDER?.trim() || 'sqlite';
 const genericUrl = process.env.DATABASE_URL?.trim();
-const sqlitePath = databaseProvider === 'sqlite' ? process.env.SQLITE_PATH?.trim() : undefined;
-const sqliteUrl = databaseProvider === 'sqlite' ? process.env.SQLITE_DATABASE_URL?.trim() : undefined;
+const requestedProvider = process.env.DATABASE_PROVIDER?.trim();
+const configuredSqlitePath = process.env.SQLITE_PATH?.trim();
+const configuredSqliteUrl = process.env.SQLITE_DATABASE_URL?.trim();
+const renderWithPostgres = process.env.RENDER === 'true' && /^postgres(?:ql)?:\/\//i.test(genericUrl ?? '');
+
+function hasDefaultSqliteLocation() {
+  return Boolean(configuredDataRoot || fs.statSync(defaultPath, { throwIfNoEntry: false })?.isFile());
+}
+
+const useRenderPostgres = !requestedProvider && renderWithPostgres &&
+  !configuredSqlitePath && !configuredSqliteUrl && !hasDefaultSqliteLocation();
+const databaseProvider = requestedProvider || (useRenderPostgres ? 'postgresql' : 'sqlite');
+if (useRenderPostgres) console.info('[CONFIG] Using PostgreSQL on Render based on DATABASE_URL.');
+
+const sqlitePath = databaseProvider === 'sqlite' ? configuredSqlitePath : undefined;
+const sqliteUrl = databaseProvider === 'sqlite' ? configuredSqliteUrl : undefined;
 const configuredUrl = databaseProvider === 'sqlite' ? sqliteUrl || genericUrl : undefined;
 const urlName = sqliteUrl ? 'SQLITE_DATABASE_URL' : 'DATABASE_URL';
 
@@ -36,11 +49,13 @@ if (sqlitePath) {
   databasePath = path.resolve(backendRoot, 'prisma', localPath);
 } else if (!sqliteUrl && path.isAbsolute(configuredUrl)) {
   databasePath = path.resolve(configuredUrl);
-} else if (!sqliteUrl && process.env.RENDER === 'true' && /^postgres(?:ql)?:\/\//i.test(configuredUrl) &&
-    (configuredDataRoot || fs.statSync(defaultPath, { throwIfNoEntry: false })?.isFile())) {
+} else if (!sqliteUrl && renderWithPostgres && hasDefaultSqliteLocation()) {
   console.warn('[CONFIG] Ignoring PostgreSQL DATABASE_URL on Render and using the local SQLite library.');
   databasePath = defaultPath;
 } else {
+  if (!sqliteUrl && /^postgres(?:ql)?:\/\//i.test(configuredUrl)) {
+    throw new Error('DATABASE_URL points to PostgreSQL. Set DATABASE_PROVIDER=postgresql to select it, or set SQLITE_PATH to the existing SQLite file.');
+  }
   throw new Error(`${urlName} must use a SQLite file URL. Set SQLITE_PATH to the intended SQLite database file.`);
 }
 if (/[?#]/.test(databasePath)) throw new Error('SQLite database paths cannot contain ? or #');

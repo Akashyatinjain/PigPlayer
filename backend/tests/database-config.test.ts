@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const configScript = path.resolve(__dirname, '../scripts/database-config.js');
@@ -61,17 +61,46 @@ it('keeps a bare absolute SQLite file path from legacy configuration', () => {
   expect(result.stdout.trim()).toBe(intendedFile);
 });
 
-it('requires a known SQLite location when Render supplies a PostgreSQL URL', () => {
+function withCleanConfig(check: (script: string, backend: string) => void) {
   const fixture = mkdtempSync(path.join(process.env.DATA_DIR!, 'database-config-'));
   try {
-    const script = path.join(fixture, 'backend', 'scripts', 'database-config.js');
+    const backend = path.join(fixture, 'backend');
+    const script = path.join(backend, 'scripts', 'database-config.js');
     mkdirSync(path.dirname(script), { recursive: true });
     copyFileSync(configScript, script);
-    const result = readConfig({}, script);
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('Set SQLITE_PATH to the intended SQLite database file');
-    expect(result.stderr).not.toContain('fake-password');
+    check(script, backend);
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
+}
+
+it('selects PostgreSQL from the Render URL when no SQLite location is configured', () => {
+  withCleanConfig((script) => {
+    const result = readConfig({ DATABASE_PROVIDER: '' }, script);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Using PostgreSQL on Render');
+    expect(result.stdout.trim().endsWith('example.invalid')).toBe(true);
+    expect(result.stdout).not.toContain('fake-password');
+  });
+});
+
+it('keeps an existing SQLite library when no provider is specified on Render', () => {
+  withCleanConfig((script, backend) => {
+    const data = path.join(backend, 'data');
+    const database = path.join(data, 'soundify.db');
+    mkdirSync(data);
+    writeFileSync(database, '');
+    const result = readConfig({ DATABASE_PROVIDER: '' }, script);
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe(database);
+  });
+});
+
+it('honors an explicit SQLite provider and explains how to select PostgreSQL', () => {
+  withCleanConfig((script) => {
+    const result = readConfig({}, script);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Set DATABASE_PROVIDER=postgresql to select it');
+    expect(result.stderr).not.toContain('fake-password');
+  });
 });

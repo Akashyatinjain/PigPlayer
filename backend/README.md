@@ -38,6 +38,8 @@ For an existing Render library, set `DATA_ROOT` to the directory containing its 
 
 Set `DATABASE_PROVIDER=postgresql` to use a PostgreSQL service such as Neon. Set `DATABASE_URL` to the pooled PostgreSQL URL and `DIRECT_URL` to the unpooled URL for the same database and schema. If `DIRECT_URL` is unset, the app derives the direct hostname for Neon pooler URLs. Store both connection strings in the Render Environment settings. See the [Neon Prisma connection guide](https://neon.com/docs/guides/prisma).
 
+When Render has a PostgreSQL `DATABASE_URL` and `DATABASE_PROVIDER` is unset, the backend selects PostgreSQL if there is no SQLite-specific configuration, configured data directory, or existing default SQLite file. Set the provider explicitly for an existing library cutover.
+
 With `DATABASE_PROVIDER=sqlite`, an explicit SQLite setting takes precedence over a shared `DATABASE_URL`. When Render supplies a PostgreSQL URL and the SQLite service has a known data directory or default SQLite file, it logs the SQLite selection. Set `SQLITE_PATH` to an existing file when specifying the SQLite location directly.
 
 ## Production environment

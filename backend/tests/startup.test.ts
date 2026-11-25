@@ -32,7 +32,7 @@ it.each([
     cwd: backend,
     env: {
       ...process.env,
-      DATABASE_PROVIDER: 'sqlite',
+      DATABASE_PROVIDER: render ? '' : 'sqlite',
       PORT: String(address.port),
       SQLITE_PATH: render ? '' : database,
       SQLITE_DATABASE_URL: '',
