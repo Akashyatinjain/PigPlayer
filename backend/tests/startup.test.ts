@@ -1,13 +1,17 @@
 import { execFileSync, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { once } from 'node:events';
 
-it('migrates a legacy library when the server is started directly', async () => {
+it.each([
+  { name: 'a direct launch', fileName: 'legacy.db', render: false },
+  { name: 'Render with a shared PostgreSQL URL', fileName: 'soundify.db', render: true },
+])('migrates the existing library on $name', async ({ fileName, render }) => {
   const backend = path.resolve(__dirname, '..');
   const storage = mkdtempSync(path.join(process.env.DATA_DIR!, 'startup-'));
-  const database = path.join(storage, 'legacy.db');
+  const database = path.join(storage, fileName);
   const probe = createServer().listen(0, '127.0.0.1');
   await once(probe, 'listening');
   const address = probe.address();
@@ -26,7 +30,21 @@ it('migrates a legacy library when the server is started directly', async () => 
 
   const server = spawn(process.execPath, ['-r', 'ts-node/register/transpile-only', 'src/server.ts'], {
     cwd: backend,
-    env: { ...process.env, PORT: String(address.port), SQLITE_PATH: database, DATA_DIR: storage },
+    env: {
+      ...process.env,
+      PORT: String(address.port),
+      SQLITE_PATH: render ? '' : database,
+      SQLITE_DATABASE_URL: '',
+      DATABASE_URL: render ? 'postgresql://example.invalid/other-service' : '',
+      DATA_DIR: '',
+      DATA_ROOT: storage,
+      RENDER: String(render),
+      NODE_ENV: render ? 'production' : 'test',
+      JWT_SECRET: randomBytes(32).toString('hex'),
+      JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
+      LOCAL_USER_EMAIL: '',
+      LOCAL_USER_PASSWORD: '',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = '';
@@ -42,6 +60,7 @@ it('migrates a legacy library when the server is started directly', async () => 
     }
     if (!ready) throw new Error(`API did not start:\n${log}`);
     expect(ready.status).toBe(200);
+    if (render) expect(log).toContain('Ignoring PostgreSQL DATABASE_URL on Render');
     const catalog = await fetch(`${origin}/api/songs`);
     expect(catalog.status).toBe(200);
     expect((await catalog.json()).data).toEqual([

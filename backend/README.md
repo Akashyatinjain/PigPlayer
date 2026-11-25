@@ -34,6 +34,10 @@ Jest provisions a fresh temporary SQLite database and media directory. The tests
 
 The backend npm configuration includes the TypeScript declarations, compiler, and Prisma CLI during source installs. For a Render service configured at the repository root, use `npm run build:backend` and `npm start`. Set the production environment variables below in the service settings.
 
+For an existing Render library, set `DATA_ROOT` to the directory containing its media and `SQLITE_PATH` to the existing SQLite file. For example, if your persistent disk is mounted at `/var/data` and already contains `soundify.db`, use `DATA_ROOT=/var/data` and `SQLITE_PATH=/var/data/soundify.db`. Render preserves files under the persistent disk mount across deploys.
+
+An explicit SQLite setting takes precedence over a shared `DATABASE_URL`. If Render supplies a PostgreSQL URL and the service already has a configured data directory or a SQLite file at its default location, the backend logs that it is using the SQLite library. Otherwise, set `SQLITE_PATH` to the intended file before deploying.
+
 ## Production environment
 
 | Variable | Purpose |
@@ -44,7 +48,7 @@ The backend npm configuration includes the TypeScript declarations, compiler, an
 | `JWT_SECRET`, `JWT_REFRESH_SECRET` | Independent signing keys. Generate each with `openssl rand -hex 48` or your secret manager. Keep the keys stable across restarts. |
 | `LOCAL_USER_EMAIL`, `LOCAL_USER_PASSWORD`, `LOCAL_USER_NAME` | Optional first-run administrator. Choose an unused email and a unique password of 16 to 72 bytes. Existing accounts retain their roles. |
 | `DATA_ROOT` | Storage root for audio, artwork, backups, and the default SQLite database. Persist this directory when deploying in a container. |
-| `SQLITE_PATH` or `DATABASE_URL` | Optional SQLite file override. A relative `file:` URL resolves from `backend/prisma`. `SQLITE_PATH` takes precedence. |
+| `SQLITE_PATH`, `SQLITE_DATABASE_URL`, `DATABASE_URL` | SQLite overrides, in order of precedence. Relative `file:` URLs resolve from `backend/prisma`. |
 | `MAX_UPLOAD_MB` | Maximum audio file size, from 1 to 100 MB |
 | `ALLOW_GUEST_MUTATIONS` | Opt-in shared guest state for local development only |
 
