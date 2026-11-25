@@ -1,4 +1,5 @@
 import { localStorageProvider, StoredFile } from './storage/local-storage.provider';
+import { ArtworkService } from './artwork.service';
 
 export interface UploadResult {
   url: string;
@@ -32,13 +33,8 @@ export class StorageService {
     };
   }
 
-  static async uploadArtwork(
-    fileBuffer: Buffer,
-    filename: string,
-    mimeType: string = 'image/jpeg'
-  ): Promise<UploadResult> {
-    const { ArtworkService } = await import('./artwork.service');
-    const stored = await ArtworkService.saveUpload(fileBuffer, filename, mimeType);
+  static async uploadArtwork(fileBuffer: Buffer): Promise<UploadResult> {
+    const stored = await ArtworkService.saveUpload(fileBuffer);
     return {
       url: stored.relativePath,
       relativePath: stored.relativePath,
@@ -76,10 +72,6 @@ export class StorageService {
 
   static getArtworkAbsolutePath(relativePath: string): string {
     return localStorageProvider.getArtworkPath(relativePath);
-  }
-
-  static exists(relativePath: string): boolean {
-    return localStorageProvider.exists(relativePath);
   }
 
   static async hashBuffer(buffer: Buffer): Promise<string> {

@@ -64,9 +64,8 @@ api.interceptors.request.use(
     if (typeof window !== 'undefined') {
       config.baseURL = getApiBaseUrl();
       const token = localStorage.getItem('soundify_access_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+      if (token) config.headers.set('Authorization', `Bearer ${token}`);
+      else config.headers.delete('Authorization');
     }
     return config;
   },
@@ -115,6 +114,7 @@ api.interceptors.response.use(
       }
 
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -180,7 +180,6 @@ api.interceptors.response.use(
             localStorage.setItem('soundify_user', JSON.stringify(user));
           }
 
-          api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           }

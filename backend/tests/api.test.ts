@@ -6,9 +6,12 @@ import app from '../src/app';
 import { prisma } from '../src/config/database';
 import { ensureStorageDirectories, AUDIO_DIR, BACKUPS_DIR } from '../src/config/paths';
 import { bootstrapLocalApp } from '../src/services/bootstrap.service';
+import { config } from '../src/config/env';
 
 describe('Soundify Offline-First API Suite', () => {
   let authToken = '';
+  let adminToken = '';
+  let secondUserToken = '';
   let testUserId = '';
   let testSongId = '';
   let testPlaylistId = '';
@@ -19,6 +22,14 @@ describe('Soundify Offline-First API Suite', () => {
   beforeAll(async () => {
     ensureStorageDirectories();
     await bootstrapLocalApp();
+    const admin = await request(app).post('/api/auth/login').send(config.localUser);
+    expect(admin.status).toBe(200);
+    adminToken = admin.body.data.accessToken;
+    const secondUser = await request(app).post('/api/auth/register').send({
+      name: 'Second Listener', email: 'second@test.example', password: 'secondUserPassword123!',
+    });
+    expect(secondUser.status).toBe(201);
+    secondUserToken = secondUser.body.data.accessToken;
   });
 
   afterAll(async () => {
@@ -75,6 +86,12 @@ describe('Soundify Offline-First API Suite', () => {
       expect(res.body.status).toBe('ok');
       expect(res.body.mode).toBe('offline-first');
     });
+
+    it('reports readiness against the initialized schema', async () => {
+      const res = await request(app).get('/api/ready');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ status: 'ready' });
+    });
   });
 
   describe('2. Authentication Flow', () => {
@@ -104,6 +121,39 @@ describe('Soundify Offline-First API Suite', () => {
     it('GET /api/auth/me requires token', async () => {
       const res = await request(app).get('/api/auth/me');
       expect(res.status).toBe(401);
+    });
+
+    it('rotates refresh tokens once and revokes both tokens on logout', async () => {
+      const login = await request(app).post('/api/auth/login').send({
+        email: testUserEmail, password: 'securePassword123!',
+      }).expect(200);
+      const initial = login.body.data;
+      expect(login.headers['cache-control']).toBe('no-store');
+      await request(app).get('/api/auth/me')
+        .set('Authorization', `Bearer ${initial.refreshToken}`).expect(401);
+
+      const attempts = await Promise.all([
+        request(app).post('/api/auth/refresh').send({ refreshToken: initial.refreshToken }),
+        request(app).post('/api/auth/refresh').send({ refreshToken: initial.refreshToken }),
+      ]);
+      expect(attempts.map((res) => res.status).sort()).toEqual([200, 401]);
+      const rotated = attempts.find((res) => res.status === 200)!.body.data;
+      expect(rotated.refreshToken).not.toBe(initial.refreshToken);
+      expect(rotated.user.password).toBeUndefined();
+      await request(app).get('/api/auth/me').set('Authorization', `Bearer ${rotated.accessToken}`).expect(200);
+      await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${rotated.accessToken}`).expect(200);
+      await request(app).get('/api/auth/me').set('Authorization', `Bearer ${rotated.accessToken}`).expect(401);
+      await request(app).post('/api/auth/refresh').send({ refreshToken: rotated.refreshToken }).expect(401);
+      await request(app).get('/api/auth/me').set('Authorization', `Bearer ${authToken}`).expect(200);
+    });
+
+    it('enforces bcrypt byte limits and rejects normalized duplicate emails', async () => {
+      await request(app).post('/api/auth/register').send({
+        name: 'Long Password', email: 'long@test.example', password: '🚀'.repeat(19),
+      }).expect(400);
+      await request(app).post('/api/auth/register').send({
+        name: 'Duplicate User', email: testUserEmail.toUpperCase(), password: 'anotherPassword123!',
+      }).expect(409);
     });
   });
 
@@ -174,6 +224,46 @@ describe('Soundify Offline-First API Suite', () => {
       const res = await request(app).get('/api/songs/stats');
       expect(res.status).toBe(200);
       expect(res.body.data.totalSongs).toBeGreaterThan(0);
+    });
+
+    it('rejects malformed filters and keeps page shape stable', async () => {
+      await request(app).get('/api/songs').query({ page: '2x' }).expect(400);
+      await request(app).get('/api/songs').query({ limit: 0 }).expect(400);
+      await request(app).get('/api/search?q=Neon&q=Other').expect(400);
+      const page = await request(app).get('/api/songs').query({ page: 1, limit: 1 }).expect(200);
+      expect(page.body.pagination).toMatchObject({ page: 1, limit: 1, total: 1, totalPages: 1 });
+      expect(page.body.data[0].id).toBe(testSongId);
+    });
+
+    it('validates multipart metadata and forbids edits by another listener', async () => {
+      await request(app).post('/api/upload/song').set('Authorization', `Bearer ${authToken}`)
+        .field('duration', 'invalid').attach('audio', makeMinimalWav(), 'valid.wav').expect(400);
+      await request(app).put(`/api/songs/${testSongId}`).set('Authorization', `Bearer ${secondUserToken}`)
+        .send({ title: 'Unauthorized change' }).expect(403);
+      await request(app).delete(`/api/songs/${testSongId}`)
+        .set('Authorization', `Bearer ${secondUserToken}`).expect(403);
+      await request(app).post('/api/upload/song').set('Authorization', `Bearer ${secondUserToken}`)
+        .field('duplicatePolicy', 'replace').attach('audio', makeMinimalWav(), 'same.wav').expect(403);
+      const song = await request(app).get(`/api/songs/${testSongId}`).expect(200);
+      expect(song.body.data.title).toBe('Neon Horizon');
+    });
+
+    it('analyzes audio without creating songs and validates uploaded artwork', async () => {
+      const analysis = await request(app).post('/api/upload/analyze').set('Authorization', `Bearer ${authToken}`)
+        .attach('audio', makeMinimalWav(), 'Song For Analysis.wav').expect(200);
+      expect(analysis.body.data).toMatchObject({ fileHash, hasEmbeddedArtwork: false });
+      expect(analysis.body.data.duplicate.matchType).toBe('exact');
+      const invalid = await request(app).post('/api/upload/artwork').set('Authorization', `Bearer ${authToken}`)
+        .send({ imageData: 'bad data' }).expect(400);
+      expect(invalid.body.success).toBe(false);
+      const pixel = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aYuoAAAAASUVORK5CYII=';
+      const artwork = await request(app).post('/api/upload/artwork').set('Authorization', `Bearer ${authToken}`)
+        .send({ imageData: `data:image/png;base64,${pixel}` }).expect(200);
+      await request(app).put(`/api/songs/${testSongId}`).set('Authorization', `Bearer ${authToken}`)
+        .send({ coverRelativePath: artwork.body.data.coverRelativePath }).expect(200);
+      const cover = await request(app).get(`/api/songs/${testSongId}/artwork`).expect(200);
+      expect(cover.headers['content-type']).toBe('image/png');
+      expect(cover.body).toEqual(Buffer.from(pixel, 'base64'));
     });
   });
 
@@ -248,13 +338,36 @@ describe('Soundify Offline-First API Suite', () => {
       expect(list.status).toBe(200);
       expect(list.body.data.length).toBeGreaterThan(0);
     });
+
+    it('isolates playlists, search, history, and statistics between listeners', async () => {
+      const anonymousPlaylists = await request(app).get('/api/playlists').expect(200);
+      expect(anonymousPlaylists.body.data).toEqual([]);
+      const anonymousHistory = await request(app).get('/api/history').expect(200);
+      expect(anonymousHistory.body.data).toEqual([]);
+      const secondPlaylists = await request(app).get('/api/search').query({ q: 'Test Mix' })
+        .set('Authorization', `Bearer ${secondUserToken}`).expect(200);
+      expect(secondPlaylists.body.data.playlists).toEqual([]);
+      await request(app).get(`/api/playlists/${testPlaylistId}`)
+        .set('Authorization', `Bearer ${secondUserToken}`).expect(403);
+      await request(app).get('/api/history').set('Authorization', 'Bearer invalid').expect(401);
+      await request(app).delete('/api/history').expect(401);
+      await request(app).delete('/api/history').set('Authorization', `Bearer ${secondUserToken}`).expect(200);
+      const ownerStats = await request(app).get('/api/songs/stats').set('Authorization', `Bearer ${authToken}`).expect(200);
+      const otherStats = await request(app).get('/api/songs/stats').set('Authorization', `Bearer ${secondUserToken}`).expect(200);
+      expect(ownerStats.body.data.listeningHistoryCount).toBe(1);
+      expect(otherStats.body.data.listeningHistoryCount).toBe(0);
+      await request(app).post('/api/history').set('Authorization', `Bearer ${authToken}`)
+        .send({ songId: testSongId, durationPlayed: -1 }).expect(400);
+      await request(app).put(`/api/playlists/${testPlaylistId}/reorder`)
+        .set('Authorization', `Bearer ${authToken}`).send({ songIds: [] }).expect(400);
+    });
   });
 
   describe('5. Backup & Delete', () => {
     it('creates a local backup zip', async () => {
       const res = await request(app)
         .post('/api/backups')
-        .set('Authorization', `Bearer ${authToken}`)
+        .set('Authorization', `Bearer ${adminToken}`)
         .send({ includeMedia: false });
       expect(res.status).toBe(201);
       expect(res.body.data.fileName).toMatch(/\.zip$/);
@@ -264,9 +377,32 @@ describe('Soundify Offline-First API Suite', () => {
     it('exports library JSON', async () => {
       const res = await request(app)
         .get('/api/backups/export')
-        .set('Authorization', `Bearer ${authToken}`);
+        .set('Authorization', `Bearer ${adminToken}`);
       expect(res.status).toBe(200);
       expect(res.body.data.songs).toBeDefined();
+    });
+
+    it('merges an exported snapshot without duplicating play history', async () => {
+      const exported = await request(app).get('/api/backups/export').set('Authorization', `Bearer ${adminToken}`).expect(200);
+      const imported = await request(app).post('/api/backups/import').set('Authorization', `Bearer ${adminToken}`)
+        .send({ library: exported.body.data, mode: 'merge' }).expect(200);
+      expect(imported.body.data).toMatchObject({ skippedSongs: 1, importedSongs: 0, importedPlaylists: 0 });
+      const history = await request(app).get('/api/history').set('Authorization', `Bearer ${authToken}`).expect(200);
+      expect(history.body.data).toHaveLength(1);
+    });
+
+    it('restricts destructive endpoints, previews backups, and validates confirmation', async () => {
+      await request(app).get('/api/backups').set('Authorization', `Bearer ${authToken}`).expect(403);
+      await request(app).delete('/api/songs/all').set('Authorization', `Bearer ${authToken}`).expect(403);
+      const preview = await request(app).post('/api/backups/restore')
+        .set('Authorization', `Bearer ${adminToken}`).send({ fileName: testBackupFileName }).expect(200);
+      expect(preview.body.data).toMatchObject({ preview: true, songCount: 1 });
+      await request(app).post('/api/backups/restore').set('Authorization', `Bearer ${adminToken}`)
+        .send({ fileName: testBackupFileName, confirmReplace: 'false' }).expect(400);
+      const restore = await request(app).post('/api/backups/restore').set('Authorization', `Bearer ${adminToken}`)
+        .send({ fileName: testBackupFileName, confirmReplace: true }).expect(200);
+      expect(restore.body.data).toMatchObject({ restored: true, importedSongs: 1, importedPlaylists: 1 });
+      await request(app).get(`/api/songs/${testSongId}/audio`).set('Range', 'bytes=0-3').expect(206);
     });
 
     it('deletes a song and removes DB row', async () => {

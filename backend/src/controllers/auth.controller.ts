@@ -39,11 +39,13 @@ export class AuthController {
     }
   }
 
-  static async logout(req: Request, res: Response) {
-    res.status(200).json({
-      success: true,
-      message: 'Logged out successfully',
-    });
+  static async logout(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.sessionId) await AuthService.logout(req.sessionId);
+      res.status(200).json({ success: true, message: 'Logged out successfully' });
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async me(req: AuthRequest, res: Response, next: NextFunction) {

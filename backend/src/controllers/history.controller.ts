@@ -25,15 +25,7 @@ export class HistoryController {
   static async recordPlay(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { songId, durationPlayed } = req.body;
-      if (!songId) {
-        return res.status(400).json({ success: false, message: 'songId is required' });
-      }
-
-      const history = await HistoryService.recordPlay(
-        songId,
-        req.user?.id,
-        durationPlayed != null ? Number(durationPlayed) : undefined
-      );
+      const history = await HistoryService.recordPlay(songId, req.user?.id, durationPlayed ?? undefined);
       res.status(201).json({
         success: true,
         data: history,

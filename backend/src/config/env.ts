@@ -1,145 +1,78 @@
-import dotenv from 'dotenv';
-import path from 'path';
-import { DB_PATH } from './paths';
+import { randomBytes } from 'node:crypto';
+import { databaseUrl } from '../../scripts/database-config';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-
-const defaultDatabaseUrl = `file:${DB_PATH.split(path.sep).join('/')}`;
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 
-function getSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET', devFallback: string): string {
-  let value = process.env[name]?.trim();
-  if (value && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
-    value = value.slice(1, -1).trim();
-  }
-  if (!value || value.length < 32) {
-    if (isProduction && !value) {
-      console.warn(`[CONFIG] ${name} is not configured in production. Using fallback secret.`);
-    }
-    return value && value.length >= 16 ? value : devFallback;
+function getSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET'): string {
+  const value = process.env[name]?.trim();
+  const placeholder = /replace|placeholder|^(soundify-local|pigplayer-production|change-this)-/i;
+  if (value && value.length >= 32 && !placeholder.test(value)) return value;
+  if (isProduction) throw new Error(`${name} must contain at least 32 characters of unique secret material`);
+  return randomBytes(48).toString('base64url');
+}
+
+function readInteger(name: string, fallback: number, min: number, max: number) {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(`${name} must be an integer between ${min} and ${max}`);
   }
   return value;
 }
 
-function resolveDatabaseUrl(): string {
-  let raw = (process.env.DATABASE_URL || process.env.SQLITE_DATABASE_URL || '').trim();
-
-  // Strip enclosing single or double quotes
-  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
-    raw = raw.slice(1, -1).trim();
-  }
-
-  // If empty, use default SQLite URL
-  if (!raw) {
-    process.env.DATABASE_URL = defaultDatabaseUrl;
-    return defaultDatabaseUrl;
-  }
-
-  // If a remote cloud database URL is provided (e.g. Render auto-injected postgres:// or postgresql://),
-  // PigPlayer is an offline-first SQLite application.
-  // Gracefully fall back to local SQLite at defaultDatabaseUrl instead of crashing.
-  if (
-    raw.startsWith('postgres://') ||
-    raw.startsWith('postgresql://') ||
-    raw.startsWith('mysql://') ||
-    raw.startsWith('mongodb://')
-  ) {
-    console.warn(
-      `[CONFIG] Non-SQLite database URL detected in DATABASE_URL (${raw.split('://')[0]}://...). PigPlayer runs on local SQLite; falling back to local SQLite database at ${defaultDatabaseUrl}.`
-    );
-    process.env.DATABASE_URL = defaultDatabaseUrl;
-    return defaultDatabaseUrl;
-  }
-
-  // Normalize sqlite: or sqlite3: prefixes
-  if (raw.startsWith('sqlite:///')) {
-    raw = `file:/${raw.slice('sqlite:///'.length)}`;
-  } else if (raw.startsWith('sqlite://')) {
-    raw = `file:${raw.slice('sqlite://'.length)}`;
-  } else if (raw.startsWith('sqlite:')) {
-    raw = `file:${raw.slice('sqlite:'.length)}`;
-  }
-
-  // If bare filesystem path (e.g. /var/data/soundify.db or ./data/soundify.db)
-  if (!raw.startsWith('file:') && !raw.includes('://')) {
-    const resolvedPath = path.resolve(raw).split(path.sep).join('/');
-    raw = `file:${resolvedPath}`;
-  }
-
-  // Ensure it starts with file:
-  if (!raw.startsWith('file:')) {
-    console.warn(
-      `[CONFIG] Invalid DATABASE_URL scheme ("${raw}"). Defaulting to local SQLite at ${defaultDatabaseUrl}.`
-    );
-    process.env.DATABASE_URL = defaultDatabaseUrl;
-    return defaultDatabaseUrl;
-  }
-
-  process.env.DATABASE_URL = raw;
-  return raw;
-}
-
-const databaseUrl = resolveDatabaseUrl();
-
-const maxUploadMb = Number.parseInt(process.env.MAX_UPLOAD_MB || '100', 10);
-if (!Number.isFinite(maxUploadMb) || maxUploadMb < 1 || maxUploadMb > 100) {
-  throw new Error('MAX_UPLOAD_MB must be an integer between 1 and 100');
-}
-
-const port = Number.parseInt(process.env.PORT || '5000', 10);
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error('PORT must be a valid TCP port');
-}
-
-let localUserPassword = process.env.LOCAL_USER_PASSWORD?.trim() || 'soundify';
-if ((localUserPassword.startsWith('"') && localUserPassword.endsWith('"')) || (localUserPassword.startsWith("'") && localUserPassword.endsWith("'"))) {
-  localUserPassword = localUserPassword.slice(1, -1).trim();
-}
-
 export function normalizeOrigin(raw: string): string {
-  const trimmed = raw.trim().replace(/^["']|["']$/g, '');
-  if (!trimmed) return '';
-  if (trimmed === '*') return '*';
   try {
-    return new URL(trimmed).origin;
+    const url = new URL(raw.trim());
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.origin;
   } catch {
-    return trimmed.replace(/\/+$/, '');
+    // Only HTTP origins are valid for browser access.
   }
+  return '';
 }
 
-const configuredClientUrl = process.env.CLIENT_URL ? normalizeOrigin(process.env.CLIENT_URL) : 'http://localhost:3000';
-const configuredAllowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map((origin) => origin.trim().replace(/^["']|["']$/g, ''))
-  .filter(Boolean)
-  .map(normalizeOrigin)
-  .filter(Boolean);
+const clientUrl = normalizeOrigin(process.env.CLIENT_URL || 'http://localhost:3000');
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(normalizeOrigin).filter(Boolean);
+const jwtSecret = getSecret('JWT_SECRET');
+const refreshSecret = getSecret('JWT_REFRESH_SECRET');
+if (!clientUrl) throw new Error('CLIENT_URL must be an HTTP or HTTPS URL');
+if (jwtSecret === refreshSecret) throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must differ');
 
-const allowGuestMutations =
-  process.env.ALLOW_GUEST_MUTATIONS === 'true' ||
-  process.env.ALLOW_GUEST_UPLOADS === 'true';
+const localUserEmail = process.env.LOCAL_USER_EMAIL?.trim().toLowerCase();
+const localUserPassword = process.env.LOCAL_USER_PASSWORD;
+const allowGuestMutations = !isProduction &&
+  (process.env.ALLOW_GUEST_MUTATIONS === 'true' || process.env.ALLOW_GUEST_UPLOADS === 'true');
+if (isProduction && (localUserEmail || localUserPassword)) {
+  if (!localUserEmail || !localUserPassword || localUserPassword.length < 16 ||
+      Buffer.byteLength(localUserPassword) > 72 ||
+      /replace|placeholder/i.test(localUserPassword) ||
+      /^demo@(piggyplayer|soundify)\.app$/.test(localUserEmail)) {
+    throw new Error('Set a valid LOCAL_USER_EMAIL and a unique LOCAL_USER_PASSWORD of 16 to 72 bytes');
+  }
+}
 
 export const config = {
   env: nodeEnv,
-  port,
-  clientUrl: configuredClientUrl,
-  allowedOrigins: configuredAllowedOrigins,
+  port: readInteger('PORT', 5000, 1, 65535),
+  trustProxyHops: readInteger('TRUST_PROXY_HOPS', 0, 0, 10),
+  clientUrl,
+  allowedOrigins,
   allowGuestMutations,
   databaseUrl,
   jwt: {
-    secret: getSecret('JWT_SECRET', 'soundify-local-jwt-secret-offline-2026'),
-    refreshSecret: getSecret('JWT_REFRESH_SECRET', 'soundify-local-refresh-secret-offline-2026'),
-    expiresIn: '24h' as const,
-    refreshExpiresIn: '7d' as const,
+    secret: jwtSecret,
+    refreshSecret,
+    accessSeconds: 15 * 60,
+    sessionSeconds: 7 * 24 * 60 * 60,
   },
   localUser: {
-    email: process.env.LOCAL_USER_EMAIL || 'local@soundify.app',
-    password: localUserPassword,
+    email: localUserEmail || 'local@soundify.app',
+    password: localUserPassword || randomBytes(24).toString('base64url'),
     name: process.env.LOCAL_USER_NAME || 'Local User',
+    provision: Boolean(localUserEmail && localUserPassword),
   },
+  guestEmail: 'guest@local.invalid',
   upload: {
-    maxFileSizeMb: maxUploadMb,
+    maxFileSizeMb: readInteger('MAX_UPLOAD_MB', 100, 1, 100),
     allowedAudioExt: ['.mp3', '.wav', '.m4a', '.ogg', '.aac', '.flac'] as const,
   },
 };

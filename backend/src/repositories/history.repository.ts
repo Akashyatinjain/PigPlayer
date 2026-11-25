@@ -1,10 +1,12 @@
 import { prisma } from '../config/database';
 import { mapSongForApi } from '../utils/song-mapper';
+import { config } from '../config/env';
 
 export class HistoryRepository {
   static async findByUser(userId?: string, limit: number = 30) {
+    if (!userId && !config.allowGuestMutations) return [];
     const items = await prisma.playHistory.findMany({
-      where: userId ? { userId } : {},
+      where: { userId: userId ?? null },
       include: { song: true },
       orderBy: { playedAt: 'desc' },
       take: limit,
@@ -44,7 +46,7 @@ export class HistoryRepository {
 
   static async clearHistory(userId?: string) {
     return prisma.playHistory.deleteMany({
-      where: userId ? { userId } : {},
+      where: { userId: userId ?? null },
     });
   }
 }

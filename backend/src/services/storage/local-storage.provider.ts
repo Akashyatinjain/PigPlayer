@@ -6,7 +6,7 @@ import {
   ARTWORK_DIR,
   TEMP_DIR,
   ensureStorageDirectories,
-  resolveSafeDataPath,
+  resolveMediaPath,
   toPosixRelative,
 } from '../../config/paths';
 import { config } from '../../config/env';
@@ -47,21 +47,12 @@ export class LocalStorageProvider {
     ensureStorageDirectories();
   }
 
-  exists(relativeOrAbsolute: string): boolean {
-    try {
-      const absolute = resolveSafeDataPath(relativeOrAbsolute);
-      return fs.existsSync(absolute);
-    } catch {
-      return false;
-    }
-  }
-
   getAudioPath(relativePath: string): string {
-    return resolveSafeDataPath(relativePath);
+    return resolveMediaPath(relativePath, 'audio');
   }
 
   getArtworkPath(relativePath: string): string {
-    return resolveSafeDataPath(relativePath);
+    return resolveMediaPath(relativePath, 'artwork');
   }
 
   validateAudioBuffer(buffer: Buffer, filename: string): { ok: boolean; reason?: string; ext: string } {
@@ -121,10 +112,10 @@ export class LocalStorageProvider {
     };
   }
 
-  async saveArtwork(buffer: Buffer, preferredExt = '.jpg'): Promise<StoredFile> {
+  async saveArtwork(buffer: Buffer): Promise<StoredFile> {
     const validation = this.validateArtworkBuffer(buffer);
     if (!validation.ok) throw new Error('Artwork file signature is not a supported image format');
-    const ext = validation.ext || preferredExt.toLowerCase();
+    const ext = validation.ext;
 
     const fileName = `cover_${Date.now()}_${randomId()}${ext}`;
     const absolutePath = path.join(ARTWORK_DIR, fileName);
@@ -140,7 +131,7 @@ export class LocalStorageProvider {
 
   async deleteAudio(relativePath: string): Promise<boolean> {
     try {
-      const absolute = resolveSafeDataPath(relativePath);
+      const absolute = this.getAudioPath(relativePath);
       if (fs.existsSync(absolute)) {
         await fs.promises.unlink(absolute);
       }
@@ -152,7 +143,7 @@ export class LocalStorageProvider {
 
   async deleteArtwork(relativePath: string): Promise<boolean> {
     try {
-      const absolute = resolveSafeDataPath(relativePath);
+      const absolute = this.getArtworkPath(relativePath);
       if (fs.existsSync(absolute)) {
         await fs.promises.unlink(absolute);
       }
@@ -162,40 +153,9 @@ export class LocalStorageProvider {
     }
   }
 
-  async writeTemp(buffer: Buffer, filename: string): Promise<string> {
-    ensureStorageDirectories();
-    const safe = `tmp_${Date.now()}_${randomId()}_${path.basename(filename).replace(/[^\w.\-]/g, '_')}`;
-    const absolute = path.join(TEMP_DIR, safe);
-    await fs.promises.writeFile(absolute, buffer);
-    return absolute;
-  }
-
-  async removeTemp(absolutePath: string): Promise<void> {
-    try {
-      const resolved = path.resolve(absolutePath);
-      const relative = path.relative(TEMP_DIR, resolved);
-      if (relative && !relative.startsWith('..') && !path.isAbsolute(relative) && fs.existsSync(resolved)) {
-        await fs.promises.unlink(resolved);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   async hashBuffer(buffer: Buffer): Promise<string> {
     return crypto.createHash('sha256').update(buffer).digest('hex');
-  }
-
-  async hashFile(absolutePath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const hash = crypto.createHash('sha256');
-      const stream = fs.createReadStream(absolutePath);
-      stream.on('data', (chunk) => hash.update(chunk));
-      stream.on('end', () => resolve(hash.digest('hex')));
-      stream.on('error', reject);
-    });
   }
 }
 
 export const localStorageProvider = new LocalStorageProvider();
-export const localStorage = localStorageProvider;

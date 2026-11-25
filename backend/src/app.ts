@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config, normalizeOrigin } from './config/env';
 import { errorHandler, AppError } from './middleware/error.middleware';
+import { prisma } from './config/database';
 
 import authRoutes from './routes/auth.routes';
 import songRoutes from './routes/song.routes';
@@ -16,7 +17,8 @@ import backupRoutes from './routes/backup.routes';
 
 const app = express();
 
-app.set('trust proxy', 1);
+app.set('trust proxy', config.trustProxyHops || false);
+app.set('query parser', 'simple');
 
 app.use(
   helmet({
@@ -37,15 +39,10 @@ const allowedOrigins = Array.from(
     ...(config.env === 'production' ? [] : ['http://localhost:3000', 'http://127.0.0.1:3000']),
   ])
 )
-  .map((origin) => (origin === '*' ? '*' : normalizeOrigin(origin)))
   .filter(Boolean);
 
 export const isAllowedOrigin = (origin: string): boolean => {
   if (!origin) return true;
-
-  if (allowedOrigins.includes('*')) {
-    return true;
-  }
 
   const normalized = normalizeOrigin(origin);
 
@@ -53,7 +50,8 @@ export const isAllowedOrigin = (origin: string): boolean => {
     return true;
   }
 
-  if (/^https:\/\/(pig-player|pigplayer)(-[a-z0-9_-]+)?\.vercel\.app$/i.test(normalized)) {
+  if (config.env !== 'production' &&
+      /^https:\/\/(pig-player|pigplayer)(-[a-z0-9_-]+)?\.vercel\.app$/i.test(normalized)) {
     return true;
   }
 
@@ -82,8 +80,7 @@ const corsOptions: cors.CorsOptions = {
     }
     return callback(null, false);
   },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -102,30 +99,35 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
+// Opt-in guest writes are still restricted to known browser origins.
+app.use((req, _res, next) => {
+  if (config.allowGuestMutations && req.headers.origin &&
+      !['HEAD', 'GET', 'OPTIONS'].includes(req.method) && !isAllowedOrigin(req.headers.origin)) {
+    return next(new AppError('Origin is not allowed.', 403));
+  }
+  next();
+});
+
+const rateLimitValidation = { xForwardedForHeader: config.trustProxyHops > 0 };
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: config.env === 'production' ? 2000 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: rateLimitValidation,
+  message: { success: false, message: 'Too many requests. Try again later.' },
 });
-app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: config.env === 'production' ? 100 : 1000,
+  max: config.env === 'production' ? 30 : 1000,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: rateLimitValidation,
   message: { success: false, message: 'Too many authentication attempts. Try again later.' },
 });
-app.use(
-  ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/auth/login', '/auth/register', '/auth/refresh'],
-  authLimiter
-);
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Ultra-fast Health / Keepalive endpoints for Render free-tier wakeups
 const handleHealth = (_req: express.Request, res: express.Response) => {
@@ -139,8 +141,25 @@ const handleHealth = (_req: express.Request, res: express.Response) => {
 
 app.get('/health', handleHealth);
 app.get('/api/health', handleHealth);
+app.get(['/ready', '/api/ready'], async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    await prisma.$queryRaw`SELECT 1 FROM "AuthSession" LIMIT 1`;
+    res.json({ status: 'ready' });
+  } catch {
+    res.status(503).json({ status: 'unavailable' });
+  }
+});
 
 const apiRouter = express.Router();
+apiRouter.use(['/auth', '/songs', '/search', '/playlists', '/favorites', '/history', '/upload', '/backups', '/backup'], limiter);
+apiRouter.use(['/auth/login', '/auth/register', '/auth/refresh'], authLimiter);
+const jsonBody = express.json({ limit: '256kb', inflate: false });
+apiRouter.use((req, res, next) => {
+  if (req.method === 'POST' && /^\/(backups?\/import|upload\/artwork)\/?$/i.test(req.path)) return next();
+  return jsonBody(req, res, next);
+});
+apiRouter.use(express.urlencoded({ extended: false, limit: '256kb', inflate: false }));
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/songs', songRoutes);
 apiRouter.use('/search', searchRoutes);
@@ -156,8 +175,8 @@ app.use('/api', apiRouter);
 app.use(apiRouter);
 
 // 404 handler for unmatched routes
-app.use((req, _res, next) => {
-  next(new AppError(`API endpoint not found: ${req.method} ${req.originalUrl}`, 404));
+app.use((_req, _res, next) => {
+  next(new AppError('API endpoint not found.', 404));
 });
 
 app.use(errorHandler);

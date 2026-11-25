@@ -1,6 +1,8 @@
 import { prisma } from '../config/database';
 import { mapSongForApi } from '../utils/song-mapper';
 import { getDefaultLocalUserId } from '../services/bootstrap.service';
+import { config } from '../config/env';
+import { AppError } from '../middleware/error.middleware';
 
 export class FavoriteRepository {
   static async resolveUserId(userId?: string): Promise<string> {
@@ -8,6 +10,7 @@ export class FavoriteRepository {
   }
 
   static async findByUser(userId?: string) {
+    if (!userId && !config.allowGuestMutations) return [];
     const uid = await this.resolveUserId(userId);
     const favorites = await prisma.favorite.findMany({
       where: { userId: uid },
@@ -21,9 +24,8 @@ export class FavoriteRepository {
   }
 
   static async addFavorite(songId: string, userId?: string) {
-    const song = await prisma.song.findUnique({ where: { id: songId } });
+    const song = await prisma.song.findUnique({ where: { id: songId }, select: { id: true } });
     if (!song) {
-      const { AppError } = await import('../middleware/error.middleware');
       throw new AppError('Song not found', 404);
     }
     const uid = await this.resolveUserId(userId);

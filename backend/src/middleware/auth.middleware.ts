@@ -1,93 +1,39 @@
-import { Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { NextFunction, Response } from 'express';
 import { config } from '../config/env';
-import { AuthRequest, AuthUser } from '../types';
+import { AuthService } from '../services/auth.service';
+import { AuthRequest } from '../types';
 import { AppError } from './error.middleware';
 
-export const authenticate = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(new AppError('Authentication required. Missing token.', 401));
-  }
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'private, no-store');
+  const token = /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? '')?.[1];
+  if (!token) return next(new AppError('Authentication required.', 401));
 
-  const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, config.jwt.secret) as AuthUser;
-    req.user = decoded;
+    const { user, sessionId } = await AuthService.authenticate(token);
+    req.user = user;
+    req.sessionId = sessionId;
     next();
-  } catch (err: any) {
-    if (err.name === 'TokenExpiredError') {
-      return next(new AppError('Token expired. Please refresh session.', 401));
-    }
-    return next(new AppError('Invalid or corrupted token.', 401));
+  } catch (error) {
+    next(error);
   }
 };
 
-export const optionalAuth = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, config.jwt.secret) as AuthUser;
-    req.user = decoded;
-  } catch {
-    // Ignore invalid token for optional auth
-  }
-  next();
+export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.headers.authorization) return authenticate(req, res, next);
+  res.setHeader('Cache-Control', 'private, no-store');
+  return next();
 };
 
-/** Keep guest editing available for local development, but require identity on a deployed API. */
-export const requireMutationAuth = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  if (config.allowGuestMutations) {
-    return optionalAuth(req, res, next);
-  }
-  if (config.env === 'production') {
-    return authenticate(req, res, next);
-  }
-  return optionalAuth(req, res, next);
-};
+export const requireMutationAuth = (req: AuthRequest, res: Response, next: NextFunction) =>
+  config.env !== 'production' && config.allowGuestMutations
+    ? optionalAuth(req, res, next)
+    : authenticate(req, res, next);
 
-export const requireRole = (role: string) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(new AppError('Authentication required.', 401));
-    }
-    if (req.user.role !== role && req.user.role !== 'admin') {
-      return next(new AppError('Forbidden: insufficient permissions.', 403));
-    }
-    next();
-  };
-};
-
-/** Destructive and backup operations require admin in production, and at least authentication in non-production (unless guest mutations are explicitly enabled). */
-export const requireProductionAdmin = (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  if (config.env !== 'production') {
-    if (config.allowGuestMutations) {
-      return optionalAuth(req, res, next);
-    }
-    return authenticate(req, res, next);
-  }
-  return authenticate(req, res, (error?: unknown) => {
+export const requireProductionAdmin = (req: AuthRequest, res: Response, next: NextFunction) =>
+  authenticate(req, res, (error?: unknown) => {
     if (error) return next(error);
-    return requireRole('admin')(req, res, next);
+    return req.user?.role === 'admin'
+      ? next()
+      : next(new AppError('Forbidden: insufficient permissions.', 403));
   });
-};

@@ -7,18 +7,13 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
-
-const PROJECT_ROOT = path.resolve(__dirname, '..');
-const AUDIO_DIR = path.join(PROJECT_ROOT, 'data/audio');
-const ARTWORK_DIR = path.join(PROJECT_ROOT, 'data/artwork');
-
-const prisma = new PrismaClient();
+import { prisma } from '../backend/src/config/database';
+import { AUDIO_DIR, ARTWORK_DIR, resolveMediaPath } from '../backend/src/config/paths';
 
 async function listFiles(dir: string): Promise<string[]> {
   if (!fs.existsSync(dir)) return [];
-  const entries = await fs.promises.readdir(dir);
-  return entries.filter((f) => f !== '.gitkeep' && !f.startsWith('.'));
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+  return entries.filter((entry) => entry.isFile() && !entry.name.startsWith('.')).map((entry) => entry.name);
 }
 
 async function main() {
@@ -53,11 +48,11 @@ async function main() {
   }
 
   for (const f of orphanAudio) {
-    await fs.promises.unlink(path.join(AUDIO_DIR, f));
+    await fs.promises.unlink(resolveMediaPath(`audio/${f}`, 'audio'));
     console.log(`[cleanup] Deleted audio/${f}`);
   }
   for (const f of orphanArtwork) {
-    await fs.promises.unlink(path.join(ARTWORK_DIR, f));
+    await fs.promises.unlink(resolveMediaPath(`artwork/${f}`, 'artwork'));
     console.log(`[cleanup] Deleted artwork/${f}`);
   }
 
@@ -67,6 +62,6 @@ async function main() {
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());

@@ -2,16 +2,20 @@ import { Request, Response, NextFunction } from 'express';
 import { SongService } from '../services/song.service';
 import { MediaService } from '../services/media.service';
 import { AuthRequest } from '../types';
+import { AppError } from '../middleware/error.middleware';
+import { songListQuerySchema } from '../validators/song.validator';
 
 export class SongController {
   static async listSongs(req: Request, res: Response, next: NextFunction) {
     try {
-      const { q, genre, page, limit } = req.query;
+      const parsed = songListQuerySchema.safeParse(req.query);
+      if (!parsed.success) throw new AppError('Invalid song filter or pagination parameters.', 400);
+      const { q, genre, page, limit } = parsed.data;
       const result = await SongService.listSongs({
-        query: q ? String(q) : undefined,
-        genre: genre ? String(genre) : undefined,
-        page: page ? parseInt(String(page), 10) : 1,
-        limit: limit ? parseInt(String(limit), 10) : 50,
+        query: q,
+        genre,
+        page,
+        limit,
       });
 
       res.status(200).json({
@@ -138,9 +142,9 @@ export class SongController {
     }
   }
 
-  static async libraryStats(_req: Request, res: Response, next: NextFunction) {
+  static async libraryStats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const stats = await SongService.getLibraryStats();
+      const stats = await SongService.getLibraryStats(req.user?.id);
       res.status(200).json({ success: true, data: stats });
     } catch (error) {
       next(error);

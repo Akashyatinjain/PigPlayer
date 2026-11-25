@@ -1,18 +1,10 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
+import { prisma } from '../src/config/database';
+import { config } from '../src/config/env';
+import { AUDIO_DIR, ARTWORK_DIR, ensureStorageDirectories } from '../src/config/paths';
 
-const prisma = new PrismaClient();
-
-const PROJECT_ROOT = path.resolve(__dirname, '../..');
-const DEMO_AUDIO = path.join(PROJECT_ROOT, 'frontend/public/demo');
-const DATA_ROOT =
-  process.env.DATA_DIR || process.env.DATA_ROOT
-    ? path.resolve(process.env.DATA_DIR || process.env.DATA_ROOT!)
-    : path.join(PROJECT_ROOT, 'data');
-const DATA_AUDIO = path.join(DATA_ROOT, 'audio');
-const DATA_ARTWORK = path.join(DATA_ROOT, 'artwork');
+const DEMO_AUDIO = path.resolve(__dirname, '../public/demo');
 
 async function copyIfExists(src: string, dest: string) {
   if (!fs.existsSync(src)) return false;
@@ -22,37 +14,8 @@ async function copyIfExists(src: string, dest: string) {
 }
 
 async function main() {
-  console.log('[Seed] Seeding Soundify local SQLite database...');
-
-  await fs.promises.mkdir(DATA_AUDIO, { recursive: true });
-  await fs.promises.mkdir(DATA_ARTWORK, { recursive: true });
-
-  const hashedPassword = await bcrypt.hash('soundify', 10);
-  const localUser = await prisma.user.upsert({
-    where: { email: 'local@soundify.app' },
-    update: {},
-    create: {
-      email: 'local@soundify.app',
-      name: 'Local User',
-      password: hashedPassword,
-      role: 'user',
-    },
-  });
-
-  const demoHashed = await bcrypt.hash('password123', 10);
-  await prisma.user.upsert({
-    where: { email: 'demo@soundify.app' },
-    update: {},
-    create: {
-      email: 'demo@soundify.app',
-      name: 'Demo Listener',
-      password: demoHashed,
-      role: 'user',
-    },
-  });
-
-  console.log(`[Seed] Local user: local@soundify.app / soundify`);
-  console.log(`[Seed] Demo user: demo@soundify.app / password123`);
+  if (config.env === 'production') throw new Error('Demo seeding is available in development only.');
+  ensureStorageDirectories();
 
   const count = await prisma.song.count();
   if (count > 0) {
@@ -109,8 +72,8 @@ async function main() {
     const d = demos[i];
     const audioName = `demo_${i + 1}_${d.audio}`;
     const coverName = `demo_${i + 1}_cover${path.extname(d.cover)}`;
-    const audioDest = path.join(DATA_AUDIO, audioName);
-    const coverDest = path.join(DATA_ARTWORK, coverName);
+    const audioDest = path.join(AUDIO_DIR, audioName);
+    const coverDest = path.join(ARTWORK_DIR, coverName);
 
     const audioOk = await copyIfExists(path.join(DEMO_AUDIO, d.audio), audioDest);
     const coverOk = await copyIfExists(path.join(DEMO_AUDIO, d.cover), coverDest);
@@ -138,7 +101,6 @@ async function main() {
         mimeType: 'audio/wav',
         fileSize: stat.size,
         isDownloadable: true,
-        userId: localUser.id,
         audioUrl: '',
         coverUrl: null,
       },
@@ -160,7 +122,6 @@ async function main() {
       data: {
         name: 'Welcome Mix',
         description: 'Local demo tracks — no internet required.',
-        userId: localUser.id,
         songs: {
           create: createdIds.map((songId, idx) => ({
             songId,
@@ -178,7 +139,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error('[Seed] Error seeding database:', e);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

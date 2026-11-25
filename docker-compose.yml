@@ -10,17 +10,20 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - CLIENT_URL=http://localhost:3000
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5000
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:3000}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
       - DATA_ROOT=/app/data
       - SQLITE_PATH=/app/data/soundify.db
-      - JWT_SECRET=pigplayer-production-jwt-secret-replace-me-offline-2026
-      - JWT_REFRESH_SECRET=pigplayer-production-refresh-secret-replace-me-offline-2026
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET}
+      - LOCAL_USER_EMAIL=${LOCAL_USER_EMAIL:-}
+      - LOCAL_USER_PASSWORD=${LOCAL_USER_PASSWORD:-}
+      - LOCAL_USER_NAME=${LOCAL_USER_NAME:-Local User}
     volumes:
       # Persists SQLite database and audio/artwork library
       - ./data:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5000/api/ready"]
       interval: 15s
       timeout: 5s
       retries: 3

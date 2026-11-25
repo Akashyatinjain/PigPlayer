@@ -4,6 +4,9 @@ import path from "path";
 const nextConfig: NextConfig = {
   output: "standalone",
   devIndicators: false,
+  experimental: {
+    proxyClientMaxBodySize: "112mb",
+  },
   turbopack: {
     root: path.resolve(__dirname),
     rules: {

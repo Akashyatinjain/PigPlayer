@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   backend-test:
-    name: Backend Lint, Typecheck & Tests
+    name: Backend Build & Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -31,18 +31,11 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: TypeScript typecheck
-        run: npx tsc --noEmit
+      - name: Build backend
+        run: npm run build
 
       - name: Run Backend Tests
         run: npm test
-        env:
-          NODE_ENV: test
-          DATA_ROOT: ${{ github.workspace }}/data
-          SQLITE_PATH: ${{ github.workspace }}/data/soundify-test.db
 
   frontend-build:
     name: Frontend Lint & Build

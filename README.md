@@ -35,14 +35,17 @@ You can deploy PigPlayer on Docker using either **Docker Compose** (recommended 
 Spins up separate, connected containers for Next.js (`frontend`) and Express (`backend`) with persistent SQLite storage:
 
 ```bash
-# 1. Build and start services in background
-docker compose up -d --build
+# 1. Fill in both signing keys and optional administrator credentials
+cp .env.docker.example .env.docker
+
+# 2. Build and start services in background
+docker compose --env-file .env.docker up -d --build
 
 # 2. View logs
-docker compose logs -f
+docker compose --env-file .env.docker logs -f
 
 # 3. Stop services
-docker compose down
+docker compose --env-file .env.docker down
 ```
 
 - **Frontend:** [http://localhost:3000](http://localhost:3000)
@@ -59,6 +62,7 @@ docker build -t pigplayer .
 
 # 2. Run container with persistent local data
 docker run -d \
+  --env-file .env.docker \
   -p 3000:3000 \
   -p 5000:5000 \
   -v ${PWD}/data:/app/data \
@@ -69,10 +73,9 @@ docker run -d \
 docker logs -f pigplayer
 ```
 
-### Default Credentials
+### Administrator setup
 
-- **Email:** `local@soundify.app`
-- **Password:** `soundify`
+Set `LOCAL_USER_EMAIL` and `LOCAL_USER_PASSWORD` to create an administrator on the first startup. See the [backend setup guide](backend/README.md) for key generation, role behavior, and SQLite upgrades.
 
 ---
 

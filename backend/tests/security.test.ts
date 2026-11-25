@@ -46,7 +46,7 @@ describe('security and playback regressions', () => {
     config.env = 'production';
     try {
       const req = { headers: {} } as AuthRequest;
-      const res = {} as never;
+      const res = { setHeader: jest.fn() } as never;
       const mutationNext = jest.fn();
       requireMutationAuth(req, res, mutationNext);
       expect((mutationNext.mock.calls[0][0] as AppError).statusCode).toBe(401);

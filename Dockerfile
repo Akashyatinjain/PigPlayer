@@ -13,7 +13,7 @@ COPY backend/package*.json ./
 RUN npm ci
 
 COPY backend/ ./
-RUN npx prisma generate && npx tsc
+RUN npm run build
 
 # Stage 2: Build Frontend
 FROM node:22-bookworm-slim AS frontend-builder
@@ -30,6 +30,7 @@ ARG NEXT_PUBLIC_API_URL=/api
 ARG NEXT_PUBLIC_BACKEND_PORT=5000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_BACKEND_PORT=$NEXT_PUBLIC_BACKEND_PORT
+ENV BACKEND_INTERNAL_URL=http://127.0.0.1:5000
 
 # Next.js 16 build (retry in case of first-run security prompt)
 RUN npm run build || npm run build
@@ -56,10 +57,10 @@ WORKDIR /app/backend
 COPY backend/package*.json ./
 RUN npm ci --omit=dev
 COPY --from=backend-builder /build/backend/node_modules/.prisma ./node_modules/.prisma
-COPY --from=backend-builder /build/backend/node_modules/@prisma ./node_modules/@prisma
 COPY --from=backend-builder /build/backend/dist ./dist
 COPY --from=backend-builder /build/backend/prisma ./prisma
 COPY --from=backend-builder /build/backend/scripts ./scripts
+COPY --from=backend-builder /build/backend/public ./public
 
 # Setup frontend
 WORKDIR /app/frontend
@@ -80,7 +81,7 @@ VOLUME ["/app/data"]
 EXPOSE 3000 5000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:3000/ && curl -f http://localhost:5000/api/health || exit 1
+  CMD curl -fsS "http://127.0.0.1:${FRONTEND_PORT}/" && curl -fsS http://127.0.0.1:5000/api/ready || exit 1
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 

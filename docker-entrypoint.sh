@@ -5,12 +5,9 @@ echo "=================================================="
 echo " Starting PigPlayer (Soundify) in Docker"
 echo "=================================================="
 
-# Ensure persistent storage directories exist
-mkdir -p /app/data/audio /app/data/artwork /app/data/temp /app/data/backups
-
 # Synchronize SQLite database schema
 echo "[Entrypoint] Synchronizing SQLite database schema..."
-node /app/backend/scripts/prisma-safe.js
+node /app/backend/scripts/migrate.js
 
 # Graceful termination handler
 cleanup() {
@@ -21,35 +18,45 @@ cleanup() {
   if [ -n "$BACKEND_PID" ]; then
     kill -TERM "$BACKEND_PID" 2>/dev/null || true
   fi
-  wait "$FRONTEND_PID" 2>/dev/null || true
-  wait "$BACKEND_PID" 2>/dev/null || true
+  if [ -n "$FRONTEND_PID" ]; then
+    wait "$FRONTEND_PID" 2>/dev/null || true
+  fi
+  if [ -n "$BACKEND_PID" ]; then
+    wait "$BACKEND_PID" 2>/dev/null || true
+  fi
   echo "[Entrypoint] PigPlayer stopped cleanly."
-  exit 0
 }
 
-trap cleanup SIGTERM SIGINT SIGQUIT
+trap 'cleanup; exit 0' SIGTERM SIGINT SIGQUIT
 
 # Start Express backend
-BACKEND_PORT="${PORT:-5000}"
+# The standalone Next.js build rewrites /api to this internal port.
+BACKEND_PORT=5000
 echo "[Entrypoint] Starting Express backend on port ${BACKEND_PORT}..."
 cd /app/backend
-PORT="${BACKEND_PORT}" DATA_ROOT=/app/data SQLITE_PATH=/app/data/soundify.db node dist/server.js &
+PORT="${BACKEND_PORT}" node dist/server.js &
 BACKEND_PID=$!
 
 # Wait for backend healthcheck
 echo "[Entrypoint] Waiting for backend to become ready..."
 READY=0
 for i in $(seq 1 30); do
-  if curl -s "http://127.0.0.1:${BACKEND_PORT}/api/health" > /dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:${BACKEND_PORT}/api/ready" > /dev/null 2>&1; then
     echo "[Entrypoint] Backend is ready!"
     READY=1
     break
+  fi
+  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+    wait "$BACKEND_PID" || exit $?
+    exit 1
   fi
   sleep 1
 done
 
 if [ "$READY" -ne 1 ]; then
-  echo "[Entrypoint] Warning: Backend healthcheck timed out after 30 seconds."
+  echo "[Entrypoint] Backend readiness timed out after 30 seconds."
+  cleanup
+  exit 1
 fi
 
 # Start Next.js frontend
@@ -66,8 +73,8 @@ echo " API:    http://localhost:${BACKEND_PORT}/api"
 echo "=================================================="
 
 # Wait for any process to exit
-wait -n "$BACKEND_PID" "$FRONTEND_PID"
-EXIT_CODE=$?
+EXIT_CODE=0
+wait -n "$BACKEND_PID" "$FRONTEND_PID" || EXIT_CODE=$?
 echo "[Entrypoint] A service exited with status ${EXIT_CODE}. Shutting down container..."
 cleanup
 exit ${EXIT_CODE}

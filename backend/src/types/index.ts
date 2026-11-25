@@ -9,6 +9,7 @@ export interface AuthUser {
 
 export interface AuthRequest extends Request {
   user?: AuthUser;
+  sessionId?: string;
   file?: Express.Multer.File;
   files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] };
 }

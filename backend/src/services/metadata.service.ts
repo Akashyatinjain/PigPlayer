@@ -1,4 +1,3 @@
-import { parseBuffer } from 'music-metadata';
 import path from 'path';
 
 export interface ExtractedMetadata {
@@ -70,6 +69,7 @@ export class MetadataService {
 
     let parsed;
     try {
+      const { parseBuffer } = await import('music-metadata');
       parsed = await parseBuffer(buffer, {
         mimeType: mimeHint,
         size: buffer.length,

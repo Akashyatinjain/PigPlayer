@@ -1,31 +1,15 @@
 import fs from 'fs';
 import path from 'path';
-
-function findProjectRoot(): string {
-  const threeLevelsUp = path.resolve(__dirname, '../../../');
-  if (fs.existsSync(path.join(threeLevelsUp, 'data')) || fs.existsSync(path.join(threeLevelsUp, 'frontend'))) {
-    return threeLevelsUp;
-  }
-  const twoLevelsUp = path.resolve(__dirname, '../../');
-  if (fs.existsSync(path.join(twoLevelsUp, 'data')) || fs.existsSync(path.join(twoLevelsUp, 'package.json'))) {
-    return twoLevelsUp;
-  }
-  return threeLevelsUp;
-}
+import { databasePath, dataRoot, projectRoot } from '../../scripts/database-config';
 
 /** Monorepo root or backend root */
-export const PROJECT_ROOT = findProjectRoot();
-export const DATA_ROOT =
-  process.env.DATA_DIR || process.env.DATA_ROOT
-    ? path.resolve(process.env.DATA_DIR || process.env.DATA_ROOT!)
-    : path.join(PROJECT_ROOT, 'data');
+export const PROJECT_ROOT = projectRoot;
+export const DATA_ROOT = dataRoot;
 export const AUDIO_DIR = path.join(DATA_ROOT, 'audio');
 export const ARTWORK_DIR = path.join(DATA_ROOT, 'artwork');
 export const TEMP_DIR = path.join(DATA_ROOT, 'temp');
 export const BACKUPS_DIR = path.join(DATA_ROOT, 'backups');
-export const DB_PATH = process.env.SQLITE_PATH
-  ? path.resolve(process.env.SQLITE_PATH)
-  : path.join(DATA_ROOT, 'soundify.db');
+export const DB_PATH = databasePath;
 
 const REQUIRED_DIRS = [DATA_ROOT, AUDIO_DIR, ARTWORK_DIR, TEMP_DIR, BACKUPS_DIR];
 
@@ -56,6 +40,26 @@ export function resolveSafeDataPath(relativePath: string): string {
     throw new Error('Path traversal blocked: path must remain inside data/');
   }
 
+  return absolute;
+}
+
+export function resolveMediaPath(relativePath: string, folder: 'audio' | 'artwork'): string {
+  const logicalPath = relativePath.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^uploads\//, '');
+  const [top, ...segments] = logicalPath.split('/');
+  if (top !== folder || !segments.length ||
+      segments.some((segment) => !segment || segment === '.' || segment === '..' || /[:\0]/.test(segment))) {
+    throw new Error('Media path must point inside its storage directory');
+  }
+  const absolute = resolveSafeDataPath(logicalPath);
+  const canonicalRoot = fs.realpathSync(DATA_ROOT);
+  const canonicalFolder = fs.realpathSync(path.join(DATA_ROOT, folder));
+  if (path.relative(canonicalRoot, canonicalFolder) !== folder) {
+    throw new Error('Invalid media storage directory');
+  }
+  if (fs.existsSync(absolute) &&
+      path.relative(canonicalFolder, fs.realpathSync(absolute)) !== segments.join(path.sep)) {
+    throw new Error('Symbolic links are not allowed in media paths');
+  }
   return absolute;
 }
 

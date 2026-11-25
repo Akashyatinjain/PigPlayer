@@ -23,6 +23,17 @@ model User {
   favorites     Favorite[]
   playHistory   PlayHistory[]
   uploadedSongs Song[]
+  sessions      AuthSession[]
+}
+
+model AuthSession {
+  id          String   @id
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String
+  expiresAt   DateTime
+
+  @@index([userId, expiresAt])
 }
 
 model Song {
@@ -63,6 +74,9 @@ model Song {
   @@index([album])
   @@index([genre])
   @@index([fileHash])
+  @@index([createdAt, id])
+  @@index([audioRelativePath])
+  @@index([coverRelativePath])
 }
 
 model Playlist {
@@ -76,6 +90,8 @@ model Playlist {
   updatedAt   DateTime       @updatedAt
 
   songs       PlaylistSong[]
+
+  @@index([userId, updatedAt])
 }
 
 model PlaylistSong {
@@ -88,6 +104,8 @@ model PlaylistSong {
   addedAt    DateTime @default(now())
 
   @@unique([playlistId, songId])
+  @@index([playlistId, position])
+  @@index([songId])
 }
 
 model Favorite {
@@ -99,6 +117,8 @@ model Favorite {
   createdAt DateTime @default(now())
 
   @@unique([userId, songId])
+  @@index([userId, createdAt])
+  @@index([songId])
 }
 
 model PlayHistory {
@@ -111,4 +131,6 @@ model PlayHistory {
   durationPlayed Float?
 
   @@index([playedAt])
+  @@index([userId, playedAt])
+  @@index([songId])
 }

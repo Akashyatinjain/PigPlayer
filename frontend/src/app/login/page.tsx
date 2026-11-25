@@ -128,15 +128,17 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 pt-6 border-t border-white/[0.06] flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            className="w-full py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold rounded-xl border border-white/[0.08] transition-colors flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-[#FF4D80]" />
-            <span>Use Demo Account (demo@piggyplayer.app)</span>
-          </button>
+          {process.env.NODE_ENV === "development" && (
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              disabled={isLoading}
+              className="w-full py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold rounded-xl border border-white/[0.08] transition-colors flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#FF4D80]" />
+              <span>Use Demo Account (demo@piggyplayer.app)</span>
+            </button>
+          )}
 
           <p className="text-center text-xs text-[#64748B]">
             Don&apos;t have an account?{" "}

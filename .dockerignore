@@ -20,12 +20,13 @@ next-env.d.ts
 coverage
 */coverage
 .nyc_output
+backend/.test-data-*
 
 # Environment files
 .env
-.env*.local
-backend/.env
-frontend/.env.local
+.env.*
+**/.env
+**/.env.*
 
 # Logs
 *.log
@@ -44,11 +45,5 @@ Thumbs.db
 .claude
 .windsurf
 
-# SQLite database & runtime data files (preserve existing directory structure, exclude database files)
-data/*.db
-data/*.db-journal
-data/*.db-wal
-data/*.db-shm
-data/*.json
-data/temp/*
-!data/temp/.gitkeep
+# SQLite database, backups, and local media
+data

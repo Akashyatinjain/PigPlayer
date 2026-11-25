@@ -9,9 +9,9 @@ export const createPlaylistSchema = z.object({
 export const updatePlaylistSchema = createPlaylistSchema.partial();
 
 export const addSongToPlaylistSchema = z.object({
-  songId: z.string().min(1, 'Song ID is required'),
+  songId: z.string().trim().min(1, 'Song ID is required').max(191),
 });
 
 export const reorderPlaylistSchema = z.object({
-  songIds: z.array(z.string()).min(1, 'Array of song IDs required'),
+  songIds: z.array(z.string().trim().min(1).max(191)).max(5000),
 });

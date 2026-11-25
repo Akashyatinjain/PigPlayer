@@ -1,5 +1,7 @@
 import { PlaylistRepository } from '../repositories/playlist.repository';
 import { AppError } from '../middleware/error.middleware';
+import { config } from '../config/env';
+import { prisma } from '../config/database';
 
 export class PlaylistService {
   static async listPlaylists(userId?: string) {
@@ -40,7 +42,7 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
 
-    if (playlist.userId && playlist.userId !== userId) {
+    if (playlist.userId !== userId && (playlist.userId || config.env === 'production')) {
       throw new AppError('Forbidden: only playlist owners can modify playlists', 403);
     }
 
@@ -53,7 +55,7 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
 
-    if (playlist.userId && playlist.userId !== userId) {
+    if (playlist.userId !== userId && (playlist.userId || config.env === 'production')) {
       throw new AppError('Forbidden: only playlist owners can delete playlists', 403);
     }
 
@@ -66,12 +68,11 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
 
-    if (playlist.userId && playlist.userId !== userId) {
+    if (playlist.userId !== userId && (playlist.userId || config.env === 'production')) {
       throw new AppError('Forbidden: only playlist owners can add songs', 403);
     }
 
-    const { prisma } = await import('../config/database');
-    const songExists = await prisma.song.findUnique({ where: { id: songId } });
+    const songExists = await prisma.song.findUnique({ where: { id: songId }, select: { id: true } });
     if (!songExists) {
       throw new AppError('Song not found', 404);
     }
@@ -90,7 +91,7 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
 
-    if (playlist.userId && playlist.userId !== userId) {
+    if (playlist.userId !== userId && (playlist.userId || config.env === 'production')) {
       throw new AppError('Forbidden: only playlist owners can remove songs', 403);
     }
 
@@ -103,7 +104,7 @@ export class PlaylistService {
       throw new AppError('Playlist not found', 404);
     }
 
-    if (playlist.userId && playlist.userId !== userId) {
+    if (playlist.userId !== userId && (playlist.userId || config.env === 'production')) {
       throw new AppError('Forbidden: only playlist owners can reorder playlists', 403);
     }
 

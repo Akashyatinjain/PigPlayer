@@ -1,30 +1,28 @@
 import fs from 'fs';
 import path from 'path';
-import { createWriteStream } from 'fs';
-import archiver from 'archiver';
-import Extract from 'extract-zip';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '../config/database';
 import {
   BACKUPS_DIR,
-  DB_PATH,
   AUDIO_DIR,
   ARTWORK_DIR,
   ensureStorageDirectories,
-  resolveSafeDataPath,
+  resolveMediaPath,
+  toPosixRelative,
 } from '../config/paths';
 import { AppError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
 import { SongRepository } from '../repositories/song.repository';
-import { getDefaultLocalUserId } from './bootstrap.service';
+import { extractBackupArchive, writeBackupArchive } from './storage/backup-archive';
 
 export class BackupService {
   static async listBackups() {
     ensureStorageDirectories();
-    const files = await fs.promises.readdir(BACKUPS_DIR);
+    const files = await fs.promises.readdir(BACKUPS_DIR, { withFileTypes: true });
     const backups = await Promise.all(
       files
-        .filter((f) => f.endsWith('.zip'))
-        .map(async (fileName) => {
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.zip'))
+        .map(async ({ name: fileName }) => {
           const absolute = path.join(BACKUPS_DIR, fileName);
           const stat = await fs.promises.stat(absolute);
           return {
@@ -41,117 +39,62 @@ export class BackupService {
   static async createBackup(options?: { includeMedia?: boolean }) {
     ensureStorageDirectories();
     const includeMedia = options?.includeMedia !== false;
-    const stamp = `${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}-${Math.random().toString(36).slice(2, 8)}`;
-    const fileName = `soundify-backup-${stamp}.zip`;
+    const stamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const fileName = `soundify-backup-${stamp}-${randomUUID()}.zip`;
     const outPath = path.join(BACKUPS_DIR, fileName);
-
-    // Export metadata JSON snapshot
-    const [songs, playlists, favorites, history, users] = await Promise.all([
-      prisma.song.findMany(),
-      prisma.playlist.findMany({ include: { songs: true } }),
-      prisma.favorite.findMany(),
-      prisma.playHistory.findMany(),
-      prisma.user.findMany({
-        select: { id: true, email: true, name: true, role: true, createdAt: true },
-      }),
-    ]);
-
-    const metaPath = path.join(BACKUPS_DIR, `_meta_${stamp}.json`);
-    await fs.promises.writeFile(
-      metaPath,
-      JSON.stringify(
-        {
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          songs,
-          playlists,
-          favorites,
-          history,
-          users,
-        },
-        null,
-        2
-      )
-    );
-
-    await new Promise<void>((resolve, reject) => {
-      const output = createWriteStream(outPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', () => resolve());
-      archive.on('error', reject);
-      archive.pipe(output);
-
-      archive.file(metaPath, { name: 'library.json' });
-
-      if (fs.existsSync(DB_PATH)) {
-        archive.file(DB_PATH, { name: 'soundify.db' });
-      }
-
-      if (includeMedia) {
-        if (fs.existsSync(AUDIO_DIR)) {
-          archive.directory(AUDIO_DIR, 'audio');
-        }
-        if (fs.existsSync(ARTWORK_DIR)) {
-          archive.directory(ARTWORK_DIR, 'artwork');
-        }
-      }
-
-      archive.finalize();
-    });
-
-    await fs.promises.unlink(metaPath).catch(() => undefined);
-    logger.info(`Backup created: ${fileName}`);
-
-    const stat = await fs.promises.stat(outPath);
-    return {
-      fileName,
-      size: stat.size,
-      path: `backups/${fileName}`,
-      includeMedia,
-    };
+    const staging = await fs.promises.mkdtemp(path.join(BACKUPS_DIR, '.backup-'));
+    try {
+      const [songs, playlists, favorites, history, users] = await prisma.$transaction([
+        prisma.song.findMany(),
+        prisma.playlist.findMany({ include: { songs: true } }),
+        prisma.favorite.findMany(),
+        prisma.playHistory.findMany(),
+        prisma.user.findMany({ select: { id: true, email: true, name: true, role: true, createdAt: true } }),
+      ]);
+      const library = { version: 1, exportedAt: new Date().toISOString(), songs, playlists, favorites, history, users };
+      const snapshotPath = path.join(staging, 'soundify.db');
+      await prisma.$executeRaw`VACUUM INTO ${snapshotPath}`;
+      const tempZip = path.join(staging, 'backup.zip');
+      await writeBackupArchive(tempZip, library, snapshotPath, includeMedia ? [
+        { folder: 'audio', source: AUDIO_DIR }, { folder: 'artwork', source: ARTWORK_DIR },
+      ] : []);
+      const stat = await fs.promises.stat(tempZip);
+      await fs.promises.rename(tempZip, outPath);
+      return { fileName, size: stat.size, path: `backups/${fileName}`, includeMedia };
+    } finally {
+      await fs.promises.rm(staging, { recursive: true, force: true }).catch(() => logger.warn('Could not clean backup staging directory'));
+    }
   }
 
-  /**
-   * Restore is careful: extracts to a staging folder and does NOT silently
-   * overwrite the live DB unless confirmReplace=true.
-   */
-  static async restoreBackup(fileName: string, confirmReplace = false) {
+  static async restoreBackup(fileName: string, confirmReplace: boolean, actorId: string) {
     ensureStorageDirectories();
-    const safeName = path.basename(fileName);
-    if (!safeName.endsWith('.zip')) {
-      throw new AppError('Invalid backup file', 400);
+    if (!/^[a-zA-Z0-9._-]+\.zip$/.test(fileName) || fileName.length > 200) {
+      throw new AppError('Invalid backup file name', 400);
     }
 
-    const zipPath = path.join(BACKUPS_DIR, safeName);
-    if (!fs.existsSync(zipPath)) {
-      throw new AppError('Backup not found', 404);
-    }
+    const zipPath = path.join(BACKUPS_DIR, fileName);
+    const zipInfo = await fs.promises.lstat(zipPath).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
+    if (!zipInfo?.isFile()) throw new AppError('Backup not found', 404);
 
-    const staging = path.join(BACKUPS_DIR, `_restore_${Date.now()}`);
-    await fs.promises.mkdir(staging, { recursive: true });
-
+    const staging = await fs.promises.mkdtemp(path.join(BACKUPS_DIR, '.restore-'));
+    const copiedMedia: string[] = [];
+    let imported = false;
     try {
-      await Extract(zipPath, { dir: staging });
-
-      const stagedLibrary = path.join(staging, 'library.json');
-      if (!fs.existsSync(stagedLibrary)) {
-        throw new AppError('Backup does not contain a library snapshot.', 400);
-      }
-      let library: unknown;
+      await extractBackupArchive(zipPath, staging);
+      let snapshot: Record<string, unknown>;
       try {
-        library = JSON.parse(await fs.promises.readFile(stagedLibrary, 'utf-8'));
+        const parsed = JSON.parse(await fs.promises.readFile(path.join(staging, 'library.json'), 'utf-8'));
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Expected object');
+        snapshot = parsed;
       } catch {
-        throw new AppError('Backup library snapshot is invalid JSON.', 400);
+        throw new AppError('Backup library snapshot is missing or invalid.', 400);
       }
-      if (!library || typeof library !== 'object' || Array.isArray(library)) {
+      const songs = Array.isArray(snapshot.songs) ? snapshot.songs : null;
+      if (!songs || !['playlists', 'favorites', 'history'].every((key) => Array.isArray(snapshot[key]))) {
         throw new AppError('Backup library snapshot has an invalid format.', 400);
       }
-      const snapshot = library as Record<string, unknown>;
-      const songCount = Array.isArray(snapshot.songs) ? snapshot.songs.length : 0;
-      const playlistCount = Array.isArray(snapshot.playlists) ? snapshot.playlists.length : 0;
-      const hasAudio = fs.existsSync(path.join(staging, 'audio'));
-      const hasArtwork = fs.existsSync(path.join(staging, 'artwork'));
 
       if (!confirmReplace) {
         return {
@@ -159,50 +102,66 @@ export class BackupService {
           message: 'Snapshot validated. Confirm replacement to apply this library backup.',
           hasDatabase: false,
           hasLibraryJson: true,
-          songCount,
-          playlistCount,
-          hasAudio,
-          hasArtwork,
+          songCount: songs.length,
+          playlistCount: (snapshot.playlists as unknown[]).length,
+          hasAudio: fs.existsSync(path.join(staging, 'audio')),
+          hasArtwork: fs.existsSync(path.join(staging, 'artwork')),
         };
       }
 
-      // Keep a recoverable snapshot before changing the live database or media.
       const safetyBackup = await this.createBackup({ includeMedia: true });
-
-      // Restore media folders if present
-      for (const folder of ['audio', 'artwork'] as const) {
-        const src = path.join(staging, folder);
-        if (fs.existsSync(src)) {
-          const dest = resolveSafeDataPath(folder);
-          await fs.promises.cp(src, dest, { recursive: true });
+      const restoredPaths = new Map<string, string>();
+      for (const song of songs) {
+        if (!song || typeof song !== 'object') continue;
+        for (const [key, folder] of [['audioRelativePath', 'audio'], ['coverRelativePath', 'artwork']] as const) {
+          const relative = song[key];
+          if (typeof relative !== 'string' || relative.startsWith('demo/')) continue;
+          let target: string;
+          try {
+            target = resolveMediaPath(relative, folder);
+          } catch {
+            throw new AppError('Backup contains an invalid media path.', 400);
+          }
+          const filename = path.basename(target);
+          const source = path.join(staging, folder, filename);
+          if (!fs.existsSync(source)) continue;
+          let restoredPath = restoredPaths.get(target);
+          if (!restoredPath) {
+            const destination = resolveMediaPath(`${folder}/restored_${randomUUID()}${path.extname(filename)}`, folder);
+            await fs.promises.copyFile(source, destination, fs.constants.COPYFILE_EXCL);
+            copiedMedia.push(destination);
+            restoredPath = toPosixRelative(destination);
+            restoredPaths.set(target, restoredPath);
+          }
+          song[key] = restoredPath;
+          song[folder === 'audio' ? 'audioFileName' : 'coverFileName'] = path.basename(restoredPath);
         }
       }
-
-      const importResult = await this.importLibraryJson(snapshot, 'replace');
-
-      logger.info(`Backup restored from: ${safeName}`);
+      const importResult = await this.importLibraryJson(snapshot, 'replace', actorId);
+      imported = true;
       return {
-        preview: false,
-        restored: true,
-        fileName: safeName,
-        safetyBackup: safetyBackup.fileName,
-        ...importResult,
-        message: 'Backup restored successfully. A safety backup was created first.',
+        preview: false, restored: true, fileName, safetyBackup: safetyBackup.fileName,
+        ...importResult, message: 'Backup restored successfully. A safety backup was created first.',
       };
     } finally {
-      await fs.promises.rm(staging, { recursive: true, force: true }).catch(() => undefined);
+      if (!imported) {
+        for (const target of copiedMedia) {
+          await fs.promises.unlink(target).catch(() => logger.warn('Could not remove unused restored media'));
+        }
+      }
+      await fs.promises.rm(staging, { recursive: true, force: true }).catch(() => logger.warn('Could not clean restore staging directory'));
     }
   }
 
-  static async exportLibraryJson() {
-    const [songs, playlists, favorites, history] = await Promise.all([
+  static async exportLibraryJson(actorId: string) {
+    const [songs, playlists, favorites, history] = await prisma.$transaction([
       prisma.song.findMany(),
       prisma.playlist.findMany({ include: { songs: true } }),
       prisma.favorite.findMany(),
       prisma.playHistory.findMany(),
     ]);
 
-    const stats = await SongRepository.getLibraryStats();
+    const stats = await SongRepository.getLibraryStats(actorId, true);
 
     return {
       version: 1,
@@ -218,7 +177,8 @@ export class BackupService {
 
   static async importLibraryJson(
     payload: Record<string, unknown>,
-    mode: 'merge' | 'replace' = 'merge'
+    mode: 'merge' | 'replace',
+    actorId: string,
   ) {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       throw new AppError('Library import must be a JSON object.', 400);
@@ -234,7 +194,7 @@ export class BackupService {
     const inputPlaylists = readRows('playlists');
     const inputFavorites = readRows('favorites');
     const inputHistory = readRows('history');
-    const inputUsers = Array.isArray(payload.users) ? payload.users as Array<Record<string, unknown>> : [];
+    const inputUsers = payload.users === undefined ? [] : readRows('users');
 
     const existingSongs = mode === 'merge'
       ? await prisma.song.findMany({ select: { id: true } })
@@ -259,10 +219,12 @@ export class BackupService {
         continue;
       }
 
-      let audioExists = id.startsWith('demo-');
+      let audioExists = false;
       try {
-        const absoluteAudioPath = resolveSafeDataPath(audioRelativePath);
-        audioExists ||= fs.existsSync(absoluteAudioPath);
+        const absoluteAudioPath = /^demo\/[\w.-]+\.wav$/.test(audioRelativePath)
+          ? path.resolve(__dirname, '../../public', audioRelativePath)
+          : resolveMediaPath(audioRelativePath, 'audio');
+        audioExists = fs.statSync(absoluteAudioPath, { throwIfNoEntry: false })?.isFile() ?? false;
       } catch {
         throw new AppError(`Unsafe audio path in imported song "${title}".`, 400);
       }
@@ -279,7 +241,7 @@ export class BackupService {
         : null;
       if (coverRelativePath) {
         try {
-          resolveSafeDataPath(coverRelativePath);
+          if (!/^demo\/covers\/[\w.-]+\.svg$/.test(coverRelativePath)) resolveMediaPath(coverRelativePath, 'artwork');
         } catch {
           throw new AppError(`Unsafe artwork path in imported song "${title}".`, 400);
         }
@@ -302,7 +264,7 @@ export class BackupService {
     const existingUsers = await prisma.user.findMany({ select: { id: true, email: true } });
     const usersByEmail = new Map(existingUsers.map((user) => [user.email.toLowerCase(), user.id]));
     const knownUserIds = new Set(existingUsers.map((user) => user.id));
-    const fallbackUserId = await getDefaultLocalUserId();
+    const fallbackUserId = actorId;
     const userIdMap = new Map<string, string>();
     for (const user of inputUsers) {
       if (typeof user.id !== 'string') continue;
@@ -316,12 +278,14 @@ export class BackupService {
       return userIdMap.get(value) || (knownUserIds.has(value) ? value : fallbackUserId);
     };
 
+    const seenPlaylistIds = new Set<string>();
     const playlistRows = inputPlaylists.filter((playlist) => {
       const id = typeof playlist.id === 'string' ? playlist.id : '';
       const name = typeof playlist.name === 'string' ? playlist.name.trim() : '';
-      if (!id || id.length > 191 || !name || name.length > 100) {
+      if (!id || id.length > 191 || !name || name.length > 100 || seenPlaylistIds.has(id)) {
         throw new AppError('Library import contains a playlist with invalid fields.', 400);
       }
+      seenPlaylistIds.add(id);
       return !existingPlaylistIds.has(id);
     });
 
@@ -370,6 +334,9 @@ export class BackupService {
         const links = Array.isArray(playlist.songs) ? playlist.songs : [];
         const seenLinks = new Set<string>();
         const songs = links.flatMap((link, index) => {
+          if (!link || (typeof link !== 'string' && (typeof link !== 'object' || Array.isArray(link)))) {
+            throw new AppError('Invalid playlist song reference.', 400);
+          }
           const row = typeof link === 'string' ? { songId: link } : link as Record<string, unknown>;
           const songId = typeof row.songId === 'string' ? row.songId : '';
           if (!songId || !availableSongIds.has(songId) || seenLinks.has(songId)) return [];
@@ -410,6 +377,7 @@ export class BackupService {
         });
       }
 
+      const seenHistory = new Set<string>();
       const history = inputHistory.flatMap((item) => {
         const songId = typeof item.songId === 'string' ? item.songId : '';
         if (!availableSongIds.has(songId)) return [];
@@ -417,10 +385,26 @@ export class BackupService {
         if (durationPlayed !== null && (!Number.isFinite(durationPlayed) || durationPlayed < 0)) return [];
         const playedAt = item.playedAt ? new Date(String(item.playedAt)) : new Date();
         if (!Number.isFinite(playedAt.getTime())) return [];
-        return [{ songId, userId: mapUserId(item.userId), durationPlayed, playedAt }];
+        const id = typeof item.id === 'string' && item.id.length <= 191 ? item.id : undefined;
+        if (id && seenHistory.has(id)) return [];
+        if (id) seenHistory.add(id);
+        return [{ id, songId, userId: mapUserId(item.userId), durationPlayed, playedAt }];
       });
-      if (history.length) await tx.playHistory.createMany({ data: history });
-    });
+      if (history.length) {
+        const existing = new Set<string>();
+        const ids = [...seenHistory];
+        if (mode === 'merge') {
+          for (let offset = 0; offset < ids.length; offset += 500) {
+            const rows = await tx.playHistory.findMany({
+              where: { id: { in: ids.slice(offset, offset + 500) } },
+              select: { id: true },
+            });
+            for (const row of rows) existing.add(row.id);
+          }
+        }
+        await tx.playHistory.createMany({ data: history.filter((item) => !item.id || !existing.has(item.id)) });
+      }
+    }, { timeout: 30_000 });
 
     const importedSongs = songsToImport.length;
     const importedPlaylists = playlistRows.length;

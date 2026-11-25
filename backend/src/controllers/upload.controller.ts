@@ -5,6 +5,7 @@ import { MetadataService } from '../services/metadata.service';
 import { ArtworkService } from '../services/artwork.service';
 import { AuthRequest } from '../types';
 import { AppError } from '../middleware/error.middleware';
+import { uploadSongSchema } from '../validators/song.validator';
 
 export class UploadController {
   /**
@@ -29,8 +30,9 @@ export class UploadController {
       ]);
 
       let artworkPreview: string | null = null;
-      if (metadata.picture) {
-        artworkPreview = `data:${metadata.picture.format};base64,${metadata.picture.data.toString('base64')}`;
+      const artworkMime = ArtworkService.embeddedMime(metadata.picture);
+      if (artworkMime && metadata.picture) {
+        artworkPreview = `data:${artworkMime};base64,${metadata.picture.data.toString('base64')}`;
       }
 
       const duplicate = await SongService.checkDuplicate({
@@ -60,7 +62,7 @@ export class UploadController {
           fileSize: audioFile.size,
           fileName: audioFile.originalname,
           artworkPreview,
-          hasEmbeddedArtwork: Boolean(metadata.picture),
+          hasEmbeddedArtwork: Boolean(artworkPreview),
           duplicate,
         },
       });
@@ -91,25 +93,22 @@ export class UploadController {
         throw new AppError('Cover artwork must be 10 MB or smaller.', 413);
       }
 
-      const requestedPolicy = String(req.body.duplicatePolicy || 'skip');
-      if (!['skip', 'replace', 'keep'].includes(requestedPolicy)) {
-        throw new AppError('duplicatePolicy must be skip, replace, or keep', 400);
+      const parsed = uploadSongSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const fields = parsed.error.issues.map((issue) => issue.path.join('.'));
+        throw new AppError(`Invalid upload metadata: ${fields.join(', ')}`, 400);
       }
-      const duplicatePolicy = requestedPolicy as 'skip' | 'replace' | 'keep';
+      const metadata = parsed.data;
+      const { duplicatePolicy } = metadata;
 
       // Never trust a client-supplied hash: a forged value bypasses exact duplicate checks.
       const fileHash = await StorageService.hashBuffer(audioFile.buffer);
 
-      const existingDup = await SongService.checkDuplicate({ fileHash });
+      const existingDup = duplicatePolicy === 'skip' ? await SongService.checkDuplicate({ fileHash }) : null;
       if (existingDup?.matchType === 'exact') {
-        if (duplicatePolicy === 'skip') {
-          return res.status(200).json({
-            success: true,
-            data: existingDup.song,
-            skipped: true,
-            message: 'Duplicate detected — skipped',
-          });
-        }
+        return res.status(200).json({
+          success: true, data: existingDup.song, skipped: true, message: 'Duplicate detected and skipped',
+        });
       }
 
       // Extract metadata locally if client did not send complete fields
@@ -118,9 +117,6 @@ export class UploadController {
         audioFile.originalname,
         audioFile.mimetype
       );
-
-      const title = req.body.title || extracted.title;
-      const artist = req.body.artist || extracted.artist;
 
       const audioUpload = await StorageService.uploadAudio(
         audioFile.buffer,
@@ -133,11 +129,7 @@ export class UploadController {
       let coverFileName: string | null = null;
 
       if (coverFile) {
-        const coverUpload = await StorageService.uploadArtwork(
-          coverFile.buffer,
-          coverFile.originalname,
-          coverFile.mimetype
-        );
+        const coverUpload = await StorageService.uploadArtwork(coverFile.buffer);
         coverRelativePath = coverUpload.relativePath;
         coverFileName = coverUpload.fileName;
         writtenCoverPath = coverRelativePath;
@@ -150,49 +142,34 @@ export class UploadController {
         }
       }
 
-      const song = await SongService.createSong(
-          {
-            title,
-            artist,
-            album: req.body.album ?? extracted.album,
-            albumArtist: req.body.albumArtist ?? extracted.albumArtist,
-            genre: req.body.genre ?? extracted.genre,
-            duration: req.body.duration
-              ? Number(req.body.duration)
-              : extracted.duration,
-            trackNumber: req.body.trackNumber
-              ? Number(req.body.trackNumber)
-              : extracted.trackNumber,
-            discNumber: req.body.discNumber
-              ? Number(req.body.discNumber)
-              : extracted.discNumber,
-            releaseYear: req.body.releaseYear
-              ? Number(req.body.releaseYear)
-              : extracted.releaseYear,
-            composer: req.body.composer ?? extracted.composer,
-            audioRelativePath: audioUpload.relativePath,
-            audioFileName: audioUpload.fileName,
-            coverRelativePath,
-            coverFileName,
-            originalFileName: audioFile.originalname,
-            fileSize: audioFile.size,
-            mimeType: audioFile.mimetype || extracted.mimeType,
-            fileHash,
-            bitrate: req.body.bitrate
-              ? Number(req.body.bitrate)
-              : extracted.bitrate,
-            isDownloadable:
-              req.body.isDownloadable !== undefined
-                ? req.body.isDownloadable === 'true' ||
-                  req.body.isDownloadable === true
-                : true,
-          },
-          req.user?.id,
-          {
-            replaceHash: duplicatePolicy === 'replace',
-            allowDuplicate: duplicatePolicy === 'keep',
-          }
-        );
+      const song = await SongService.createSong({
+        title: metadata.title ?? extracted.title.slice(0, 512),
+        artist: metadata.artist ?? extracted.artist.slice(0, 512),
+        album: metadata.album ?? extracted.album?.slice(0, 512),
+        albumArtist: metadata.albumArtist ?? extracted.albumArtist?.slice(0, 512),
+        genre: metadata.genre ?? extracted.genre?.slice(0, 512),
+        composer: metadata.composer ?? extracted.composer?.slice(0, 512),
+        duration: metadata.duration ?? extracted.duration,
+        trackNumber: metadata.trackNumber ?? extracted.trackNumber,
+        discNumber: metadata.discNumber ?? extracted.discNumber,
+        releaseYear: metadata.releaseYear ?? extracted.releaseYear,
+        bitrate: metadata.bitrate ?? extracted.bitrate,
+        audioRelativePath: audioUpload.relativePath,
+        audioFileName: audioUpload.fileName,
+        coverRelativePath,
+        coverFileName,
+        originalFileName: audioFile.originalname,
+        fileSize: audioFile.size,
+        mimeType: extracted.mimeType,
+        fileHash,
+        isDownloadable: metadata.isDownloadable,
+      }, req.user?.id, {
+        replaceHash: duplicatePolicy === 'replace',
+        allowDuplicate: duplicatePolicy === 'keep',
+        isAdmin: req.user?.role === 'admin',
+      });
+      writtenAudioPath = null;
+      writtenCoverPath = null;
 
       return res.status(201).json({
         success: true,
@@ -208,37 +185,18 @@ export class UploadController {
 
   static async uploadArtwork(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.file && !req.body.imageData) {
-        throw new AppError('No artwork image provided', 400);
-      }
-      if (req.file && req.file.size > 10 * 1024 * 1024) {
-        throw new AppError('Artwork must be 10 MB or smaller.', 413);
-      }
-      if (typeof req.body.imageData === 'string' && req.body.imageData.length > 14 * 1024 * 1024) {
-        throw new AppError('Artwork must be 10 MB or smaller.', 413);
-      }
-
-      let buffer: Buffer;
-      let filename = 'cover.jpg';
-      let mimeType = 'image/jpeg';
-
-      if (req.file) {
-        buffer = req.file.buffer;
-        filename = req.file.originalname;
-        mimeType = req.file.mimetype;
-      } else {
-        const matches = String(req.body.imageData).match(
-          /^data:([A-Za-z-+\/]+);base64,(.+)$/
-        );
-        if (matches) {
-          mimeType = matches[1];
-          buffer = Buffer.from(matches[2], 'base64');
-        } else {
-          buffer = Buffer.from(String(req.body.imageData), 'base64');
+      let buffer = req.file?.buffer;
+      if (!buffer) {
+        const imageData = req.body?.imageData;
+        if (typeof imageData !== 'string' || !imageData) throw new AppError('No artwork image provided', 400);
+        const encoded = imageData.replace(/^data:image\/[a-z0-9+.-]+;base64,/i, '');
+        buffer = Buffer.from(encoded, 'base64');
+        if (buffer.toString('base64').replace(/=+$/, '') !== encoded.replace(/=+$/, '')) {
+          throw new AppError('Invalid base64 artwork.', 400);
         }
       }
 
-      const result = await StorageService.uploadArtwork(buffer, filename, mimeType);
+      const result = await StorageService.uploadArtwork(buffer);
 
       res.status(200).json({
         success: true,

@@ -1,57 +1,52 @@
-import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { ErrorRequestHandler } from 'express';
+import { logger } from '../utils/logger';
 
 export class AppError extends Error {
-  statusCode: number;
-
-  constructor(message: string, statusCode: number = 400) {
+  constructor(message: string, public readonly statusCode = 400) {
     super(message);
-    this.statusCode = statusCode;
-    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
-export interface AppErrorLike extends Partial<Error> {
-  statusCode?: number;
-  status?: number | string;
-  code?: string;
-}
+export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
+  if (res.headersSent) return next(error);
 
-export const errorHandler: ErrorRequestHandler = (
-  err: AppErrorLike,
-  req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
-  let statusCode = err.statusCode || (err.status ? Number(err.status) : 500);
-  let message = err.message || 'Internal Server Error';
-
-  // Map Prisma known error codes
-  if (err.code === 'P2002') {
-    statusCode = 409;
-    message = 'Resource already exists (duplicate entry).';
-  } else if (err.code === 'P2025') {
-    statusCode = 404;
+  let status = 500;
+  let message = 'An unexpected server error occurred.';
+  if (error instanceof AppError) {
+    status = error.statusCode;
+    message = error.message;
+  } else if (error?.code === 'P2002') {
+    status = 409;
+    message = 'Resource already exists.';
+  } else if (error?.code === 'P2025') {
+    status = 404;
     message = 'Record not found.';
-  } else if (err.code === 'P2003') {
-    statusCode = 400;
+  } else if (error?.code === 'P2003') {
+    status = 400;
     message = 'Referenced entity not found.';
-  } else if (err.name === 'MulterError') {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      statusCode = 413;
-      message = 'File size exceeds maximum allowed upload limit.';
-    } else {
-      statusCode = 400;
-      message = err.message || 'File upload error.';
-    }
+  } else if (error?.code === 'P2024' || error?.code === 'P2034') {
+    status = 503;
+    message = 'The database is busy. Try again.';
+  } else if (error?.name === 'MulterError') {
+    status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    message = status === 413 ? 'File exceeds the maximum upload size.' : 'Invalid multipart upload.';
+  } else if (error?.status === 413) {
+    status = 413;
+    message = 'Request body exceeds the maximum size.';
+  } else if (error?.status === 415) {
+    status = 415;
+    message = 'Unsupported request encoding.';
+  } else if (error?.status === 400) {
+    status = 400;
+    message = 'Invalid request.';
   }
 
-  if (process.env.NODE_ENV !== 'test') {
-    console.error(`[Error] ${req.method} ${req.originalUrl}:`, err);
+  if (status >= 500 && process.env.NODE_ENV !== 'test') {
+    logger.error('API request failed', {
+      method: req.method,
+      status,
+      code: typeof error?.code === 'string' && /^P\d{4}$/.test(error.code) ? error.code : undefined,
+    });
   }
-
-  res.status(statusCode).json({
-    success: false,
-    message: statusCode === 500 && process.env.NODE_ENV === 'production' ? 'An unexpected server error occurred.' : message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
+  res.status(status).json({ success: false, message });
 };

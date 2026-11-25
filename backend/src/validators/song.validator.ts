@@ -1,51 +1,69 @@
 import { z } from 'zod';
 
-export const songBaseSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  artist: z.string().min(1, 'Artist is required'),
-  album: z.string().optional().nullable(),
-  albumArtist: z.string().optional().nullable(),
-  genre: z.string().optional().nullable(),
-  duration: z.coerce.number().min(0).default(0),
-  audioRelativePath: z.string().trim().min(1).optional(),
-  audioUrl: z.string().trim().optional(),
-  coverRelativePath: z.string().optional().nullable(),
-  coverUrl: z.string().optional().nullable(),
-  audioFileName: z.string().optional().nullable(),
-  coverFileName: z.string().optional().nullable(),
-  originalFileName: z.string().optional().nullable(),
-  fileName: z.string().optional().nullable(),
-  fileSize: z.coerce.number().optional().nullable(),
-  mimeType: z.string().optional().nullable(),
-  fileHash: z.string().optional().nullable(),
-  trackNumber: z.coerce.number().optional().nullable(),
-  discNumber: z.coerce.number().optional().nullable(),
-  releaseYear: z.coerce.number().optional().nullable(),
-  composer: z.string().optional().nullable(),
-  bitrate: z.coerce.number().optional().nullable(),
-  isDownloadable: z
-    .union([
-      z.boolean(),
-      z.enum(['true', 'false']).transform((value) => value === 'true'),
-    ])
-    .default(true),
+const title = z.string().trim().min(1).max(512);
+const text = z.string().trim().max(512).nullish();
+const filePath = z.string().trim().min(1).max(2048);
+const numeric = (schema: z.ZodNumber) => z.union([
+  schema,
+  z.string().trim().regex(/^\d+(\.\d+)?$/).transform(Number).pipe(schema),
+]);
+const integer = numeric(z.number().int().nonnegative().max(2147483647)).nullish();
+const downloadable = z.union([z.boolean(), z.enum(['true', 'false']).transform((value) => value === 'true')]);
+
+const metadataShape = {
+  title,
+  artist: title,
+  album: text,
+  albumArtist: text,
+  genre: text,
+  duration: numeric(z.number().finite().nonnegative()).optional(),
+  trackNumber: integer,
+  discNumber: integer,
+  releaseYear: integer,
+  composer: text,
+  bitrate: integer,
+  isDownloadable: downloadable.optional(),
+};
+
+const songBaseSchema = z.object({
+  ...metadataShape,
+  audioRelativePath: filePath.optional(),
+  audioUrl: filePath.optional(),
+  coverRelativePath: filePath.nullish(),
+  coverUrl: filePath.nullish(),
+  audioFileName: text,
+  coverFileName: text,
+  originalFileName: text,
+  fileName: text,
+  fileSize: integer,
+  mimeType: text,
+  fileHash: z.string().trim().max(128).nullish(),
 });
 
 export const createSongSchema = songBaseSchema.refine(
-  (d) => Boolean(
-    d.audioRelativePath ||
-      (d.audioUrl && !/^https?:\/\//i.test(d.audioUrl) && !d.audioUrl.startsWith('/api/'))
-  ),
-  {
-    message: 'A local audioRelativePath is required',
-    path: ['audioRelativePath'],
-  }
+  (data) => Boolean(data.audioRelativePath ||
+    (data.audioUrl && !/^https?:\/\//i.test(data.audioUrl) && !data.audioUrl.startsWith('/api/'))),
+  { message: 'A local audioRelativePath is required', path: ['audioRelativePath'] },
 );
 
 export const updateSongSchema = songBaseSchema.partial();
 
+export const uploadSongSchema = z.object({
+  ...metadataShape,
+  duplicatePolicy: z.enum(['skip', 'replace', 'keep']).default('skip'),
+}).partial({ title: true, artist: true });
+
 export const checkDuplicateSchema = z.object({
-  fileHash: z.string().optional(),
-  title: z.string().optional(),
-  artist: z.string().optional(),
+  fileHash: z.string().trim().max(128).optional(),
+  title: title.optional(),
+  artist: title.optional(),
+});
+
+const query = z.string().trim().max(256);
+export const searchQuerySchema = z.object({ q: query.optional() });
+export const songListQuerySchema = z.object({
+  q: query.optional(),
+  genre: query.optional(),
+  page: numeric(z.number().int().min(1).max(1_000_000)).default(1),
+  limit: numeric(z.number().int().min(1).max(500)).default(50),
 });

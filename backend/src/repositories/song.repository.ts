@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { config } from '../config/env';
 import { Prisma } from '@prisma/client';
 import { mapSongForApi, mapSongsForApi } from '../utils/song-mapper';
 
@@ -31,12 +32,12 @@ export class SongRepository {
 
     const skip = (page - 1) * limit;
 
-    const [songs, total] = await Promise.all([
+    const [songs, total] = await prisma.$transaction([
       prisma.song.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
       prisma.song.count({ where }),
     ]);
@@ -52,24 +53,8 @@ export class SongRepository {
     };
   }
 
-  static async findById(id: string) {
-    const song = await prisma.song.findUnique({ where: { id } });
-    return song ? mapSongForApi(song) : null;
-  }
-
   static async findByIdRaw(id: string) {
     return prisma.song.findUnique({ where: { id } });
-  }
-
-  static async findByHash(fileHash: string) {
-    if (!fileHash) return null;
-    const song = await prisma.song.findFirst({ where: { fileHash } });
-    return song ? mapSongForApi(song) : null;
-  }
-
-  static async findRawByHash(fileHash: string) {
-    if (!fileHash) return null;
-    return prisma.song.findFirst({ where: { fileHash } });
   }
 
   static async findDuplicate({
@@ -82,103 +67,47 @@ export class SongRepository {
     artist?: string;
   }) {
     if (fileHash) {
-      const exactMatch = await prisma.song.findFirst({ where: { fileHash } });
+      const exactMatch = await prisma.song.findFirst({ where: { fileHash }, orderBy: { id: 'asc' } });
       if (exactMatch) return { matchType: 'exact' as const, song: mapSongForApi(exactMatch) };
     }
 
     if (title && artist) {
-      const all = await prisma.song.findMany({
-        where: {
-          title: { contains: title },
-          artist: { contains: artist },
-        },
-        take: 20,
-      });
-      const metaMatch = all.find(
-        (s) =>
-          s.title.toLowerCase() === title.toLowerCase() &&
-          s.artist.toLowerCase() === artist.toLowerCase()
-      );
+      const [match] = await prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "Song"
+        WHERE lower("title") = lower(${title}) AND lower("artist") = lower(${artist})
+        ORDER BY "id" LIMIT 1
+      `;
+      const metaMatch = match && await this.findByIdRaw(match.id);
       if (metaMatch) return { matchType: 'metadata' as const, song: mapSongForApi(metaMatch) };
     }
 
     return null;
   }
 
-  static async create(data: Prisma.SongCreateInput) {
-    const id =
-      (data as { id?: string }).id ||
-      `c${Date.now().toString(36)}${Math.random().toString(36).substring(2, 9)}`;
-    const song = await prisma.song.create({
-      data: {
-        ...data,
-        id,
-        audioUrl: `/api/songs/${id}/audio`,
-        coverUrl: data.coverRelativePath ? `/api/songs/${id}/artwork` : null,
-      },
-    });
-    return mapSongForApi(song);
-  }
-
-  static async update(id: string, data: Prisma.SongUpdateInput) {
-    const song = await prisma.song.update({ where: { id }, data });
-    return mapSongForApi(song);
-  }
-
-  static async delete(id: string) {
-    return prisma.$transaction([
-      prisma.playHistory.deleteMany({ where: { songId: id } }),
-      prisma.favorite.deleteMany({ where: { songId: id } }),
-      prisma.playlistSong.deleteMany({ where: { songId: id } }),
-      prisma.song.delete({ where: { id } }),
+  static async getLibraryStats(userId?: string, includePrivate = false) {
+    const visibility = includePrivate ? {} : userId ? { OR: [{ userId }, { userId: null }] } : { userId: null };
+    const showPersonalStats = includePrivate || Boolean(userId) || config.allowGuestMutations;
+    const favoriteFilter = includePrivate ? {} : { user: userId ? { id: userId } : { email: config.guestEmail } };
+    const historyFilter = includePrivate ? {} : { userId: userId ?? null };
+    const [[songs], totalPlaylists, favoriteSongs, listeningHistoryCount] = await Promise.all([
+      prisma.$queryRaw<Array<Record<'totalSongs' | 'totalArtists' | 'totalAlbums' | 'storageUsed', bigint>>>`
+        SELECT count(*) AS "totalSongs", count(DISTINCT lower("artist")) AS "totalArtists",
+               count(DISTINCT nullif(lower("album"), '')) AS "totalAlbums",
+               coalesce(sum("fileSize"), 0) AS "storageUsed"
+        FROM "Song"
+      `,
+      prisma.playlist.count({ where: visibility }),
+      showPersonalStats ? prisma.favorite.count({ where: favoriteFilter }) : 0,
+      showPersonalStats ? prisma.playHistory.count({ where: historyFilter }) : 0,
     ]);
-  }
-
-  static async deleteAll() {
-    return prisma.$transaction([
-      prisma.playHistory.deleteMany({}),
-      prisma.favorite.deleteMany({}),
-      prisma.playlistSong.deleteMany({}),
-      prisma.song.deleteMany({}),
-    ]);
-  }
-
-  static async getLibraryStats() {
-    const [totalSongs, totalPlaylists, totalFavorites, historyCount, songs] =
-      await Promise.all([
-        prisma.song.count(),
-        prisma.playlist.count(),
-        prisma.favorite.count(),
-        prisma.playHistory.count(),
-        prisma.song.findMany({
-          select: { artist: true, album: true, fileSize: true },
-        }),
-      ]);
-
-    const artists = new Set(songs.map((s) => s.artist.toLowerCase()));
-    const albums = new Set(
-      songs.map((s) => s.album?.toLowerCase()).filter(Boolean) as string[]
-    );
-    const storageUsed = songs.reduce((sum, s) => sum + (s.fileSize || 0), 0);
-
     return {
-      totalSongs,
-      totalArtists: artists.size,
-      totalAlbums: albums.size,
+      totalSongs: Number(songs.totalSongs),
+      totalArtists: Number(songs.totalArtists),
+      totalAlbums: Number(songs.totalAlbums),
+      storageUsed: Number(songs.storageUsed),
       totalPlaylists,
-      favoriteSongs: totalFavorites,
-      listeningHistoryCount: historyCount,
-      storageUsed,
+      favoriteSongs,
+      listeningHistoryCount,
     };
-  }
-
-  static async findAllForExport() {
-    return prisma.song.findMany();
-  }
-
-  static async findAllRelativePaths() {
-    return prisma.song.findMany({
-      select: { audioRelativePath: true, coverRelativePath: true },
-    });
   }
 }
