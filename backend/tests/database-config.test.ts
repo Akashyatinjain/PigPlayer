@@ -6,13 +6,20 @@ const configScript = path.resolve(__dirname, '../scripts/database-config.js');
 const postgresUrl = 'postgresql://test:fake-password@example.invalid/shared';
 
 function readConfig(env: NodeJS.ProcessEnv, script = configScript) {
-  return spawnSync(process.execPath, ['-e', 'console.log(require(process.argv[1]).databasePath)', script], {
+  return spawnSync(process.execPath, ['-e', `
+    const config = require(process.argv[1]);
+    console.log(config.databaseProvider === 'sqlite'
+      ? config.databasePath
+      : new URL(config.databaseMigrationUrl).hostname);
+  `, script], {
     encoding: 'utf8',
     env: {
       ...process.env,
+      DATABASE_PROVIDER: 'sqlite',
       SQLITE_PATH: '',
       SQLITE_DATABASE_URL: '',
       DATABASE_URL: postgresUrl,
+      DIRECT_URL: '',
       DATA_DIR: '',
       DATA_ROOT: '',
       RENDER: 'true',
@@ -26,6 +33,25 @@ it('uses an explicit SQLite URL ahead of a shared PostgreSQL URL', () => {
   const result = readConfig({ SQLITE_DATABASE_URL: `file:${intendedFile}` });
   expect(result.status).toBe(0);
   expect(result.stdout.trim()).toBe(intendedFile);
+});
+
+it('uses the direct Neon endpoint for migrations when only a pooled URL is supplied', () => {
+  const result = readConfig({
+    DATABASE_PROVIDER: 'postgresql',
+    DATABASE_URL: 'postgresql://ep-example-pooler.us-east-2.aws.neon.tech/pigplayer?sslmode=require',
+  });
+  expect(result.status).toBe(0);
+  expect(result.stdout.trim()).toBe('ep-example.us-east-2.aws.neon.tech');
+});
+
+it('rejects a migration URL for a different Neon branch', () => {
+  const result = readConfig({
+    DATABASE_PROVIDER: 'postgresql',
+    DATABASE_URL: 'postgresql://ep-example-pooler.us-east-2.aws.neon.tech/pigplayer?sslmode=require',
+    DIRECT_URL: 'postgresql://ep-other.us-east-2.aws.neon.tech/pigplayer?sslmode=require',
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('same Neon branch');
 });
 
 it('keeps a bare absolute SQLite file path from legacy configuration', () => {

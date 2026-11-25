@@ -8,7 +8,7 @@ import { AppError } from '../../middleware/error.middleware';
 export async function writeBackupArchive(
   target: string,
   library: unknown,
-  database: string,
+  database: string | undefined,
   mediaDirs: Array<{ folder: string; source: string }>,
 ) {
   const media = await Promise.all(mediaDirs.map(async ({ folder, source }) => ({
@@ -22,7 +22,7 @@ export async function writeBackupArchive(
   const written = pipeline(archive.outputStream, output);
   try {
     archive.addBuffer(Buffer.from(JSON.stringify(library)), 'library.json');
-    archive.addFile(database, 'soundify.db');
+    if (database) archive.addFile(database, 'soundify.db');
     for (const { folder, source, entries } of media) {
       for (const entry of entries) {
         if (entry.isFile()) {

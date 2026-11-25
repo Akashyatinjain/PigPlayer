@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { containsText, prisma } from '../config/database';
 import { mapSongForApi } from '../utils/song-mapper';
 import { AppError } from '../middleware/error.middleware';
 
@@ -37,9 +37,7 @@ export class PlaylistRepository {
         AND: [
           userFilter,
           {
-            name: {
-              contains: query,
-            },
+            name: containsText(query),
           },
         ],
       },
@@ -102,7 +100,7 @@ export class PlaylistRepository {
         data: { playlistId, songId, position: (lastItem?.position ?? -1) + 1 },
         include: { song: true },
       });
-    });
+    }, { isolationLevel: 'Serializable' });
     return { ...item, song: mapSongForApi(item.song) };
   }
 
@@ -126,6 +124,6 @@ export class PlaylistRepository {
           data: { position },
         });
       }
-    });
+    }, { isolationLevel: 'Serializable' });
   }
 }

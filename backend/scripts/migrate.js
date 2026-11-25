@@ -2,9 +2,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
-const { backendRoot, databasePath } = require('./database-config');
+const { backendRoot, databasePath, databaseProvider, databaseMigrationUrl } = require('./database-config');
+const { postgresSchema, runPrisma } = require('./prisma-cli');
 
 function migrateDatabase() {
+  if (databaseProvider === 'postgresql') {
+    runPrisma(['migrate', 'deploy', '--schema', postgresSchema], {
+      ...process.env,
+      DATABASE_URL: databaseMigrationUrl,
+    });
+    return;
+  }
   const folder = path.join(backendRoot, 'prisma', 'migrations');
   const migrations = fs.readdirSync(folder).filter((name) => /^\d{4}_[\w]+\.sql$/.test(name)).sort();
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });

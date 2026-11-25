@@ -6,7 +6,7 @@ import { AppError } from '../middleware/error.middleware';
 
 export async function bootstrapLocalApp(): Promise<void> {
   ensureStorageDirectories();
-  await prisma.$queryRaw`PRAGMA journal_mode = WAL`;
+  if (config.databaseProvider === 'sqlite') await prisma.$queryRaw`PRAGMA journal_mode = WAL`;
   await prisma.$queryRaw`SELECT 1 FROM "AuthSession" LIMIT 1`;
   await prisma.$queryRaw`SELECT 1 FROM "Song" LIMIT 1`;
 

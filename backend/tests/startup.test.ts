@@ -32,6 +32,7 @@ it.each([
     cwd: backend,
     env: {
       ...process.env,
+      DATABASE_PROVIDER: 'sqlite',
       PORT: String(address.port),
       SQLITE_PATH: render ? '' : database,
       SQLITE_DATABASE_URL: '',

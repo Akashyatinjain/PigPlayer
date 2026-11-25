@@ -14,6 +14,20 @@ jobs:
   backend-test:
     name: Backend Build & Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: pigplayer_test
+          POSTGRES_USER: pigplayer_test
+          POSTGRES_PASSWORD: fixture_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pigplayer_test -d pigplayer_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -36,8 +50,13 @@ jobs:
       - name: Build backend
         run: npm run build
 
-      - name: Run Backend Tests
+      - name: Run SQLite backend tests
         run: npm test
+
+      - name: Run PostgreSQL backend tests
+        run: npm test
+        env:
+          PIGPLAYER_TEST_POSTGRES_URL: postgresql://pigplayer_test:fixture_password@127.0.0.1:5432/pigplayer_test
 
   frontend-build:
     name: Frontend Lint & Build

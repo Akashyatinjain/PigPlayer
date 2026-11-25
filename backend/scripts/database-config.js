@@ -11,10 +11,16 @@ const projectRoot = fs.existsSync(path.join(parent, 'frontend')) ||
 const configuredDataRoot = process.env.DATA_DIR?.trim() || process.env.DATA_ROOT?.trim();
 const dataRoot = path.resolve(configuredDataRoot || path.join(projectRoot, 'data'));
 const defaultPath = path.join(dataRoot, 'soundify.db');
-const sqlitePath = process.env.SQLITE_PATH?.trim();
-const sqliteUrl = process.env.SQLITE_DATABASE_URL?.trim();
-const configuredUrl = sqliteUrl || process.env.DATABASE_URL?.trim();
+const databaseProvider = process.env.DATABASE_PROVIDER?.trim() || 'sqlite';
+const genericUrl = process.env.DATABASE_URL?.trim();
+const sqlitePath = databaseProvider === 'sqlite' ? process.env.SQLITE_PATH?.trim() : undefined;
+const sqliteUrl = databaseProvider === 'sqlite' ? process.env.SQLITE_DATABASE_URL?.trim() : undefined;
+const configuredUrl = databaseProvider === 'sqlite' ? sqliteUrl || genericUrl : undefined;
 const urlName = sqliteUrl ? 'SQLITE_DATABASE_URL' : 'DATABASE_URL';
+
+if (!['sqlite', 'postgresql'].includes(databaseProvider)) {
+  throw new Error('DATABASE_PROVIDER must be sqlite or postgresql.');
+}
 
 let databasePath;
 if (sqlitePath) {
@@ -39,5 +45,35 @@ if (sqlitePath) {
 }
 if (/[?#]/.test(databasePath)) throw new Error('SQLite database paths cannot contain ? or #');
 
-const databaseUrl = `file:${databasePath.split(path.sep).join('/')}`;
-module.exports = { backendRoot, projectRoot, dataRoot, databasePath, databaseUrl };
+function readPostgresUrl(raw, name) {
+  try {
+    const url = new URL(raw);
+    if (['postgres:', 'postgresql:'].includes(url.protocol) && url.hostname && url.pathname.length > 1) return url;
+  } catch {
+    // Report only the setting name because the URL can contain credentials.
+  }
+  throw new Error(`${name} must be a PostgreSQL connection URL with a database name.`);
+}
+
+let databaseUrl = `file:${databasePath.split(path.sep).join('/')}`;
+let databaseMigrationUrl = databaseUrl;
+if (databaseProvider === 'postgresql') {
+  const runtime = readPostgresUrl(genericUrl, 'DATABASE_URL');
+  const directUrl = process.env.DIRECT_URL?.trim();
+  const direct = directUrl ? readPostgresUrl(directUrl, 'DIRECT_URL') : new URL(runtime);
+  if (runtime.hostname.endsWith('.neon.tech')) {
+    const expectedHost = runtime.hostname.replace(/-pooler(?=\.)/, '');
+    if (!directUrl) direct.hostname = expectedHost;
+    if (direct.hostname !== expectedHost) {
+      throw new Error('DIRECT_URL must use the unpooled endpoint for the same Neon branch as DATABASE_URL.');
+    }
+  }
+  if (direct.pathname !== runtime.pathname ||
+      (direct.searchParams.get('schema') || 'public') !== (runtime.searchParams.get('schema') || 'public')) {
+    throw new Error('DIRECT_URL and DATABASE_URL must select the same database and schema.');
+  }
+  databaseUrl = runtime.toString();
+  databaseMigrationUrl = direct.toString();
+}
+
+module.exports = { backendRoot, projectRoot, dataRoot, databasePath, databaseProvider, databaseUrl, databaseMigrationUrl };

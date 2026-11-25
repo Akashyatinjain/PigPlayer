@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../config/database';
+import { config } from '../config/env';
 import {
   BACKUPS_DIR,
   AUDIO_DIR,
@@ -50,10 +51,10 @@ export class BackupService {
         prisma.favorite.findMany(),
         prisma.playHistory.findMany(),
         prisma.user.findMany({ select: { id: true, email: true, name: true, role: true, createdAt: true } }),
-      ]);
+      ], { isolationLevel: 'Serializable' });
       const library = { version: 1, exportedAt: new Date().toISOString(), songs, playlists, favorites, history, users };
-      const snapshotPath = path.join(staging, 'soundify.db');
-      await prisma.$executeRaw`VACUUM INTO ${snapshotPath}`;
+      const snapshotPath = config.databaseProvider === 'sqlite' ? path.join(staging, 'soundify.db') : undefined;
+      if (snapshotPath) await prisma.$executeRaw`VACUUM INTO ${snapshotPath}`;
       const tempZip = path.join(staging, 'backup.zip');
       await writeBackupArchive(tempZip, library, snapshotPath, includeMedia ? [
         { folder: 'audio', source: AUDIO_DIR }, { folder: 'artwork', source: ARTWORK_DIR },

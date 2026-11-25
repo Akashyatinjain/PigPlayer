@@ -200,7 +200,7 @@ describe('Soundify Offline-First API Suite', () => {
     });
 
     it('GET /api/search finds songs', async () => {
-      const res = await request(app).get('/api/search').query({ q: 'Neon' });
+      const res = await request(app).get('/api/search').query({ q: 'neon' });
       expect(res.status).toBe(200);
       expect(res.body.data.songs.length).toBeGreaterThan(0);
     });

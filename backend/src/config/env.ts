@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { databaseUrl } from '../../scripts/database-config';
+import { databaseProvider, databaseUrl } from '../../scripts/database-config';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
@@ -58,6 +58,7 @@ export const config = {
   allowedOrigins,
   allowGuestMutations,
   databaseUrl,
+  databaseProvider,
   jwt: {
     secret: jwtSecret,
     refreshSecret,

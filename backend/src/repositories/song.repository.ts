@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { containsText, prisma } from '../config/database';
 import { config } from '../config/env';
 import { Prisma } from '@prisma/client';
 import { mapSongForApi, mapSongsForApi } from '../utils/song-mapper';
@@ -18,16 +18,17 @@ export class SongRepository {
     const where: Prisma.SongWhereInput = {};
 
     if (query) {
+      const contains = containsText(query);
       where.OR = [
-        { title: { contains: query } },
-        { artist: { contains: query } },
-        { album: { contains: query } },
-        { genre: { contains: query } },
+        { title: contains },
+        { artist: contains },
+        { album: contains },
+        { genre: contains },
       ];
     }
 
     if (genre && genre !== 'All') {
-      where.genre = { contains: genre };
+      where.genre = containsText(genre);
     }
 
     const skip = (page - 1) * limit;
@@ -40,7 +41,7 @@ export class SongRepository {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
       prisma.song.count({ where }),
-    ]);
+    ], { isolationLevel: 'Serializable' });
 
     return {
       songs: mapSongsForApi(songs),
