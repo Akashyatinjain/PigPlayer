@@ -21,7 +21,14 @@ function runPrisma(args, env = process.env) {
   const cli = path.join(path.dirname(prismaPackage), require(prismaPackage).bin.prisma);
   const result = spawnSync(process.execPath, [cli, ...args], { cwd: backendRoot, stdio: 'inherit', env });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`Prisma ${args.slice(0, 2).join(' ')} failed with exit status ${result.status}.`);
+  if (result.status !== 0) {
+    const reason = result.signal ? `signal ${result.signal}` : `exit status ${result.status}`;
+    throw Object.assign(new Error(`Prisma ${args.slice(0, 2).join(' ')} failed with ${reason}.`), {
+      code: 'PRISMA_CLI_EXIT',
+      exitStatus: result.status,
+      signal: result.signal,
+    });
+  }
 }
 
 function generateClientIfCurrent(schemaPath, outputDirectory) {

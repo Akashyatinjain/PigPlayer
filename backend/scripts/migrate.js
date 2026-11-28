@@ -52,7 +52,7 @@ if (require.main === module) {
   try {
     migrateDatabase();
   } catch (error) {
-    console.error('SQLite migration failed:', error.message);
+    console.error(`${databaseProvider} migration failed:`, error.message);
     process.exitCode = 1;
   }
 }
