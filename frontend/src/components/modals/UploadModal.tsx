@@ -27,7 +27,6 @@ import {
 import { formatDuration, formatFileSize, getErrorMessage } from "@/lib/utils";
 import { uploadService } from "@/services/upload.service";
 import { songService } from "@/services/song.service";
-import { authService } from "@/services/auth.service";
 import { closeWithHistory } from "@/hooks/useMobileNavigation";
 import { triggerHaptic } from "@/lib/haptics";
 
@@ -228,10 +227,6 @@ export default function UploadModal() {
   // Upload an individual queue item
   const uploadSingleItem = async (item: UploadQueueItem): Promise<boolean> => {
     try {
-      if (typeof window !== "undefined") {
-        await authService.ensureAuth();
-      }
-
       setQueue((prev) =>
         prev.map((q) =>
           q.id === item.id ? { ...q, status: "uploading", progress: 5 } : q
@@ -305,9 +300,6 @@ export default function UploadModal() {
   // Upload all ready or failed items with concurrency
   const handleUploadAll = async () => {
     if (isUploadingAll) return;
-    if (typeof window !== "undefined") {
-      await authService.ensureAuth();
-    }
     const pendingItems = queue.filter(
       (item) => item.status === "ready" || item.status === "error"
     );
@@ -797,7 +789,7 @@ export default function UploadModal() {
             <button
               type="button"
               onClick={handleCloseModal}
-              className="px-3.5 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors shrink-0"
+              className="min-h-11 min-w-11 px-3.5 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white hover:bg-white/[0.06] rounded-xl transition-colors shrink-0"
             >
               {completedCount === queue.length && completedCount > 0
                 ? "Close"
@@ -811,7 +803,7 @@ export default function UploadModal() {
                   setQueue([]);
                   fileInputRef.current?.click();
                 }}
-                className="flex-1 sm:flex-initial px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 active:scale-95"
+                className="min-h-11 flex-1 sm:flex-initial px-4 py-2 bg-[#FF4D80] hover:bg-[#FF6694] text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 active:scale-95"
               >
                 Upload More
               </button>
@@ -822,7 +814,7 @@ export default function UploadModal() {
                   type="button"
                   onClick={handlePlayLocallyFromQueue}
                   disabled={isSavingLocally || isUploadingAll || readyCount === 0}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
+                  className="min-h-11 flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50"
                   title="Play directly on this device without uploading to server"
                 >
                   {isSavingLocally ? (
@@ -844,7 +836,7 @@ export default function UploadModal() {
                   type="button"
                   onClick={handleUploadAll}
                   disabled={isUploadingAll || isSavingLocally || readyCount === 0}
-                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 bg-[#FF4D80] hover:bg-[#FF6694] active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="min-h-11 flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 bg-[#FF4D80] hover:bg-[#FF6694] active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-[#FF4D80]/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploadingAll ? (
                     <>

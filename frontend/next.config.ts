@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
     const backendUrl = process.env.BACKEND_INTERNAL_URL || "http://localhost:5000";
     return [
       {
+        source: "/health",
+        destination: `${backendUrl}/health`,
+      },
+      {
         source: "/api/:path*",
         destination: `${backendUrl}/api/:path*`,
       },

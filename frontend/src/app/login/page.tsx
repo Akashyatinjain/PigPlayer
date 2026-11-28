@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowRight, Lock, Mail, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, Lock, Mail, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -30,25 +30,6 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to sign in. Please verify your credentials."));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setEmail("demo@piggyplayer.app");
-    setPassword("password123");
-    setIsLoading(true);
-    setError(null);
-    try {
-      const ok = await login("demo@piggyplayer.app", "password123");
-      if (ok) {
-        router.push("/");
-      } else {
-        setError(useAuthStore.getState().error || "Demo login failed");
-      }
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, "Demo login failed"));
     } finally {
       setIsLoading(false);
     }
@@ -127,19 +108,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-white/[0.06] flex flex-col gap-3">
-          {process.env.NODE_ENV === "development" && (
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold rounded-xl border border-white/[0.08] transition-colors flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#FF4D80]" />
-              <span>Use Demo Account (demo@piggyplayer.app)</span>
-            </button>
-          )}
-
+        <div className="mt-6 pt-6 border-t border-white/[0.06]">
           <p className="text-center text-xs text-[#64748B]">
             Don&apos;t have an account?{" "}
             <Link

@@ -25,6 +25,11 @@ import OfflineView from "@/components/views/OfflineView";
 
 function MainContent() {
   const { activeTab, selectedPlaylistId } = useLibrary();
+  const mainRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+  }, [activeTab, selectedPlaylistId]);
 
   const renderActiveView = () => {
     if (selectedPlaylistId || activeTab === "playlists") {
@@ -60,7 +65,7 @@ function MainContent() {
       {/* Main Body */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden">
         <TopBar />
-        <main className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-32 sm:pb-36 lg:pb-8">
+        <main ref={mainRef} className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-3 sm:px-4 md:px-8 pt-4 sm:pt-6 pb-32 sm:pb-36 lg:pb-8">
           <div className="max-w-6xl mx-auto">{renderActiveView()}</div>
         </main>
       </div>

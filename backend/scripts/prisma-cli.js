@@ -11,7 +11,9 @@ function writePostgresSchema() {
     .replace('// Soundify Backend - local SQLite schema', '// Generated from prisma/schema.prisma by scripts/prisma-cli.js')
     .replace('provider = "prisma-client-js"', 'provider = "prisma-client-js"\n  output   = "../../node_modules/.prisma/postgresql-client"')
     .replace('provider = "sqlite"', 'provider = "postgresql"');
-  fs.writeFileSync(postgresSchema, schema);
+  if (!fs.existsSync(postgresSchema) || fs.readFileSync(postgresSchema, 'utf8') !== schema) {
+    fs.writeFileSync(postgresSchema, schema);
+  }
 }
 
 function runPrisma(args, env = process.env) {
@@ -22,13 +24,27 @@ function runPrisma(args, env = process.env) {
   if (result.status !== 0) throw new Error(`Prisma ${args.slice(0, 2).join(' ')} failed with exit status ${result.status}.`);
 }
 
+function generateClientIfCurrent(schemaPath, outputDirectory) {
+  const generatedSchema = path.join(outputDirectory, 'schema.prisma');
+  const normalizeSchema = (contents) => contents.replace(/\/\/.*$/gm, '').replace(/\s+/g, '');
+  const source = normalizeSchema(fs.readFileSync(schemaPath, 'utf8'));
+  const generated = fs.existsSync(generatedSchema)
+    ? normalizeSchema(fs.readFileSync(generatedSchema, 'utf8'))
+    : null;
+  if (generated === source) {
+    console.log(`Prisma Client is current for ${path.relative(backendRoot, schemaPath)}.`);
+    return;
+  }
+  runPrisma(['generate', '--schema', schemaPath]);
+}
+
 module.exports = { postgresSchema, runPrisma };
 
 if (require.main === module) {
   try {
     writePostgresSchema();
-    runPrisma(['generate', '--schema', sqliteSchema]);
-    runPrisma(['generate', '--schema', postgresSchema]);
+    generateClientIfCurrent(sqliteSchema, path.join(backendRoot, 'node_modules', '.prisma', 'client'));
+    generateClientIfCurrent(postgresSchema, path.join(backendRoot, 'node_modules', '.prisma', 'postgresql-client'));
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;

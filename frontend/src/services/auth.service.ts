@@ -7,8 +7,6 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
-let inFlightEnsureAuth: Promise<boolean> | null = null;
-
 export const authService = {
   async register(data: { name: string; email: string; password: string }): Promise<AuthResponse> {
     const res = await api.post('/auth/register', data);
@@ -69,34 +67,5 @@ export const authService = {
   isAuthenticated(): boolean {
     if (typeof window === 'undefined') return false;
     return Boolean(localStorage.getItem('soundify_access_token'));
-  },
-
-  async ensureAuth(): Promise<boolean> {
-    if (this.isAuthenticated()) return true;
-    if (inFlightEnsureAuth) return inFlightEnsureAuth;
-
-    inFlightEnsureAuth = (async () => {
-      try {
-        if (
-          process.env.NODE_ENV === 'development' &&
-          process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === 'true' &&
-          process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL &&
-          process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD
-        ) {
-          await this.login({
-            email: process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL,
-            password: process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD,
-          });
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
-      } finally {
-        inFlightEnsureAuth = null;
-      }
-    })();
-
-    return inFlightEnsureAuth;
   },
 };

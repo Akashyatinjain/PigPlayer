@@ -70,7 +70,7 @@ export default function HomeView() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-8 sm:space-y-10 text-white">
-      <div className="flex items-end justify-between gap-4 pt-1">
+      <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Your space, your sound</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{greeting}</h1>
@@ -103,13 +103,13 @@ export default function HomeView() {
           className="hidden"
         />
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
           {/* Quick Play Local Songs Button */}
           <button
             type="button"
             onClick={() => deviceFileInputRef.current?.click()}
             disabled={isImportingLocal}
-            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold text-emerald-400 transition-all hover:bg-emerald-900/40 hover:text-emerald-300 shadow-sm active:scale-95 disabled:opacity-50"
+            className="flex min-h-10 sm:min-h-11 flex-1 sm:flex-none items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/30 px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold text-emerald-400 transition-all hover:bg-emerald-900/40 hover:text-emerald-300 shadow-sm active:scale-95 disabled:opacity-50"
             title="Import and play songs directly from your phone/computer without uploading"
           >
             <HardDriveDownload className="h-4 w-4" />
@@ -121,7 +121,7 @@ export default function HomeView() {
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="flex min-h-10 sm:min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium text-[#94A3B8] transition-colors hover:bg-white/[0.1] hover:text-white active:scale-95"
+            className="flex min-h-10 sm:min-h-11 flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.06] px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-medium text-[#94A3B8] transition-colors hover:bg-white/[0.1] hover:text-white active:scale-95"
           >
             <Plus className="h-4 w-4 text-[#FF4D80]" />
             <span>Add Music</span>
@@ -203,7 +203,7 @@ export default function HomeView() {
 
       {/* 📁 Device Local Storage Section (Directly visible on Home) */}
       <section className="space-y-3.5">
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
               <HardDriveDownload className="w-4 h-4" />
@@ -223,7 +223,7 @@ export default function HomeView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center justify-end gap-2 sm:shrink-0">
             <button
               type="button"
               onClick={() => folderInputRef.current?.click()}

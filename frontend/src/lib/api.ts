@@ -150,27 +150,6 @@ api.interceptors.response.use(
           }
         }
 
-        // Only attempt fallback auto-login in local development if explicitly enabled and configured via env vars
-        if (
-          !accessToken &&
-          process.env.NODE_ENV === 'development' &&
-          process.env.NEXT_PUBLIC_ENABLE_DEV_AUTO_LOGIN === 'true' &&
-          process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL &&
-          process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD
-        ) {
-          try {
-            const loginRes = await axios.post(`${getApiBaseUrl()}/auth/login`, {
-              email: process.env.NEXT_PUBLIC_LOCAL_USER_EMAIL,
-              password: process.env.NEXT_PUBLIC_LOCAL_USER_PASSWORD,
-            });
-            accessToken = loginRes.data?.data?.accessToken;
-            newRefreshToken = loginRes.data?.data?.refreshToken;
-            user = loginRes.data?.data?.user;
-          } catch {
-            // Dev auto-login failed
-          }
-        }
-
         if (accessToken) {
           localStorage.setItem('soundify_access_token', accessToken);
           if (newRefreshToken) {
